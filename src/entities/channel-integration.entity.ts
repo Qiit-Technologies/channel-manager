@@ -17,6 +17,7 @@ export enum ChannelType {
   HOTELS_COM = "HOTELS_COM",
   TRIPADVISOR = "TRIPADVISOR",
   AGODA = "AGODA",
+  HOTELBEDS = "HOTELBEDS",
   CUSTOM = "CUSTOM",
 }
 

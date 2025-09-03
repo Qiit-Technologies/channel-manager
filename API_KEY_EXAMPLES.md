@@ -29,10 +29,10 @@ curl "http://localhost:3001/api/v1/api-keys/info?apiKey=your_api_key_here"
 ### JavaScript/Node.js
 
 ```javascript
-const axios = require('axios');
+const axios = require("axios");
 
-const API_KEY = 'your_api_key_here';
-const BASE_URL = 'http://localhost:3001/api/v1';
+const API_KEY = "your_api_key_here";
+const BASE_URL = "http://localhost:3001/api/v1";
 
 // Create channel integration
 async function createIntegration() {
@@ -41,40 +41,64 @@ async function createIntegration() {
       `${BASE_URL}/channel-integrations`,
       {
         hotelId: 1,
-        channelType: 'AIRBNB',
-        channelName: 'Airbnb Integration',
-        apiKey: 'airbnb_api_key',
-        apiSecret: 'airbnb_api_secret'
+        channelType: "AIRBNB",
+        channelName: "Airbnb Integration",
+        apiKey: "airbnb_api_key",
+        apiSecret: "airbnb_api_secret",
       },
       {
         headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
       }
     );
-    
-    console.log('Integration created:', response.data);
+
+    console.log("Integration created:", response.data);
   } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
+    console.error("Error:", error.response?.data || error.message);
+  }
+}
+
+// Create Hotelbeds integration
+async function createHotelbedsIntegration() {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/channel-integrations`,
+      {
+        hotelId: 1,
+        channelType: "HOTELBEDS",
+        channelName: "Hotelbeds Integration",
+        apiKey: "hotelbeds_api_key",
+        apiSecret: "hotelbeds_api_secret",
+        channelPropertyId: "12345",
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("Hotelbeds integration created:", response.data);
+  } catch (error) {
+    console.error("Error:", error.response?.data || error.message);
   }
 }
 
 // Get channel integrations
 async function getIntegrations() {
   try {
-    const response = await axios.get(
-      `${BASE_URL}/channel-integrations/1`,
-      {
-        headers: {
-          'X-API-Key': API_KEY
-        }
-      }
-    );
-    
-    console.log('Integrations:', response.data);
+    const response = await axios.get(`${BASE_URL}/channel-integrations/1`, {
+      headers: {
+        "X-API-Key": API_KEY,
+      },
+    });
+
+    console.log("Integrations:", response.data);
   } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
+    console.error("Error:", error.response?.data || error.message);
   }
 }
 ```
@@ -101,15 +125,37 @@ def create_integration():
         'apiKey': 'airbnb_api_key',
         'apiSecret': 'airbnb_api_secret'
     }
-    
+
     response = requests.post(
         f'{BASE_URL}/channel-integrations',
         json=data,
         headers=headers
     )
-    
+
     if response.status_code == 200:
         print('Integration created:', response.json())
+    else:
+        print('Error:', response.json())
+
+# Create Hotelbeds integration
+def create_hotelbeds_integration():
+    data = {
+        'hotelId': 1,
+        'channelType': 'HOTELBEDS',
+        'channelName': 'Hotelbeds Integration',
+        'apiKey': 'hotelbeds_api_key',
+        'apiSecret': 'hotelbeds_api_secret',
+        'channelPropertyId': '12345'
+    }
+
+    response = requests.post(
+        f'{BASE_URL}/channel-integrations',
+        json=data,
+        headers=headers
+    )
+
+    if response.status_code == 200:
+        print('Hotelbeds integration created:', response.json())
     else:
         print('Error:', response.json())
 
@@ -119,7 +165,7 @@ def get_integrations():
         f'{BASE_URL}/channel-integrations/1',
         headers={'X-API-Key': API_KEY}
     )
-    
+
     if response.status_code == 200:
         print('Integrations:', response.json())
     else:
@@ -139,6 +185,20 @@ curl -X POST \
     "channelName": "Airbnb Integration",
     "apiKey": "airbnb_api_key",
     "apiSecret": "airbnb_api_secret"
+  }' \
+  http://localhost:3001/api/v1/channel-integrations
+
+# Create Hotelbeds integration
+curl -X POST \
+  -H "Authorization: Bearer your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "hotelId": 1,
+    "channelType": "HOTELBEDS",
+    "channelName": "Hotelbeds Integration",
+    "apiKey": "hotelbeds_api_key",
+    "apiSecret": "hotelbeds_api_secret",
+    "channelPropertyId": "12345"
   }' \
   http://localhost:3001/api/v1/channel-integrations
 
@@ -169,6 +229,7 @@ curl -X POST \
 ## Error Handling
 
 ### 401 Unauthorized
+
 ```json
 {
   "statusCode": 401,
@@ -178,6 +239,7 @@ curl -X POST \
 ```
 
 ### 401 Invalid API Key
+
 ```json
 {
   "statusCode": 401,
@@ -198,11 +260,13 @@ curl -X POST \
 ## Development vs Production
 
 ### Development Mode
+
 - No API key required when `CHANNEL_MANAGER_API_KEY` is not set
 - All endpoints accessible without authentication
 - Useful for local development and testing
 
 ### Production Mode
+
 - API key required for all protected endpoints
 - Strict authentication enforced
 - Enhanced security features enabled 

@@ -8,6 +8,7 @@ import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 import { ChannelAvailability } from "./entities/channel-availability.entity";
 import { IntegrationStatus } from "./entities/channel-integration.entity";
 import { SyncStatus } from "./entities/channel-sync-log.entity";
+import axios from "axios";
 
 @Injectable()
 export class ChannelManagerRepository {
@@ -69,6 +70,18 @@ export class ChannelManagerRepository {
   async findIntegrationsByHotel(
     hotelId: number
   ): Promise<ChannelIntegration[]> {
+    const response = await axios.get(
+      "https://api.test.hotelbeds.com/hotel-api/1.0/hotels",
+      {
+        headers: {
+          "Api-Key": "618ac6b2dcd3aadaf8da4d6ab461cfc2",
+          "X-Signature": "908ebfa5de",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    console.log(response.data);
     return await this.channelIntegrationRepo.find({
       where: { hotelId },
       select: {
@@ -87,6 +100,7 @@ export class ChannelManagerRepository {
         createdAt: true,
         updatedAt: true,
       },
+      order: { createdAt: "DESC" },
     });
   }
 

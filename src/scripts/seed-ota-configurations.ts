@@ -71,6 +71,18 @@ export async function seedOtaConfigurations(dataSource: DataSource) {
         testMode: process.env.NODE_ENV === "development",
       },
     },
+    {
+      channelType: ChannelType.HOTELBEDS,
+      apiKey: process.env.HOTELBEDS_API_KEY || "your-hotelbeds-api-key",
+      apiSecret:
+        process.env.HOTELBEDS_API_SECRET || "your-hotelbeds-api-secret",
+      baseUrl: "https://api.hotelbeds.com",
+      isActive: true,
+      additionalConfig: {
+        partnerId: process.env.HOTELBEDS_PARTNER_ID || "your-partner-id",
+        testMode: process.env.NODE_ENV === "development",
+      },
+    },
   ];
 
   for (const config of configurations) {

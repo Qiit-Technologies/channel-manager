@@ -46,26 +46,30 @@ The Channel Manager uses API key authentication for secure access to all endpoin
 ### Setting Up API Key Authentication
 
 1. **Generate an API Key**
+
    ```bash
    # Set the master API key in your .env file
    CHANNEL_MANAGER_API_KEY=your_master_api_key_here
    ```
 
 2. **Using API Keys in Requests**
-   
+
    **Option 1: Authorization Header (Recommended)**
+
    ```bash
    curl -H "Authorization: Bearer your_api_key_here" \
         http://localhost:3001/api/v1/channel-integrations
    ```
 
    **Option 2: X-API-Key Header**
+
    ```bash
    curl -H "X-API-Key: your_api_key_here" \
         http://localhost:3001/api/v1/channel-integrations
    ```
 
    **Option 3: Query Parameter**
+
    ```bash
    curl "http://localhost:3001/api/v1/channel-integrations?apiKey=your_api_key_here"
    ```
@@ -90,12 +94,14 @@ The Channel Manager uses API key authentication for secure access to all endpoin
 When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in development mode where all endpoints are accessible without authentication.
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Environment Configuration**
    Create a `.env` file with the following variables:
+
    ```env
    # Database
    DB_HOST=localhost
@@ -103,10 +109,10 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
    DB_USERNAME=your_username
    DB_PASSWORD=your_password
    DB_DATABASE=your_database
-   
+
    # Channel Manager API Key (Master Key)
    CHANNEL_MANAGER_API_KEY=your_master_api_key_here
-   
+
    # Channel API Keys
    AIRBNB_API_KEY=your_airbnb_api_key
    AIRBNB_API_SECRET=your_airbnb_api_secret
@@ -115,23 +121,25 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
    HOTELS_COM_API_KEY=your_hotels_com_api_key
    TRIPADVISOR_API_KEY=your_tripadvisor_api_key
    AGODA_API_KEY=your_agoda_api_key
-   
+
    # Application
    PORT=3001
    NODE_ENV=development
    ```
 
 4. **Database Setup**
+
    ```bash
    # Run migrations (if using TypeORM migrations)
    npm run migration:run
    ```
 
 5. **Start the application**
+
    ```bash
    # Development mode
    npm run start:dev
-   
+
    # Production mode
    npm run start:prod
    ```
@@ -139,78 +147,107 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
 ## API Endpoints
 
 ### Channel Integrations
+
 - `POST /api/v1/channel-integrations` - Create new integration
 - `GET /api/v1/channel-integrations/:hotelId` - Get integrations by hotel
 - `PUT /api/v1/channel-integrations/:id` - Update integration
 - `DELETE /api/v1/channel-integrations/:id` - Delete integration
 
 ### Channel Mappings
+
 - `POST /api/v1/channel-mappings` - Create room type mapping
 - `GET /api/v1/channel-mappings/:integrationId` - Get mappings by integration
 - `PUT /api/v1/channel-mappings/:id` - Update mapping
 
 ### Availability Management
+
 - `POST /api/v1/availability/sync` - Sync availability
 - `GET /api/v1/availability/:integrationId/:roomtypeId` - Get availability by date range
 
 ### Rate Management
+
 - `POST /api/v1/rates` - Create rate plan
 - `GET /api/v1/rates/:integrationId` - Get rate plans by integration
 
 ### Synchronization
+
 - `POST /api/v1/sync/:integrationId/:operationType` - Trigger manual sync
 - `GET /api/v1/sync/logs/:integrationId` - Get sync logs
 - `GET /api/v1/sync/statistics/:integrationId` - Get sync statistics
 
 ### Guest Integration
+
 - `POST /api/v1/guests/:guestId/checkin` - Handle guest check-in
 - `POST /api/v1/guests/:guestId/checkout` - Handle guest check-out
 
 ## Usage Examples
 
 ### Creating a Channel Integration
+
 ```typescript
-const integration = await channelManagerService.createChannelIntegration({
-  hotelId: 1,
-  channelType: ChannelType.AIRBNB,
-  channelName: 'Airbnb Integration',
-  apiKey: 'your_api_key',
-  apiSecret: 'your_api_secret',
-  isRealTimeSync: true,
-  syncIntervalMinutes: 15
-}, userId);
+const integration = await channelManagerService.createChannelIntegration(
+  {
+    hotelId: 1,
+    channelType: ChannelType.AIRBNB,
+    channelName: "Airbnb Integration",
+    apiKey: "your_api_key",
+    apiSecret: "your_api_secret",
+    isRealTimeSync: true,
+    syncIntervalMinutes: 15,
+  },
+  userId
+);
+
+// Hotelbeds integration example
+const hotelbedsIntegration =
+  await channelManagerService.createChannelIntegration(
+    {
+      hotelId: 1,
+      channelType: ChannelType.HOTELBEDS,
+      channelName: "Hotelbeds Integration",
+      apiKey: "your_hotelbeds_api_key",
+      apiSecret: "your_hotelbeds_api_secret",
+      channelPropertyId: "12345",
+      isRealTimeSync: true,
+      syncIntervalMinutes: 15,
+    },
+    userId
+  );
 ```
 
 ### Syncing Availability
+
 ```typescript
 const availability = await channelManagerService.syncAvailability({
   integrationId: 1,
   roomtypeId: 1,
-  date: '2024-01-15',
+  date: "2024-01-15",
   totalRooms: 10,
   availableRooms: 8,
-  occupiedRooms: 2
+  occupiedRooms: 2,
 });
 ```
 
 ### Manual Sync Trigger
+
 ```typescript
-await channelManagerService.triggerManualSync(
-  1, 
-  SyncOperationType.FULL_SYNC
-);
+await channelManagerService.triggerManualSync(1, SyncOperationType.FULL_SYNC);
 ```
 
 ## Configuration
 
 ### Sync Intervals
+
 Configure synchronization intervals in the integration settings:
+
 - **Real-time**: Immediate updates for critical changes
 - **Scheduled**: Configurable intervals (5, 15, 30, 60 minutes)
 - **Manual**: On-demand synchronization
 
 ### Error Handling
+
 The system includes comprehensive error handling:
+
 - Automatic retry mechanisms
 - Error logging and monitoring
 - Integration status tracking
@@ -219,14 +256,18 @@ The system includes comprehensive error handling:
 ## Monitoring and Logging
 
 ### Sync Logs
+
 Track all synchronization activities:
+
 - Operation type and status
 - Processing time and record counts
 - Error details and response data
 - Timestamps and user information
 
 ### Statistics
+
 Monitor integration performance:
+
 - Success/failure rates
 - Average processing times
 - Record counts by operation type
@@ -246,6 +287,7 @@ Monitor integration performance:
 ## Development
 
 ### Project Structure
+
 ```
 src/
 ├── entities/           # Database models
@@ -261,12 +303,14 @@ src/
 ```
 
 ### Adding New Channels
+
 1. Implement the `ChannelApiInterface`
 2. Add the channel type to the `ChannelType` enum
 3. Update the `ChannelApiFactory`
 4. Add configuration and credentials handling
 
 ### Testing
+
 ```bash
 # Unit tests
 npm run test
@@ -281,6 +325,7 @@ npm run test:cov
 ## Deployment
 
 ### Docker
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -293,11 +338,13 @@ CMD ["npm", "run", "start:prod"]
 ```
 
 ### Environment Variables
+
 Ensure all required environment variables are set in your deployment environment.
 
 ## Support
 
 For technical support or questions:
+
 - Check the logs for detailed error information
 - Review the sync statistics for performance insights
 - Verify channel API credentials and permissions

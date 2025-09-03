@@ -1,13 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ChannelType } from '../entities/channel-integration.entity';
-import { ChannelApiInterface } from './channel-api.interface';
-import { BookingComApiService } from './implementations/booking-com-api.service';
-import { ExpediaApiService } from './implementations/expedia-api.service';
-import { AirbnbApiService } from './implementations/airbnb-api.service';
-import { HotelsComApiService } from './implementations/hotels-com-api.service';
-import { TripAdvisorApiService } from './implementations/tripadvisor-api.service';
-import { AgodaApiService } from './implementations/agoda-api.service';
-import { CustomApiService } from './implementations/custom-api.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { ChannelType } from "../entities/channel-integration.entity";
+import { ChannelApiInterface } from "./channel-api.interface";
+import { BookingComApiService } from "./implementations/booking-com-api.service";
+import { ExpediaApiService } from "./implementations/expedia-api.service";
+import { AirbnbApiService } from "./implementations/airbnb-api.service";
+import { HotelsComApiService } from "./implementations/hotels-com-api.service";
+import { TripAdvisorApiService } from "./implementations/tripadvisor-api.service";
+import { AgodaApiService } from "./implementations/agoda-api.service";
+import { HotelbedsApiService } from "./implementations/hotelbeds-api.service";
+import { CustomApiService } from "./implementations/custom-api.service";
 
 @Injectable()
 export class ChannelApiFactory {
@@ -35,6 +36,9 @@ export class ChannelApiFactory {
       case ChannelType.AGODA:
         return new AgodaApiService();
 
+      case ChannelType.HOTELBEDS:
+        return new HotelbedsApiService();
+
       case ChannelType.CUSTOM:
         return new CustomApiService();
 
@@ -50,19 +54,21 @@ export class ChannelApiFactory {
   getChannelDisplayName(channelType: ChannelType): string {
     switch (channelType) {
       case ChannelType.BOOKING_COM:
-        return 'Booking.com';
+        return "Booking.com";
       case ChannelType.EXPEDIA:
-        return 'Expedia';
+        return "Expedia";
       case ChannelType.AIRBNB:
-        return 'Airbnb';
+        return "Airbnb";
       case ChannelType.HOTELS_COM:
-        return 'Hotels.com';
+        return "Hotels.com";
       case ChannelType.TRIPADVISOR:
-        return 'TripAdvisor';
+        return "TripAdvisor";
       case ChannelType.AGODA:
-        return 'Agoda';
+        return "Agoda";
+      case ChannelType.HOTELBEDS:
+        return "Hotelbeds";
       case ChannelType.CUSTOM:
-        return 'Custom Integration';
+        return "Custom Integration";
       default:
         return channelType;
     }
@@ -72,62 +78,70 @@ export class ChannelApiFactory {
     switch (channelType) {
       case ChannelType.BOOKING_COM:
         return [
-          'Real-time availability sync',
-          'Rate management',
-          'Webhook support',
-          'Multi-currency support',
-          'Room type mapping',
-          'Guest reservation management',
+          "Real-time availability sync",
+          "Rate management",
+          "Webhook support",
+          "Multi-currency support",
+          "Room type mapping",
+          "Guest reservation management",
         ];
 
       case ChannelType.EXPEDIA:
         return [
-          'Inventory sync',
-          'Rate updates',
-          'XML API integration',
-          'Multi-property support',
-          'Guest management',
+          "Inventory sync",
+          "Rate updates",
+          "XML API integration",
+          "Multi-property support",
+          "Guest management",
         ];
 
       case ChannelType.AIRBNB:
         return [
-          'Calendar sync',
-          'Pricing updates',
-          'Instant booking',
-          'Guest communication',
-          'Property listing management',
+          "Calendar sync",
+          "Pricing updates",
+          "Instant booking",
+          "Guest communication",
+          "Property listing management",
         ];
 
       case ChannelType.HOTELS_COM:
         return [
-          'Availability updates',
-          'Rate synchronization',
-          'Guest reservation sync',
-          'Property information management',
+          "Availability updates",
+          "Rate synchronization",
+          "Guest reservation sync",
+          "Property information management",
         ];
 
       case ChannelType.TRIPADVISOR:
         return [
-          'Property listing sync',
-          'Guest review management',
-          'Availability updates',
-          'Rate synchronization',
+          "Property listing sync",
+          "Guest review management",
+          "Availability updates",
+          "Rate synchronization",
         ];
 
       case ChannelType.AGODA:
         return [
-          'Inventory management',
-          'Rate updates',
-          'Guest reservation sync',
-          'Multi-language support',
+          "Inventory management",
+          "Rate updates",
+          "Guest reservation sync",
+          "Multi-language support",
+        ];
+
+      case ChannelType.HOTELBEDS:
+        return [
+          "Inventory management",
+          "Rate updates",
+          "Guest reservation sync",
+          "Multi-language support",
         ];
 
       case ChannelType.CUSTOM:
         return [
-          'Custom API integration',
-          'Flexible data mapping',
-          'Webhook support',
-          'Custom authentication',
+          "Custom API integration",
+          "Flexible data mapping",
+          "Webhook support",
+          "Custom authentication",
         ];
 
       default:

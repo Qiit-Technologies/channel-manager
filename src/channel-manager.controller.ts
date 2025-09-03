@@ -1,3 +1,4 @@
+import { Injectable, Logger } from "@nestjs/common";
 import {
   Controller,
   Get,
@@ -18,13 +19,20 @@ import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
 import { ChannelIntegration } from "./entities/channel-integration.entity";
 import { ChannelMapping } from "./entities/channel-mapping.entity";
 import { ChannelAvailability } from "./entities/channel-availability.entity";
+import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 import { ChannelSyncLog } from "./entities/channel-sync-log.entity";
 import { SyncOperationType } from "./entities/channel-sync-log.entity";
 import { ChannelType } from "./entities/channel-integration.entity";
+import { ChannelApiFactory } from "./api/channel-api-factory.service";
 
 @Controller("channel-manager")
 export class ChannelManagerController {
-  constructor(private readonly channelManagerService: ChannelManagerService) {}
+  private readonly logger = new Logger(ChannelManagerController.name);
+
+  constructor(
+    private readonly channelManagerService: ChannelManagerService,
+    private readonly channelApiFactory: ChannelApiFactory
+  ) {}
 
   // Channel Integration Endpoints
   @Post("integrations")
@@ -42,9 +50,14 @@ export class ChannelManagerController {
 
   @Get("integrations")
   async getChannelIntegrations(
-    @Query("hotelId") hotelId: number
+    @Query("hotelId") hotelId?: number
   ): Promise<ChannelIntegration[]> {
-    return await this.channelManagerService.getChannelIntegrations(hotelId);
+    if (hotelId) {
+      return await this.channelManagerService.getChannelIntegrations(hotelId);
+    } else {
+      // If no hotelId provided, return all integrations
+      return await this.channelManagerService.getAllIntegrations();
+    }
   }
 
   @Get("integrations/:id")
@@ -203,20 +216,13 @@ export class ChannelManagerController {
   async getChannelFeatures(
     @Param("type") type: ChannelType
   ): Promise<string[]> {
-    // This would come from the ChannelApiFactory
-    // For now, return a basic list
-    switch (type) {
-      case ChannelType.BOOKING_COM:
-        return [
-          "Real-time availability sync",
-          "Rate management",
-          "Webhook support",
-          "Multi-currency support",
-        ];
-      case ChannelType.EXPEDIA:
-        return ["Inventory sync", "Rate updates", "XML API integration"];
-      default:
-        return ["Basic integration support"];
+    try {
+      return this.channelApiFactory.getChannelFeatures(type);
+    } catch (error) {
+      this.logger.error(
+        `Failed to get features for channel ${type}: ${error.message}`
+      );
+      return ["Basic integration support"];
     }
   }
 

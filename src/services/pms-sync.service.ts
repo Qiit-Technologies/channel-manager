@@ -19,7 +19,7 @@ export class PmsSyncService {
     try {
       this.logger.log(`Starting room type sync for hotel: ${hotelId}`);
 
-      // TODO: Read room types from PMS database
+                // TODO: Read room types from PMS database
       // This will be implemented when PMS integration is complete
 
       // For now, log the sync attempt
@@ -36,7 +36,7 @@ export class PmsSyncService {
     try {
       this.logger.log(`Starting inventory sync for hotel: ${hotelId}`);
 
-      // TODO: Read inventory from PMS database
+                // TODO: Read inventory from PMS database
       // This will be implemented when PMS integration is complete
 
       // For now, log the sync attempt

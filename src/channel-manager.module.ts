@@ -18,7 +18,7 @@ import { ChannelApiFactory } from "./api/channel-api-factory.service";
 import { ApiKeyService } from "./auth/api-key.service";
 import { OtaConfigurationService } from "./services/ota-configuration.service";
 import { OtaConfigurationController } from "./controllers/ota-configuration.controller";
-import { OreonSyncService } from "./services/oreon-sync.service";
+import { PmsSyncService } from "./services/pms-sync.service";
 
 @Module({
   imports: [
@@ -34,10 +34,10 @@ import { OreonSyncService } from "./services/oreon-sync.service";
             database: process.env.DB_DATABASE || "anli",
             entities: [
               __dirname + "/**/*.entity{.ts,.js}",
-              // Include Oreon entities from the same database
-              "../../Oreon/dist/**/*.entity.js",
+              // Include PMS entities from the same database
+              "../../PMS/dist/**/*.entity.js",
             ],
-            synchronize: process.env.NODE_ENV === "development", // Match Oreon's setting
+            synchronize: process.env.NODE_ENV === "development", // Match PMS's setting
             logging: process.env.NODE_ENV === "development",
             retryAttempts: 3,
             retryDelay: 3000,
@@ -73,7 +73,7 @@ import { OreonSyncService } from "./services/oreon-sync.service";
           ChannelApiFactory,
           ApiKeyService,
           OtaConfigurationService,
-          OreonSyncService,
+          PmsSyncService,
         ]
       : []),
   ],

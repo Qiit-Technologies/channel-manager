@@ -72,7 +72,11 @@ export class ChannelManagerService {
         );
       }
 
-      // Test the integration using Anli's credentials
+      // Test the integration using centralized OTA config
+      this.logger.log(
+        `NODE_ENV: ${process.env.NODE_ENV}, running connection test...`
+      );
+
       const testResult = await this.testChannelIntegration(dto);
       if (!testResult.success) {
         throw new HttpException(
@@ -89,7 +93,7 @@ export class ChannelManagerService {
         }
       );
 
-      // Auto-setup integration using Oreon data
+      // Auto-setup integration using PMS data
       await this.autoSetupIntegration(integration);
 
       this.logger.log(
@@ -106,6 +110,10 @@ export class ChannelManagerService {
 
   async getChannelIntegrations(hotelId: number): Promise<ChannelIntegration[]> {
     return await this.channelManagerRepository.findIntegrationsByHotel(hotelId);
+  }
+
+  async getAllIntegrations(): Promise<ChannelIntegration[]> {
+    return await this.channelManagerRepository.findActiveIntegrations();
   }
 
   async getChannelIntegration(id: number): Promise<ChannelIntegration> {
@@ -359,11 +367,12 @@ export class ChannelManagerService {
     integration: Partial<ChannelIntegration>
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      console.log("integration", integration);
       // Get the OTA configuration for this channel type
       const otaConfig = await this.otaConfigurationService.getConfiguration(
         integration.channelType
       );
-
+      console.log("otaConfig", otaConfig);
       if (!otaConfig || !otaConfig.apiKey) {
         return {
           success: false,
@@ -371,13 +380,14 @@ export class ChannelManagerService {
         };
       }
 
-      // Create a test integration object with the API key from OTA config
+      // Use the credentials from the integration parameter (user-provided credentials)
+      // Only fall back to OTA config if the integration doesn't have credentials
       const testIntegration = {
         ...integration,
-        apiKey: otaConfig.apiKey,
-        apiSecret: otaConfig.apiSecret,
-        accessToken: otaConfig.accessToken,
-        refreshToken: otaConfig.refreshToken,
+        apiKey: integration.apiKey || otaConfig.apiKey,
+        apiSecret: integration.apiSecret || otaConfig.apiSecret,
+        accessToken: integration.accessToken || otaConfig.accessToken,
+        refreshToken: integration.refreshToken || otaConfig.refreshToken,
       };
 
       const channelApi = this.channelApiFactory.createChannelApi(
@@ -505,14 +515,14 @@ export class ChannelManagerService {
     }
   }
 
-  // Auto-create room type mappings from Oreon data
+  // Auto-create room type mappings from PMS data
   private async autoCreateRoomTypeMappings(
     integration: ChannelIntegration
   ): Promise<void> {
     try {
-      // TODO: Read room types from Oreon database
+      // TODO: Read room types from PMS database
       // For now, we'll create placeholder mappings
-      // This will be implemented when Oreon integration is complete
+      // This will be implemented when PMS integration is complete
 
       this.logger.log(
         `Auto-creating room type mappings for integration: ${integration.id}`
@@ -521,11 +531,11 @@ export class ChannelManagerService {
       // Placeholder: Create default room type mapping
       const defaultMapping = {
         integrationId: integration.id,
-        roomtypeId: 1, // TODO: Get from Oreon
+        roomtypeId: 1, // TODO: Get from PMS
         channelRoomTypeId: `${integration.channelPropertyId}_ROOM1`,
-        channelRoomTypeName: "Standard Room", // TODO: Get from Oreon
-        channelAmenities: ["WiFi", "AC", "TV"], // TODO: Get from Oreon
-        channelDescription: "Comfortable standard room", // TODO: Get from Oreon
+        channelRoomTypeName: "Standard Room", // TODO: Get from PMS
+        channelAmenities: ["WiFi", "AC", "TV"], // TODO: Get from PMS
+        channelDescription: "Comfortable standard room", // TODO: Get from PMS
         isActive: true,
       };
 
@@ -550,7 +560,7 @@ export class ChannelManagerService {
         `Setting up availability sync for integration: ${integration.id}`
       );
 
-      // TODO: Read room inventory from Oreon and create availability records
+      // TODO: Read room inventory from PMS and create availability records
       // For now, create placeholder availability
 
       const today = new Date();
@@ -565,12 +575,12 @@ export class ChannelManagerService {
       ) {
         const availability = {
           integrationId: integration.id,
-          roomtypeId: 1, // TODO: Get from Oreon
+          roomtypeId: 1, // TODO: Get from PMS
           date: new Date(d),
-          availableRooms: 10, // TODO: Get from Oreon
-          totalRooms: 10, // TODO: Get from Oreon
-          rate: 100.0, // TODO: Get from Oreon
-          currency: "USD", // TODO: Get from Oreon
+          availableRooms: 10, // TODO: Get from PMS
+          totalRooms: 10, // TODO: Get from PMS
+          rate: 100.0, // TODO: Get from PMS
+          currency: "USD", // TODO: Get from PMS
         };
 
         await this.channelManagerRepository.createAvailability(availability);
@@ -594,16 +604,16 @@ export class ChannelManagerService {
         `Setting up rate sync for integration: ${integration.id}`
       );
 
-      // TODO: Read rate plans from Oreon and create channel rate plans
+      // TODO: Read rate plans from PMS and create channel rate plans
       // For now, create placeholder rate plan
 
       const defaultRatePlan = {
         integrationId: integration.id,
-        roomtypeId: 1, // TODO: Get from Oreon
+        roomtypeId: 1, // TODO: Get from PMS
         channelRatePlanId: `${integration.channelPropertyId}_RATE1`,
-        channelRatePlanName: "Standard Rate", // TODO: Get from Oreon
-        baseRate: 100.0, // TODO: Get from Oreon
-        currency: "USD", // TODO: Get from Oreon
+        channelRatePlanName: "Standard Rate", // TODO: Get from PMS
+        baseRate: 100.0, // TODO: Get from PMS
+        currency: "USD", // TODO: Get from PMS
         isActive: true,
       };
 
