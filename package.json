@@ -4,20 +4,21 @@
   "description": "Channel Manager for Hotel Management System",
   "main": "dist/main.js",
   "scripts": {
-    "build": "npx nest build",
-    "build:prod": "npx nest build",
-    "start": "npx nest start",
-    "start:dev": "npx nest start --watch",
-    "start:debug": "npx nest start --debug --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "build:prod": "tsc -p tsconfig.build.json",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
+    "start:debug": "ts-node --inspect-brk -r tsconfig-paths/register src/main.ts",
     "start:prod": "node dist/main.js",
-    "swagger:generate": "npx ts-node -r tsconfig-paths/register src/scripts/generate-openapi.ts",
+    "swagger:generate": "ts-node -r tsconfig-paths/register src/scripts/generate-openapi.ts",
     "swagger:generate:dist": "node dist/scripts/generate-openapi.js",
-    "lint": "npx eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "npx jest",
-    "test:watch": "npx jest --watch",
-    "test:cov": "npx jest --coverage",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "npx jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.0",
@@ -38,7 +39,6 @@
     "typeorm": "^0.3.0"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/express": "^4.17.17",
