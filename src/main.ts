@@ -64,6 +64,7 @@ async function bootstrap() {
 
   console.log(`✅ Channel Manager is running on: http://localhost:${port}`);
   console.log(`🌐 API Base URL: http://localhost:${port}/api/v1`);
+  // SSL configuration enabled for production database connections
 
   if (isTestMode) {
     console.log("\n🧪 TEST MODE ENDPOINTS (no authentication required):");
