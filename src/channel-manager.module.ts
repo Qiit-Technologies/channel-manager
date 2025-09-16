@@ -27,12 +27,15 @@ import { PmsSyncService } from "./services/pms-sync.service";
       ? [
           TypeOrmModule.forRoot({
             type: "postgres",
-            url: process.env.DATABASE_URL || undefined,
-            host: process.env.DB_HOST || "localhost",
-            port: parseInt(process.env.DB_PORT) || 5432,
-            username: process.env.DB_USERNAME || "hellosauri",
-            password: process.env.DB_PASSWORD || "password",
-            database: process.env.DB_DATABASE || "anli",
+            ...(process.env.DATABASE_URL
+              ? { url: process.env.DATABASE_URL }
+              : {
+                  host: process.env.DB_HOST || "localhost",
+                  port: parseInt(process.env.DB_PORT) || 5432,
+                  username: process.env.DB_USERNAME || "hellosauri",
+                  password: process.env.DB_PASSWORD || "password",
+                  database: process.env.DB_DATABASE || "anli",
+                }),
             entities: [
               __dirname + "/**/*.entity{.ts,.js}",
               // Include PMS entities from the same database
@@ -43,9 +46,12 @@ import { PmsSyncService } from "./services/pms-sync.service";
             retryAttempts: 3,
             retryDelay: 3000,
             keepConnectionAlive: false,
-            ssl: process.env.NODE_ENV === "production" ? {
-              rejectUnauthorized: false
-            } : false,
+            ssl:
+              process.env.NODE_ENV === "production"
+                ? {
+                    rejectUnauthorized: false,
+                  }
+                : false,
           }),
           TypeOrmModule.forFeature([
             ChannelIntegration,
