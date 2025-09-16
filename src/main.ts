@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { ChannelManagerModule } from "./channel-manager.module";
 import { EnhancedApiKeyGuard } from "./auth/enhanced-api-key.guard";
 
@@ -20,6 +21,29 @@ async function bootstrap() {
       transform: true,
     })
   );
+
+  // Swagger documentation
+  const config = new DocumentBuilder()
+    .setTitle("Anli Channel Manager API")
+    .setDescription(
+      "API documentation for the Anli Channel Manager service, including OTA configuration and integrations."
+    )
+    .setVersion("1.0.0")
+    .addApiKey(
+      {
+        type: "apiKey",
+        name: "x-api-key",
+        in: "header",
+        description: "Provide your API key in the x-api-key header",
+      },
+      "ApiKeyAuth"
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config, {
+    deepScanRoutes: true,
+  });
+  SwaggerModule.setup("docs", app, document, { useGlobalPrefix: true });
 
   // Check if we're in test mode (no database required)
   const isTestMode = process.env.TEST_MODE === "true";

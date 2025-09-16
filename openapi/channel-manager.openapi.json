@@ -1,0 +1,1533 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/channel-manager/integrations": {
+      "post": {
+        "operationId": "ChannelManagerController_createChannelIntegration",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChannelIntegrationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelIntegration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "ChannelManagerController_getChannelIntegrations",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelIntegration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}": {
+      "get": {
+        "operationId": "ChannelManagerController_getChannelIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelIntegration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "ChannelManagerController_updateChannelIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelIntegration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "ChannelManagerController_deleteChannelIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/available-types/{hotelId}": {
+      "get": {
+        "operationId": "ChannelManagerController_getAvailableIntegrationTypes",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/mappings": {
+      "post": {
+        "operationId": "ChannelManagerController_createChannelMapping",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChannelMappingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelMapping"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/{integrationId}/mappings": {
+      "get": {
+        "operationId": "ChannelManagerController_getChannelMappings",
+        "parameters": [
+          {
+            "name": "integrationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelMapping"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/mappings/{id}": {
+      "put": {
+        "operationId": "ChannelManagerController_updateChannelMapping",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelMapping"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/availability/sync": {
+      "post": {
+        "operationId": "ChannelManagerController_syncAvailability",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncAvailabilityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelAvailability"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/availability": {
+      "get": {
+        "operationId": "ChannelManagerController_getAvailabilityByDateRange",
+        "parameters": [
+          {
+            "name": "integrationId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "roomtypeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelAvailability"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/rate-plans": {
+      "post": {
+        "operationId": "ChannelManagerController_createChannelRatePlan",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/{integrationId}/rate-plans": {
+      "get": {
+        "operationId": "ChannelManagerController_getChannelRatePlans",
+        "parameters": [
+          {
+            "name": "integrationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}/sync": {
+      "post": {
+        "operationId": "ChannelManagerController_triggerManualSync",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}/sync-logs": {
+      "get": {
+        "operationId": "ChannelManagerController_getSyncLogs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelSyncLog"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}/sync-statistics": {
+      "get": {
+        "operationId": "ChannelManagerController_getSyncStatistics",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}/test": {
+      "post": {
+        "operationId": "ChannelManagerController_testChannelIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/channels/supported": {
+      "get": {
+        "operationId": "ChannelManagerController_getSupportedChannels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/channels/{type}/features": {
+      "get": {
+        "operationId": "ChannelManagerController_getChannelFeatures",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/guests/{guestId}/check-in": {
+      "post": {
+        "operationId": "ChannelManagerController_handleGuestCheckIn",
+        "parameters": [
+          {
+            "name": "guestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/guests/{guestId}/check-out": {
+      "post": {
+        "operationId": "ChannelManagerController_handleGuestCheckOut",
+        "parameters": [
+          {
+            "name": "guestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/dashboard/summary": {
+      "get": {
+        "operationId": "ChannelManagerController_getDashboardSummary",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/dashboard/performance": {
+      "get": {
+        "operationId": "ChannelManagerController_getPerformanceMetrics",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ota-configurations": {
+      "get": {
+        "operationId": "OtaConfigurationController_getAllConfigurations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OtaConfiguration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "OtaConfigurationController_createConfiguration",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtaConfiguration"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ota-configurations/{channelType}": {
+      "get": {
+        "operationId": "OtaConfigurationController_getConfiguration",
+        "parameters": [
+          {
+            "name": "channelType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtaConfiguration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "OtaConfigurationController_updateConfiguration",
+        "parameters": [
+          {
+            "name": "channelType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtaConfiguration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "OtaConfigurationController_deleteConfiguration",
+        "parameters": [
+          {
+            "name": "channelType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ota-configurations/{channelType}/test": {
+      "post": {
+        "operationId": "OtaConfigurationController_testConfiguration",
+        "parameters": [
+          {
+            "name": "channelType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "info": {
+    "title": "Channel Manager API",
+    "description": "API documentation for the Channel Manager service, including OTA configuration and integrations.",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Provide your API key in the x-api-key header"
+      }
+    },
+    "schemas": {
+      "CreateChannelIntegrationDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Hotel identifier",
+            "example": 123
+          },
+          "channelType": {
+            "enum": [
+              "BOOKING_COM",
+              "EXPEDIA",
+              "AIRBNB",
+              "HOTELS_COM",
+              "TRIPADVISOR",
+              "AGODA",
+              "HOTELBEDS",
+              "CUSTOM"
+            ],
+            "type": "string",
+            "description": "Channel type (OTA)"
+          },
+          "channelName": {
+            "type": "string",
+            "description": "Human readable channel name",
+            "example": "Booking.com"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "ERROR",
+              "PENDING",
+              "TESTING"
+            ],
+            "type": "string"
+          },
+          "apiKey": {
+            "type": "string",
+            "description": "API key for the channel"
+          },
+          "apiSecret": {
+            "type": "string",
+            "description": "API secret for the channel"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "channelPropertyId": {
+            "type": "string",
+            "description": "Property ID used by the channel"
+          },
+          "channelUsername": {
+            "type": "string"
+          },
+          "channelPassword": {
+            "type": "string"
+          },
+          "webhookUrl": {
+            "type": "string",
+            "description": "Webhook URL for channel events"
+          },
+          "webhookSecret": {
+            "type": "string",
+            "description": "Secret used to sign webhooks"
+          },
+          "isWebhookEnabled": {
+            "type": "boolean"
+          },
+          "syncIntervalMinutes": {
+            "type": "number",
+            "description": "Interval in minutes for periodic sync"
+          },
+          "isRealTimeSync": {
+            "type": "boolean",
+            "description": "Enable real-time sync if supported"
+          },
+          "testMode": {
+            "type": "boolean",
+            "description": "Run integration in test/sandbox mode"
+          },
+          "channelSettings": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "supportedFeatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "hotelId",
+          "channelType",
+          "channelName"
+        ]
+      },
+      "ChannelIntegration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "hotelId": {
+            "type": "number"
+          },
+          "channelType": {
+            "enum": [
+              "BOOKING_COM",
+              "EXPEDIA",
+              "AIRBNB",
+              "HOTELS_COM",
+              "TRIPADVISOR",
+              "AGODA",
+              "HOTELBEDS",
+              "CUSTOM"
+            ],
+            "type": "string"
+          },
+          "channelName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "ERROR",
+              "PENDING",
+              "TESTING"
+            ],
+            "type": "string"
+          },
+          "apiKey": {
+            "type": "string"
+          },
+          "apiSecret": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "channelPropertyId": {
+            "type": "string"
+          },
+          "channelUsername": {
+            "type": "string"
+          },
+          "channelPassword": {
+            "type": "string"
+          },
+          "webhookUrl": {
+            "type": "string"
+          },
+          "webhookSecret": {
+            "type": "string"
+          },
+          "isWebhookEnabled": {
+            "type": "boolean"
+          },
+          "syncIntervalMinutes": {
+            "type": "number"
+          },
+          "isRealTimeSync": {
+            "type": "boolean"
+          },
+          "lastSyncAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastSuccessfulSync": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "testMode": {
+            "type": "boolean"
+          },
+          "channelSettings": {
+            "type": "object"
+          },
+          "supportedFeatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "number"
+          },
+          "updatedBy": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "hotelId",
+          "channelType",
+          "channelName",
+          "status",
+          "apiKey",
+          "apiSecret",
+          "accessToken",
+          "refreshToken",
+          "channelPropertyId",
+          "channelUsername",
+          "channelPassword",
+          "webhookUrl",
+          "webhookSecret",
+          "isWebhookEnabled",
+          "syncIntervalMinutes",
+          "isRealTimeSync",
+          "lastSyncAt",
+          "lastSuccessfulSync",
+          "errorMessage",
+          "testMode",
+          "channelSettings",
+          "supportedFeatures",
+          "createdAt",
+          "updatedAt",
+          "createdBy",
+          "updatedBy"
+        ]
+      },
+      "CreateChannelMappingDto": {
+        "type": "object",
+        "properties": {
+          "integrationId": {
+            "type": "number",
+            "description": "Related integration ID",
+            "example": 42
+          },
+          "roomtypeId": {
+            "type": "number",
+            "description": "Internal room type ID",
+            "example": 101
+          },
+          "channelRoomTypeId": {
+            "type": "string",
+            "description": "Channel room type identifier",
+            "example": "DLX-1"
+          },
+          "channelRoomTypeName": {
+            "type": "string",
+            "description": "Channel room type name",
+            "example": "Deluxe Double"
+          },
+          "channelRatePlanId": {
+            "type": "string",
+            "description": "Channel rate plan identifier"
+          },
+          "channelRatePlanName": {
+            "type": "string",
+            "description": "Channel rate plan name"
+          },
+          "channelAmenities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "channelDescription": {
+            "type": "string"
+          },
+          "channelImages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "mappingRules": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "customFields": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "integrationId",
+          "roomtypeId",
+          "channelRoomTypeId",
+          "channelRoomTypeName"
+        ]
+      },
+      "ChannelMapping": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "integrationId": {
+            "type": "number"
+          },
+          "roomtypeId": {
+            "type": "number"
+          },
+          "channelRoomTypeId": {
+            "type": "string"
+          },
+          "channelRoomTypeName": {
+            "type": "string"
+          },
+          "channelRatePlanId": {
+            "type": "string"
+          },
+          "channelRatePlanName": {
+            "type": "string"
+          },
+          "channelAmenities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "channelDescription": {
+            "type": "string"
+          },
+          "channelImages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "mappingRules": {
+            "type": "object"
+          },
+          "customFields": {
+            "type": "object"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "number"
+          },
+          "updatedBy": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "integrationId",
+          "roomtypeId",
+          "channelRoomTypeId",
+          "channelRoomTypeName",
+          "channelRatePlanId",
+          "channelRatePlanName",
+          "channelAmenities",
+          "channelDescription",
+          "channelImages",
+          "isActive",
+          "mappingRules",
+          "customFields",
+          "createdAt",
+          "updatedAt",
+          "createdBy",
+          "updatedBy"
+        ]
+      },
+      "SyncAvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "integrationId": {
+            "type": "number",
+            "description": "Integration ID",
+            "example": 42
+          },
+          "roomtypeId": {
+            "type": "number",
+            "description": "Room type ID",
+            "example": 101
+          },
+          "roomId": {
+            "type": "number",
+            "description": "Specific room ID (optional)"
+          },
+          "date": {
+            "type": "string",
+            "description": "Date to apply availability to",
+            "example": "2025-09-20"
+          },
+          "status": {
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE",
+              "OCCUPIED",
+              "MAINTENANCE",
+              "BLOCKED"
+            ],
+            "type": "string"
+          },
+          "availableRooms": {
+            "type": "number"
+          },
+          "totalRooms": {
+            "type": "number"
+          },
+          "occupiedRooms": {
+            "type": "number"
+          },
+          "blockedRooms": {
+            "type": "number"
+          },
+          "maintenanceRooms": {
+            "type": "number"
+          },
+          "rate": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "closeReason": {
+            "type": "string"
+          },
+          "restrictions": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "channelData": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "integrationId",
+          "roomtypeId",
+          "date"
+        ]
+      },
+      "ChannelAvailability": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "integrationId": {
+            "type": "number"
+          },
+          "roomtypeId": {
+            "type": "number"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE",
+              "OCCUPIED",
+              "MAINTENANCE",
+              "BLOCKED"
+            ],
+            "type": "string"
+          },
+          "availableRooms": {
+            "type": "number"
+          },
+          "totalRooms": {
+            "type": "number"
+          },
+          "occupiedRooms": {
+            "type": "number"
+          },
+          "blockedRooms": {
+            "type": "number"
+          },
+          "maintenanceRooms": {
+            "type": "number"
+          },
+          "rate": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "closeReason": {
+            "type": "string"
+          },
+          "restrictions": {
+            "type": "object"
+          },
+          "channelData": {
+            "type": "object"
+          },
+          "isSynced": {
+            "type": "boolean"
+          },
+          "lastSyncedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "syncStatus": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "number"
+          },
+          "updatedBy": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "integrationId",
+          "roomtypeId",
+          "date",
+          "status",
+          "availableRooms",
+          "totalRooms",
+          "occupiedRooms",
+          "blockedRooms",
+          "maintenanceRooms",
+          "rate",
+          "currency",
+          "isClosed",
+          "closeReason",
+          "restrictions",
+          "channelData",
+          "isSynced",
+          "lastSyncedAt",
+          "syncStatus",
+          "errorMessage",
+          "createdAt",
+          "updatedAt",
+          "createdBy",
+          "updatedBy"
+        ]
+      },
+      "ChannelSyncLog": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "integrationId": {
+            "type": "number"
+          },
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "INVENTORY_UPDATE",
+              "RATE_UPDATE",
+              "AVAILABILITY_UPDATE",
+              "BOOKING_CREATE",
+              "BOOKING_UPDATE",
+              "BOOKING_CANCEL",
+              "MAPPING_UPDATE",
+              "FULL_SYNC"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "FAILED",
+              "PENDING",
+              "IN_PROGRESS",
+              "PARTIAL_SUCCESS"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "BIDIRECTIONAL"
+            ]
+          },
+          "requestData": {
+            "type": "string"
+          },
+          "responseData": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "retryCount": {
+            "type": "number"
+          },
+          "maxRetries": {
+            "type": "number"
+          },
+          "processingTimeMs": {
+            "type": "number"
+          },
+          "recordsProcessed": {
+            "type": "number"
+          },
+          "recordsSuccess": {
+            "type": "number"
+          },
+          "recordsFailed": {
+            "type": "number"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "nextRetryAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "integrationId",
+          "operationType",
+          "status",
+          "direction",
+          "requestData",
+          "responseData",
+          "errorMessage",
+          "errorCode",
+          "retryCount",
+          "maxRetries",
+          "processingTimeMs",
+          "recordsProcessed",
+          "recordsSuccess",
+          "recordsFailed",
+          "metadata",
+          "nextRetryAt",
+          "completedAt",
+          "createdAt",
+          "createdBy"
+        ]
+      },
+      "OtaConfiguration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "channelType": {
+            "enum": [
+              "BOOKING_COM",
+              "EXPEDIA",
+              "AIRBNB",
+              "HOTELS_COM",
+              "TRIPADVISOR",
+              "AGODA",
+              "HOTELBEDS",
+              "CUSTOM"
+            ],
+            "type": "string"
+          },
+          "apiKey": {
+            "type": "string"
+          },
+          "apiSecret": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "additionalConfig": {
+            "type": "object"
+          },
+          "lastTested": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "testStatus": {
+            "type": "object"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "channelType",
+          "apiKey",
+          "apiSecret",
+          "accessToken",
+          "refreshToken",
+          "baseUrl",
+          "isActive",
+          "additionalConfig",
+          "lastTested",
+          "testStatus",
+          "errorMessage",
+          "createdAt",
+          "updatedAt"
+        ]
+      }
+    }
+  }
+}
