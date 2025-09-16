@@ -42,6 +42,9 @@ import { PmsSyncService } from "./services/pms-sync.service";
             retryAttempts: 3,
             retryDelay: 3000,
             keepConnectionAlive: false,
+            ssl: process.env.NODE_ENV === "production" ? {
+              rejectUnauthorized: false
+            } : false,
           }),
           TypeOrmModule.forFeature([
             ChannelIntegration,
