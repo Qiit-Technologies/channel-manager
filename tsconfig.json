@@ -17,7 +17,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "types": [],
+    "types": ["node"],
     "paths": {
       "src/*": ["src/*"]
     }
