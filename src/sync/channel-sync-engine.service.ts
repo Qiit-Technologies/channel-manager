@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ChannelManagerRepository } from "../channel-manager.repository";
 import { ChannelIntegration } from "../entities/channel-integration.entity";
-import { ChannelAvailability } from "../entities/channel-availability.entity";
+import { ChannelAvailability, AvailabilityStatus } from "../entities/channel-availability.entity";
 import {
   ChannelSyncLog,
   SyncOperationType,
@@ -288,6 +288,89 @@ export class ChannelSyncEngine {
     };
   }
 
+  private normalizeReservationSummary(
+    result: any,
+    webhookData: any
+  ): { roomTypeIdOrChannelId: number | string; startDate: string | Date; endDate: string | Date; rooms?: number } | null {
+    const src = result?.reservationSummary ?? result?.reservation ?? webhookData ?? {};
+    const roomTypeIdOrChannelId =
+      src.roomTypeId ?? src.room_type_id ?? src.roomType ?? src.channelRoomTypeId ?? src.channel_room_type_id;
+    const startDate = src.startDate ?? src.start_date ?? src.checkIn ?? src.check_in;
+    const endDate = src.endDate ?? src.end_date ?? src.checkOut ?? src.check_out;
+    const rooms = src.rooms ?? src.quantity ?? src.numberOfRooms ?? src.num_rooms ?? 1;
+    if (!roomTypeIdOrChannelId || !startDate || !endDate) return null;
+    return { roomTypeIdOrChannelId, startDate, endDate, rooms };
+  }
+
+  private async applyReservationAvailabilityIfPresent(
+    integration: ChannelIntegration,
+    webhookData: any,
+    result: any
+  ): Promise<void> {
+    try {
+      const summary = this.normalizeReservationSummary(result, webhookData);
+      if (!summary) return;
+
+      const { roomTypeIdOrChannelId, startDate, endDate, rooms } = summary;
+      let roomtypeId: number | null = null;
+      if (typeof roomTypeIdOrChannelId === "number") {
+        roomtypeId = roomTypeIdOrChannelId;
+      } else if (typeof roomTypeIdOrChannelId === "string") {
+        const mapping = await this.channelManagerRepository.findMappingByChannelRoomTypeId(
+          integration.id,
+          roomTypeIdOrChannelId
+        );
+        roomtypeId = mapping?.roomtypeId ?? null;
+      }
+
+      if (!roomtypeId || !startDate || !endDate) return;
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+
+      const roomsToApply = Math.max(1, Number(rooms) || 1);
+      for (let date = new Date(start); date < end; date.setDate(date.getDate() + 1)) {
+        const day = new Date(date);
+        const availability = await this.channelManagerRepository.findAvailabilityByDateRange(
+          integration.id,
+          roomtypeId,
+          day,
+          day
+        );
+        if (!availability || availability.length === 0) continue;
+
+        const current = availability[0];
+        const baseTotal = current.totalRooms ?? current.availableRooms ?? 0;
+        const newOccupied = Math.min(baseTotal, (current.occupiedRooms ?? 0) + roomsToApply);
+        const newAvailable = Math.max(0, baseTotal - newOccupied - (current.blockedRooms ?? 0) - (current.maintenanceRooms ?? 0));
+
+        await this.channelManagerRepository.updateAvailability(current.id, {
+          occupiedRooms: newOccupied,
+          availableRooms: newAvailable,
+          status: newAvailable > 0 ? AvailabilityStatus.AVAILABLE : AvailabilityStatus.OCCUPIED,
+          updatedAt: new Date(),
+        });
+
+        if (integration.isRealTimeSync) {
+          const updated = {
+            ...current,
+            occupiedRooms: newOccupied,
+            availableRooms: newAvailable,
+            status: newAvailable > 0 ? AvailabilityStatus.AVAILABLE : AvailabilityStatus.OCCUPIED,
+          } as ChannelAvailability;
+          try {
+            await this.syncAvailabilityToChannel(updated);
+          } catch (err) {
+            this.logger.error(`Real-time availability push failed: ${err.message}`);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to apply reservation availability: ${error.message}`);
+    }
+  }
+
   async handleIncomingWebhook(
     integration: ChannelIntegration,
     webhookData: any
@@ -312,6 +395,13 @@ export class ChannelSyncEngine {
         integration.channelType
       );
       const result = await channelApi.processWebhook(integration, webhookData);
+
+      // Apply availability blocking if reservation details are present
+      await this.applyReservationAvailabilityIfPresent(
+        integration,
+        webhookData,
+        result
+      );
 
       // Update sync log with success
       await this.channelManagerRepository.updateSyncLog(syncLog.id, {

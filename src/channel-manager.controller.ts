@@ -13,6 +13,9 @@ import {
   HttpCode,
 } from "@nestjs/common";
 import { ChannelManagerService } from "./channel-manager.service";
+import { ApiTags, ApiParam, ApiBody, ApiResponse, ApiConsumes, ApiExtraModels, getSchemaPath } from "@nestjs/swagger";
+import { WebhookPayloadDto } from "./dto/webhook-payload.dto";
+import { SevenWebhookPayloadDto } from "./dto/seven-webhook-payload.dto";
 import { CreateChannelIntegrationDto } from "./dto/create-channel-integration.dto";
 import { CreateChannelMappingDto } from "./dto/create-channel-mapping.dto";
 import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
@@ -25,6 +28,7 @@ import { SyncOperationType } from "./entities/channel-sync-log.entity";
 import { ChannelType } from "./entities/channel-integration.entity";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
 
+@ApiTags("Channel Manager")
 @Controller("channel-manager")
 export class ChannelManagerController {
   private readonly logger = new Logger(ChannelManagerController.name);
@@ -235,6 +239,46 @@ export class ChannelManagerController {
   @Post("guests/:guestId/check-out")
   async handleGuestCheckOut(@Param("guestId") guestId: number): Promise<void> {
     await this.channelManagerService.handleGuestCheckOut(guestId);
+  }
+
+  // Inbound Webhook Endpoint for OTA bookings and updates
+  @Post("webhooks/:type")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiParam({
+    name: "type",
+    description: "Channel type (e.g., booking, expedia, seven)",
+    enum: ChannelType,
+  })
+  @ApiConsumes("application/json")
+  @ApiExtraModels(WebhookPayloadDto, SevenWebhookPayloadDto)
+  @ApiBody({
+    description:
+      "Inbound webhook payload. Must include hotelId to resolve integration. For 7even, use SevenWebhookPayloadDto structure.",
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(SevenWebhookPayloadDto) },
+        { $ref: getSchemaPath(WebhookPayloadDto) },
+      ],
+    },
+  })
+  @ApiResponse({ status: 202, description: "Webhook accepted for processing" })
+  async handleChannelWebhook(
+    @Param("type") type: ChannelType,
+    @Body() body: WebhookPayloadDto
+  ): Promise<{ status: string }> {
+    // Expect hotelId in payload to resolve the correct integration
+    const hotelId = body?.hotelId;
+    if (!hotelId) {
+      throw new Error("hotelId is required in webhook payload");
+    }
+
+    await this.channelManagerService.handleIncomingWebhookByHotelAndType(
+      hotelId,
+      type,
+      body
+    );
+
+    return { status: "accepted" };
   }
 
   // Dashboard and Analytics Endpoints

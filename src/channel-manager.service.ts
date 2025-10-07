@@ -342,6 +342,28 @@ export class ChannelManagerService {
     );
   }
 
+  // Inbound webhook handling by hotel and channel type
+  async handleIncomingWebhookByHotelAndType(
+    hotelId: number,
+    channelType: ChannelType,
+    webhookData: any
+  ): Promise<void> {
+    const integration =
+      await this.channelManagerRepository.findIntegrationByHotelAndType(
+        hotelId,
+        channelType
+      );
+
+    if (!integration) {
+      throw new HttpException(
+        `Channel integration not found for hotelId=${hotelId} and type=${channelType}`,
+        HttpStatus.NOT_FOUND
+      );
+    }
+
+    await this.channelSyncEngine.handleIncomingWebhook(integration, webhookData);
+  }
+
   async getSyncLogs(
     integrationId: number,
     limit: number = 100

@@ -9,6 +9,7 @@ import { TripAdvisorApiService } from "./implementations/tripadvisor-api.service
 import { AgodaApiService } from "./implementations/agoda-api.service";
 import { HotelbedsApiService } from "./implementations/hotelbeds-api.service";
 import { CustomApiService } from "./implementations/custom-api.service";
+import { SevenApiService } from "./implementations/seven-api.service";
 
 @Injectable()
 export class ChannelApiFactory {
@@ -42,6 +43,9 @@ export class ChannelApiFactory {
       case ChannelType.CUSTOM:
         return new CustomApiService();
 
+      case ChannelType.SEVEN:
+        return new SevenApiService();
+
       default:
         throw new Error(`Unsupported channel type: ${channelType}`);
     }
@@ -69,6 +73,8 @@ export class ChannelApiFactory {
         return "Hotelbeds";
       case ChannelType.CUSTOM:
         return "Custom Integration";
+      case ChannelType.SEVEN:
+        return "7even";
       default:
         return channelType;
     }
@@ -142,6 +148,17 @@ export class ChannelApiFactory {
           "Flexible data mapping",
           "Webhook support",
           "Custom authentication",
+        ];
+
+      case ChannelType.SEVEN:
+        return [
+          "Hotel-specific integration",
+          "Real-time availability sync",
+          "Rate management",
+          "Guest reservation management",
+          "Webhook support",
+          "Custom property mapping",
+          "Multi-language support",
         ];
 
       default:

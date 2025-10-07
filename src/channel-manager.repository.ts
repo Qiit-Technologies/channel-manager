@@ -179,6 +179,15 @@ export class ChannelManagerRepository {
     });
   }
 
+  async findMappingByChannelRoomTypeId(
+    integrationId: number,
+    channelRoomTypeId: string
+  ): Promise<ChannelMapping | null> {
+    return await this.channelMappingRepo.findOne({
+      where: { integrationId, channelRoomTypeId },
+    });
+  }
+
   async findMappingById(id: number): Promise<ChannelMapping> {
     return await this.channelMappingRepo.findOne({
       where: { id },

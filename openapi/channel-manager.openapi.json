@@ -774,15 +774,16 @@
           },
           "channelType": {
             "enum": [
-              "BOOKING_COM",
-              "EXPEDIA",
-              "AIRBNB",
-              "HOTELS_COM",
-              "TRIPADVISOR",
-              "AGODA",
-              "HOTELBEDS",
-              "CUSTOM"
-            ],
+                  "BOOKING_COM",
+                  "EXPEDIA",
+                  "AIRBNB",
+                  "HOTELS_COM",
+                  "TRIPADVISOR",
+                  "AGODA",
+                  "HOTELBEDS",
+                  "CUSTOM",
+                  "SEVEN"
+                ],
             "type": "string",
             "description": "Channel type (OTA)"
           },
@@ -883,7 +884,8 @@
               "TRIPADVISOR",
               "AGODA",
               "HOTELBEDS",
-              "CUSTOM"
+              "CUSTOM",
+              "SEVEN"
             ],
             "type": "string"
           },
@@ -1467,7 +1469,8 @@
               "TRIPADVISOR",
               "AGODA",
               "HOTELBEDS",
-              "CUSTOM"
+              "CUSTOM",
+              "SEVEN"
             ],
             "type": "string"
           },
