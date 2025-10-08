@@ -260,6 +260,59 @@ export class ChannelManagerController {
         { $ref: getSchemaPath(WebhookPayloadDto) },
       ],
     },
+    examples: {
+      seven_reservation: {
+        summary: "7even reservation webhook",
+        value: {
+          hotelId: 42,
+          event_type: "reservation",
+          data: {
+            room_type_id: "voyager-deluxe-plus",
+            check_in: "2025-10-12",
+            check_out: "2025-10-15",
+            rooms: 1,
+            guest: {
+              name: "Frank George",
+              email: "admin@7evensuites.com",
+            },
+          },
+        },
+      },
+      seven_cancellation: {
+        summary: "7even cancellation webhook",
+        value: {
+          hotelId: 42,
+          event_type: "cancellation",
+          data: {
+            room_type_id: "voyager-deluxe-plus",
+            check_in: "2025-10-12",
+            check_out: "2025-10-15",
+            rooms: 1,
+            guest: {
+              name: "Frank George",
+              email: "admin@7evensuites.com",
+            },
+          },
+        },
+      },
+      seven_modification: {
+        summary: "7even modification webhook",
+        value: {
+          hotelId: 42,
+          event_type: "modification",
+          data: {
+            room_type_id: "voyager-deluxe-plus",
+            check_in: "2025-10-12",
+            check_out: "2025-10-16",
+            rooms: 2,
+            guest: {
+              name: "Frank George",
+              email: "admin@7evensuites.com",
+            },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 202, description: "Webhook accepted for processing" })
   async handleChannelWebhook(

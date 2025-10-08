@@ -445,30 +445,95 @@ export class SevenApiService implements ChannelApiInterface {
     // Canonical reservation summary to drive availability updates downstream
     const payload = data?.data ?? {};
     const reservationSummary = {
-      channelRoomTypeId:
-        payload.channel_room_type_id ||
-        payload.room_type_id ||
-        payload.roomTypeId ||
-        payload.room_type_code,
-      checkIn:
-        payload.check_in ||
-        payload.checkIn ||
-        payload.start_date ||
-        payload.arrival_date,
-      checkOut:
-        payload.check_out ||
-        payload.checkOut ||
-        payload.end_date ||
-        payload.departure_date,
-      rooms:
-        payload.rooms ||
-        payload.quantity ||
-        payload.number_of_rooms ||
-        payload.num_rooms ||
-        1,
+      channelRoomTypeId: payload.room_type_id,
+      checkIn: payload.check_in,
+      checkOut: payload.check_out,
+      rooms: payload.rooms ?? 1,
     };
 
-    return { processed: true, type: 'reservation', data, reservationSummary };
+    // Build Oreon-compatible CreateGuestDto payload (best-effort mapping)
+    const oreonGuestDto = this.buildOreonCreateGuestDto(integration, payload);
+
+    // Standardized public reservation event payload for external consumers (snake_case)
+    const standardized = {
+      version: 'v1',
+      channel: 'seven',
+      event: 'reservation',
+      hotel_id: integration.hotelId,
+      reservation: {
+        guest: {
+          full_name: oreonGuestDto.fullName,
+          email: oreonGuestDto.email,
+          phone_number: oreonGuestDto.phoneNumber,
+          phoneNumber: oreonGuestDto.phoneNumber,
+          address: payload.address || payload.guest_address,
+        },
+        stay: {
+          roomtype_id: oreonGuestDto.roomtype,
+          room_number: oreonGuestDto.roomNumber,
+          start_date: oreonGuestDto.startDate,
+          end_date: oreonGuestDto.endDate,
+          number_of_guests: oreonGuestDto.numberOfGuests,
+        },
+        payment: {
+          amount_paid: oreonGuestDto.amountPaid,
+          outstanding: oreonGuestDto.outstanding,
+          payment_method: oreonGuestDto.paymentMethod,
+          receiving_account: oreonGuestDto.receivingAccount,
+        },
+        meta: {
+          created_at: oreonGuestDto.createdAt,
+          source_reservation_id: payload.reservation_id || payload.booking_id || payload.id,
+        },
+      },
+      oreon_guest_dto: oreonGuestDto,
+    };
+
+    return { processed: true, type: 'reservation', data, reservationSummary, ...standardized };
+  }
+
+  // --- Oreon mapping helpers ---
+  private normalizePhoneNumber(raw?: string): string | undefined {
+    if (!raw || typeof raw !== 'string') return undefined;
+    const trimmed = raw.trim();
+    // Remove spaces and dashes
+    const digits = trimmed.replace(/[^+\d]/g, '');
+    // Ensure starts with + or leading digit
+    if (digits.startsWith('+')) return digits;
+    // If already looks like E.164 without +, prepend it
+    return `+${digits}`;
+  }
+
+  private buildOreonCreateGuestDto(integration: ChannelIntegration, payload: any): any {
+    const fullName = payload.guest?.name;
+    const email = payload.guest?.email;
+    const phone = this.normalizePhoneNumber(payload.guest?.phone || payload.guest?.phoneNumber);
+
+    const roomtype = payload.room_type_id;
+    const startDate = payload.check_in;
+    const endDate = payload.check_out;
+    const numberOfGuests = payload.rooms ?? 1;
+
+    return {
+      // Required string fields
+      fullName,
+      email,
+      phoneNumber: phone,
+      property: payload.property_id || integration.channelPropertyId,
+      roomNumber: '', // Will be assigned by PMS based on roomtype and availability
+      // Required dates and ints
+      createdAt: new Date(),
+      roomtype,
+      startDate,
+      endDate,
+      numberOfGuests,
+      // Required settlement fields with sensible defaults
+      paymentMethod: 'CHANNEL_MANAGER',
+      receivingAccount: 'OTA',
+      // Optional financials
+      amountPaid: Number(payload.amount_paid ?? 0),
+      outstanding: Number(payload.outstanding ?? 0),
+    };
   }
 
   private async processCancellationWebhook(
