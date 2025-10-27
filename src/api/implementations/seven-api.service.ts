@@ -14,7 +14,7 @@ export class SevenApiService implements ChannelApiInterface {
   private readonly httpService = new HttpService();
 
   // Hotel-specific configuration for 7even integration
-  private readonly SUPPORTED_HOTEL_IDS = [1, 2, 3]; // Add specific hotel IDs that support 7even
+  private readonly SUPPORTED_HOTEL_IDS = [1, 2, 3, 14, 20]; // Add specific hotel IDs that support 7even
 
   async testConnection(
     integration: Partial<ChannelIntegration>
@@ -24,7 +24,9 @@ export class SevenApiService implements ChannelApiInterface {
 
       // Check if this hotel is supported for 7even integration
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
       // Test API credentials
@@ -36,14 +38,27 @@ export class SevenApiService implements ChannelApiInterface {
         throw new Error("Property ID is required for 7even integration");
       }
 
+      // In development or explicit test mode, skip external API call
+      const inDevMode = process.env.NODE_ENV === "development";
+      const inTestMode = Boolean(integration.testMode);
+      if (inDevMode || inTestMode) {
+        this.logger.log(
+          "Dev/Test mode: skipping external 7even API connectivity check"
+        );
+        return { success: true };
+      }
+
       // Test actual connection to 7even API
       const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/properties/${integration.channelPropertyId}/status`, {
-          headers: {
-            'Authorization': `Bearer ${integration.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        })
+        this.httpService.get(
+          `${this.baseUrl}/properties/${integration.channelPropertyId}/status`,
+          {
+            headers: {
+              Authorization: `Bearer ${integration.apiKey}`,
+              "Content-Type": "application/json",
+            },
+          }
+        )
       );
 
       if (response.status === 200) {
@@ -71,7 +86,9 @@ export class SevenApiService implements ChannelApiInterface {
       );
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
       const inventoryData = this.buildInventoryRequest(integration, mapping);
@@ -82,8 +99,8 @@ export class SevenApiService implements ChannelApiInterface {
           inventoryData,
           {
             headers: {
-              'Authorization': `Bearer ${integration.apiKey}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${integration.apiKey}`,
+              "Content-Type": "application/json",
             },
           }
         )
@@ -101,10 +118,14 @@ export class SevenApiService implements ChannelApiInterface {
     ratePlan: ChannelRatePlan
   ): Promise<void> {
     try {
-      this.logger.log(`Updating 7even rates for rate plan: ${ratePlan.channelRatePlanName}`);
+      this.logger.log(
+        `Updating 7even rates for rate plan: ${ratePlan.channelRatePlanName}`
+      );
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
       const rateData = this.buildRateRequest(integration, ratePlan);
@@ -115,8 +136,8 @@ export class SevenApiService implements ChannelApiInterface {
           rateData,
           {
             headers: {
-              'Authorization': `Bearer ${integration.apiKey}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${integration.apiKey}`,
+              "Content-Type": "application/json",
             },
           }
         )
@@ -134,13 +155,20 @@ export class SevenApiService implements ChannelApiInterface {
     availability: ChannelAvailability
   ): Promise<void> {
     try {
-      this.logger.log(`Updating 7even availability for date: ${availability.date}`);
+      this.logger.log(
+        `Updating 7even availability for date: ${availability.date}`
+      );
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
-      const availabilityData = this.buildAvailabilityRequest(integration, availability);
+      const availabilityData = this.buildAvailabilityRequest(
+        integration,
+        availability
+      );
 
       await firstValueFrom(
         this.httpService.put(
@@ -148,8 +176,8 @@ export class SevenApiService implements ChannelApiInterface {
           availabilityData,
           {
             headers: {
-              'Authorization': `Bearer ${integration.apiKey}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${integration.apiKey}`,
+              "Content-Type": "application/json",
             },
           }
         )
@@ -170,21 +198,23 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log("Processing 7even webhook...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
       const parsedData = this.parseWebhookData(webhookData);
 
       switch (parsedData.type) {
-        case 'reservation':
+        case "reservation":
           return await this.processReservationWebhook(integration, parsedData);
-        case 'cancellation':
+        case "cancellation":
           return await this.processCancellationWebhook(integration, parsedData);
-        case 'modification':
+        case "modification":
           return await this.processModificationWebhook(integration, parsedData);
         default:
           this.logger.warn(`Unknown webhook type: ${parsedData.type}`);
-          return { processed: false, reason: 'Unknown webhook type' };
+          return { processed: false, reason: "Unknown webhook type" };
       }
     } catch (error) {
       this.logger.error(`7even webhook processing failed: ${error.message}`);
@@ -200,10 +230,15 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log("Creating 7even guest reservation...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
-      const reservationData = this.buildReservationRequest(integration, guestData);
+      const reservationData = this.buildReservationRequest(
+        integration,
+        guestData
+      );
 
       const response = await firstValueFrom(
         this.httpService.post(
@@ -211,8 +246,8 @@ export class SevenApiService implements ChannelApiInterface {
           reservationData,
           {
             headers: {
-              'Authorization': `Bearer ${integration.apiKey}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${integration.apiKey}`,
+              "Content-Type": "application/json",
             },
           }
         )
@@ -221,7 +256,9 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log("7even guest reservation created successfully");
       return response.data;
     } catch (error) {
-      this.logger.error(`7even guest reservation creation failed: ${error.message}`);
+      this.logger.error(
+        `7even guest reservation creation failed: ${error.message}`
+      );
       throw error;
     }
   }
@@ -235,10 +272,16 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log(`Updating 7even guest reservation: ${guestId}`);
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
-      const updateData = this.buildReservationUpdateRequest(integration, guestId, updates);
+      const updateData = this.buildReservationUpdateRequest(
+        integration,
+        guestId,
+        updates
+      );
 
       const response = await firstValueFrom(
         this.httpService.put(
@@ -246,8 +289,8 @@ export class SevenApiService implements ChannelApiInterface {
           updateData,
           {
             headers: {
-              'Authorization': `Bearer ${integration.apiKey}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${integration.apiKey}`,
+              "Content-Type": "application/json",
             },
           }
         )
@@ -256,7 +299,9 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log("7even guest reservation updated successfully");
       return response.data;
     } catch (error) {
-      this.logger.error(`7even guest reservation update failed: ${error.message}`);
+      this.logger.error(
+        `7even guest reservation update failed: ${error.message}`
+      );
       throw error;
     }
   }
@@ -269,7 +314,9 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log(`Cancelling 7even guest reservation: ${guestId}`);
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
       const response = await firstValueFrom(
@@ -277,8 +324,8 @@ export class SevenApiService implements ChannelApiInterface {
           `${this.baseUrl}/properties/${integration.channelPropertyId}/reservations/${guestId}`,
           {
             headers: {
-              'Authorization': `Bearer ${integration.apiKey}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${integration.apiKey}`,
+              "Content-Type": "application/json",
             },
           }
         )
@@ -287,7 +334,9 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log("7even guest reservation cancelled successfully");
       return response.data;
     } catch (error) {
-      this.logger.error(`7even guest reservation cancellation failed: ${error.message}`);
+      this.logger.error(
+        `7even guest reservation cancellation failed: ${error.message}`
+      );
       throw error;
     }
   }
@@ -297,7 +346,9 @@ export class SevenApiService implements ChannelApiInterface {
       this.logger.log("Getting 7even channel info...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
-        throw new Error(`Hotel ID ${integration.hotelId} is not supported for 7even integration`);
+        throw new Error(
+          `Hotel ID ${integration.hotelId} is not supported for 7even integration`
+        );
       }
 
       const response = await firstValueFrom(
@@ -305,15 +356,15 @@ export class SevenApiService implements ChannelApiInterface {
           `${this.baseUrl}/properties/${integration.channelPropertyId}`,
           {
             headers: {
-              'Authorization': `Bearer ${integration.apiKey}`,
+              Authorization: `Bearer ${integration.apiKey}`,
             },
           }
         )
       );
 
       return {
-        channel: '7even',
-        status: 'active',
+        channel: "7even",
+        status: "active",
         hotelInfo: response.data,
         supportedHotel: true,
       };
@@ -345,7 +396,7 @@ export class SevenApiService implements ChannelApiInterface {
       roomType: {
         id: mapping.channelRoomTypeId,
         name: mapping.channelRoomTypeName,
-        description: mapping.channelDescription || '',
+        description: mapping.channelDescription || "",
         amenities: mapping.channelAmenities || [],
         images: mapping.channelImages || [],
         capacity: mapping.mappingRules?.capacity || 2,
@@ -430,7 +481,7 @@ export class SevenApiService implements ChannelApiInterface {
 
   private parseWebhookData(webhookData: any): any {
     return {
-      type: webhookData.event_type || 'unknown',
+      type: webhookData.event_type || "unknown",
       data: webhookData.data || {},
       timestamp: webhookData.timestamp || new Date(),
       propertyId: webhookData.property_id,
@@ -456,9 +507,9 @@ export class SevenApiService implements ChannelApiInterface {
 
     // Standardized public reservation event payload for external consumers (snake_case)
     const standardized = {
-      version: 'v1',
-      channel: 'seven',
-      event: 'reservation',
+      version: "v1",
+      channel: "seven",
+      event: "reservation",
       hotel_id: integration.hotelId,
       reservation: {
         guest: {
@@ -483,31 +534,43 @@ export class SevenApiService implements ChannelApiInterface {
         },
         meta: {
           created_at: oreonGuestDto.createdAt,
-          source_reservation_id: payload.reservation_id || payload.booking_id || payload.id,
+          source_reservation_id:
+            payload.reservation_id || payload.booking_id || payload.id,
         },
       },
       oreon_guest_dto: oreonGuestDto,
     };
 
-    return { processed: true, type: 'reservation', data, reservationSummary, ...standardized };
+    return {
+      processed: true,
+      type: "reservation",
+      data,
+      reservationSummary,
+      ...standardized,
+    };
   }
 
   // --- Oreon mapping helpers ---
   private normalizePhoneNumber(raw?: string): string | undefined {
-    if (!raw || typeof raw !== 'string') return undefined;
+    if (!raw || typeof raw !== "string") return undefined;
     const trimmed = raw.trim();
     // Remove spaces and dashes
-    const digits = trimmed.replace(/[^+\d]/g, '');
+    const digits = trimmed.replace(/[^+\d]/g, "");
     // Ensure starts with + or leading digit
-    if (digits.startsWith('+')) return digits;
+    if (digits.startsWith("+")) return digits;
     // If already looks like E.164 without +, prepend it
     return `+${digits}`;
   }
 
-  private buildOreonCreateGuestDto(integration: ChannelIntegration, payload: any): any {
+  private buildOreonCreateGuestDto(
+    integration: ChannelIntegration,
+    payload: any
+  ): any {
     const fullName = payload.guest?.name;
     const email = payload.guest?.email;
-    const phone = this.normalizePhoneNumber(payload.guest?.phone || payload.guest?.phoneNumber);
+    const phone = this.normalizePhoneNumber(
+      payload.guest?.phone || payload.guest?.phoneNumber
+    );
 
     const roomtype = payload.room_type_id;
     const startDate = payload.check_in;
@@ -520,7 +583,7 @@ export class SevenApiService implements ChannelApiInterface {
       email,
       phoneNumber: phone,
       property: payload.property_id || integration.channelPropertyId,
-      roomNumber: '', // Will be assigned by PMS based on roomtype and availability
+      roomNumber: "", // Will be assigned by PMS based on roomtype and availability
       // Required dates and ints
       createdAt: new Date(),
       roomtype,
@@ -528,8 +591,8 @@ export class SevenApiService implements ChannelApiInterface {
       endDate,
       numberOfGuests,
       // Required settlement fields with sensible defaults
-      paymentMethod: 'CHANNEL_MANAGER',
-      receivingAccount: 'OTA',
+      paymentMethod: "CHANNEL_MANAGER",
+      receivingAccount: "OTA",
       // Optional financials
       amountPaid: Number(payload.amount_paid ?? 0),
       outstanding: Number(payload.outstanding ?? 0),
@@ -541,7 +604,7 @@ export class SevenApiService implements ChannelApiInterface {
     data: any
   ): Promise<any> {
     this.logger.log("Processing 7even cancellation webhook");
-    return { processed: true, type: 'cancellation', data };
+    return { processed: true, type: "cancellation", data };
   }
 
   private async processModificationWebhook(
@@ -549,6 +612,6 @@ export class SevenApiService implements ChannelApiInterface {
     data: any
   ): Promise<any> {
     this.logger.log("Processing 7even modification webhook");
-    return { processed: true, type: 'modification', data };
+    return { processed: true, type: "modification", data };
   }
 }

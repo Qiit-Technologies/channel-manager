@@ -30,7 +30,7 @@ export enum IntegrationStatus {
   TESTING = "TESTING",
 }
 
-@Entity()
+@Entity("channel_integration")
 export class ChannelIntegration {
   @PrimaryGeneratedColumn()
   id: number;

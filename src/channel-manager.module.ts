@@ -36,12 +36,20 @@ import { PmsSyncService } from "./services/pms-sync.service";
                   password: process.env.DB_PASSWORD || "password",
                   database: process.env.DB_DATABASE || "anli",
                 }),
+            // Explicitly register only channel-manager entities to avoid syncing PMS tables
             entities: [
-              __dirname + "/**/*.entity{.ts,.js}",
-              // Include PMS entities from the same database
-              "../../PMS/dist/**/*.entity.js",
+              ChannelIntegration,
+              ChannelMapping,
+              ChannelSyncLog,
+              ChannelRatePlan,
+              ChannelAvailability,
+              ApiKey,
+              OtaConfiguration,
             ],
-            synchronize: process.env.NODE_ENV === "development", // Match PMS's setting
+            migrations: [__dirname + "/migrations/*{.ts,.js}"],
+            migrationsRun: process.env.NODE_ENV !== "development",
+            // Disable synchronize in development to avoid altering existing tables
+            synchronize: false,
             logging: process.env.NODE_ENV === "development",
             retryAttempts: 3,
             retryDelay: 3000,

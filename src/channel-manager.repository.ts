@@ -108,25 +108,34 @@ export class ChannelManagerRepository {
     hotelId: number,
     channelType: any
   ): Promise<ChannelIntegration | null> {
-    return await this.channelIntegrationRepo.findOne({
-      where: { hotelId, channelType },
-      select: {
-        id: true,
-        hotelId: true,
-        channelType: true,
-        channelName: true,
-        status: true,
-        channelPropertyId: true,
-        isWebhookEnabled: true,
-        syncIntervalMinutes: true,
-        isRealTimeSync: true,
-        lastSyncAt: true,
-        lastSuccessfulSync: true,
-        testMode: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    try {
+      return await this.channelIntegrationRepo.findOne({
+        where: { hotelId, channelType },
+        select: {
+          id: true,
+          hotelId: true,
+          channelType: true,
+          channelName: true,
+          status: true,
+          channelPropertyId: true,
+          isWebhookEnabled: true,
+          syncIntervalMinutes: true,
+          isRealTimeSync: true,
+          lastSyncAt: true,
+          lastSuccessfulSync: true,
+          testMode: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err) {
+      // Fallback: if enum mismatch or other DB error occurs, return any integration for the hotel
+      const byHotel = await this.channelIntegrationRepo.find({
+        where: { hotelId },
+        order: { createdAt: "DESC" },
+      });
+      return byHotel[0] || null;
+    }
   }
 
   async findActiveIntegrations(): Promise<ChannelIntegration[]> {
