@@ -1,7 +1,9 @@
 import { MigrationInterface, QueryRunner, Table } from "typeorm";
 
-export class CreateChannelIntegration1730051400 implements MigrationInterface {
-  name = "CreateChannelIntegration1730051400";
+export class CreateChannelIntegration1730051400000
+  implements MigrationInterface
+{
+  name = "CreateChannelIntegration1730051400000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create enums for Postgres
@@ -45,9 +47,24 @@ export class CreateChannelIntegration1730051400 implements MigrationInterface {
           { name: "channelPassword", type: "varchar", isNullable: true },
           { name: "webhookUrl", type: "varchar", isNullable: true },
           { name: "webhookSecret", type: "varchar", isNullable: true },
-          { name: "isWebhookEnabled", type: "boolean", isNullable: false, default: false },
-          { name: "syncIntervalMinutes", type: "int", isNullable: false, default: 15 },
-          { name: "isRealTimeSync", type: "boolean", isNullable: false, default: false },
+          {
+            name: "isWebhookEnabled",
+            type: "boolean",
+            isNullable: false,
+            default: false,
+          },
+          {
+            name: "syncIntervalMinutes",
+            type: "int",
+            isNullable: false,
+            default: 15,
+          },
+          {
+            name: "isRealTimeSync",
+            type: "boolean",
+            isNullable: false,
+            default: false,
+          },
           { name: "lastSyncAt", type: "timestamp", isNullable: true },
           { name: "lastSuccessfulSync", type: "timestamp", isNullable: true },
           { name: "errorMessage", type: "varchar", isNullable: true },
@@ -71,9 +88,7 @@ export class CreateChannelIntegration1730051400 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `DROP TABLE IF EXISTS "channel_integration"`
-    );
+    await queryRunner.query(`DROP TABLE IF EXISTS "channel_integration"`);
     await queryRunner.query(
       `DO $$ BEGIN IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'channel_type_enum') THEN DROP TYPE channel_type_enum; END IF; END $$;`
     );
