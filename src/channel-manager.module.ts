@@ -19,6 +19,7 @@ import { ApiKeyService } from "./auth/api-key.service";
 import { OtaConfigurationService } from "./services/ota-configuration.service";
 import { OtaConfigurationController } from "./controllers/ota-configuration.controller";
 import { PmsSyncService } from "./services/pms-sync.service";
+import { PmsReservationClient } from "./services/pms-reservation-client.service";
 
 @Module({
   imports: [
@@ -47,7 +48,8 @@ import { PmsSyncService } from "./services/pms-sync.service";
               OtaConfiguration,
             ],
             migrations: [__dirname + "/migrations/*{.ts,.js}"],
-            migrationsRun: process.env.NODE_ENV !== "development",
+            // Only run migrations when explicitly requested
+            migrationsRun: process.env.MIGRATIONS_RUN === "true",
             // Disable synchronize in development to avoid altering existing tables
             synchronize: false,
             logging: process.env.NODE_ENV === "development",
@@ -92,6 +94,7 @@ import { PmsSyncService } from "./services/pms-sync.service";
           ApiKeyService,
           OtaConfigurationService,
           PmsSyncService,
+          PmsReservationClient,
         ]
       : []),
   ],

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ChannelManagerRepository } from "../channel-manager.repository";
 import { ChannelIntegration } from "../entities/channel-integration.entity";
-import { ChannelAvailability, AvailabilityStatus } from "../entities/channel-availability.entity";
+import {
+  ChannelAvailability,
+  AvailabilityStatus,
+} from "../entities/channel-availability.entity";
 import {
   ChannelSyncLog,
   SyncOperationType,
@@ -9,6 +12,7 @@ import {
   SyncDirection,
 } from "../entities/channel-sync-log.entity";
 import { ChannelApiFactory } from "../api/channel-api-factory.service";
+import { PmsReservationClient } from "../services/pms-reservation-client.service";
 import { ChannelApiInterface } from "../api/channel-api.interface";
 
 @Injectable()
@@ -17,7 +21,8 @@ export class ChannelSyncEngine {
 
   constructor(
     private readonly channelManagerRepository: ChannelManagerRepository,
-    private readonly channelApiFactory: ChannelApiFactory
+    private readonly channelApiFactory: ChannelApiFactory,
+    private readonly pmsReservationClient: PmsReservationClient
   ) {}
 
   async triggerSync(
@@ -291,13 +296,26 @@ export class ChannelSyncEngine {
   private normalizeReservationSummary(
     result: any,
     webhookData: any
-  ): { roomTypeIdOrChannelId: number | string; startDate: string | Date; endDate: string | Date; rooms?: number } | null {
-    const src = result?.reservationSummary ?? result?.reservation ?? webhookData ?? {};
+  ): {
+    roomTypeIdOrChannelId: number | string;
+    startDate: string | Date;
+    endDate: string | Date;
+    rooms?: number;
+  } | null {
+    const src =
+      result?.reservationSummary ?? result?.reservation ?? webhookData ?? {};
     const roomTypeIdOrChannelId =
-      src.roomTypeId ?? src.room_type_id ?? src.roomType ?? src.channelRoomTypeId ?? src.channel_room_type_id;
-    const startDate = src.startDate ?? src.start_date ?? src.checkIn ?? src.check_in;
-    const endDate = src.endDate ?? src.end_date ?? src.checkOut ?? src.check_out;
-    const rooms = src.rooms ?? src.quantity ?? src.numberOfRooms ?? src.num_rooms ?? 1;
+      src.roomTypeId ??
+      src.room_type_id ??
+      src.roomType ??
+      src.channelRoomTypeId ??
+      src.channel_room_type_id;
+    const startDate =
+      src.startDate ?? src.start_date ?? src.checkIn ?? src.check_in;
+    const endDate =
+      src.endDate ?? src.end_date ?? src.checkOut ?? src.check_out;
+    const rooms =
+      src.rooms ?? src.quantity ?? src.numberOfRooms ?? src.num_rooms ?? 1;
     if (!roomTypeIdOrChannelId || !startDate || !endDate) return null;
     return { roomTypeIdOrChannelId, startDate, endDate, rooms };
   }
@@ -316,10 +334,11 @@ export class ChannelSyncEngine {
       if (typeof roomTypeIdOrChannelId === "number") {
         roomtypeId = roomTypeIdOrChannelId;
       } else if (typeof roomTypeIdOrChannelId === "string") {
-        const mapping = await this.channelManagerRepository.findMappingByChannelRoomTypeId(
-          integration.id,
-          roomTypeIdOrChannelId
-        );
+        const mapping =
+          await this.channelManagerRepository.findMappingByChannelRoomTypeId(
+            integration.id,
+            roomTypeIdOrChannelId
+          );
         roomtypeId = mapping?.roomtypeId ?? null;
       }
 
@@ -330,25 +349,42 @@ export class ChannelSyncEngine {
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
 
       const roomsToApply = Math.max(1, Number(rooms) || 1);
-      for (let date = new Date(start); date < end; date.setDate(date.getDate() + 1)) {
+      for (
+        let date = new Date(start);
+        date < end;
+        date.setDate(date.getDate() + 1)
+      ) {
         const day = new Date(date);
-        const availability = await this.channelManagerRepository.findAvailabilityByDateRange(
-          integration.id,
-          roomtypeId,
-          day,
-          day
-        );
+        const availability =
+          await this.channelManagerRepository.findAvailabilityByDateRange(
+            integration.id,
+            roomtypeId,
+            day,
+            day
+          );
         if (!availability || availability.length === 0) continue;
 
         const current = availability[0];
         const baseTotal = current.totalRooms ?? current.availableRooms ?? 0;
-        const newOccupied = Math.min(baseTotal, (current.occupiedRooms ?? 0) + roomsToApply);
-        const newAvailable = Math.max(0, baseTotal - newOccupied - (current.blockedRooms ?? 0) - (current.maintenanceRooms ?? 0));
+        const newOccupied = Math.min(
+          baseTotal,
+          (current.occupiedRooms ?? 0) + roomsToApply
+        );
+        const newAvailable = Math.max(
+          0,
+          baseTotal -
+            newOccupied -
+            (current.blockedRooms ?? 0) -
+            (current.maintenanceRooms ?? 0)
+        );
 
         await this.channelManagerRepository.updateAvailability(current.id, {
           occupiedRooms: newOccupied,
           availableRooms: newAvailable,
-          status: newAvailable > 0 ? AvailabilityStatus.AVAILABLE : AvailabilityStatus.OCCUPIED,
+          status:
+            newAvailable > 0
+              ? AvailabilityStatus.AVAILABLE
+              : AvailabilityStatus.OCCUPIED,
           updatedAt: new Date(),
         });
 
@@ -357,17 +393,24 @@ export class ChannelSyncEngine {
             ...current,
             occupiedRooms: newOccupied,
             availableRooms: newAvailable,
-            status: newAvailable > 0 ? AvailabilityStatus.AVAILABLE : AvailabilityStatus.OCCUPIED,
+            status:
+              newAvailable > 0
+                ? AvailabilityStatus.AVAILABLE
+                : AvailabilityStatus.OCCUPIED,
           } as ChannelAvailability;
           try {
             await this.syncAvailabilityToChannel(updated);
           } catch (err) {
-            this.logger.error(`Real-time availability push failed: ${err.message}`);
+            this.logger.error(
+              `Real-time availability push failed: ${err.message}`
+            );
           }
         }
       }
     } catch (error) {
-      this.logger.error(`Failed to apply reservation availability: ${error.message}`);
+      this.logger.error(
+        `Failed to apply reservation availability: ${error.message}`
+      );
     }
   }
 
@@ -389,12 +432,17 @@ export class ChannelSyncEngine {
         requestData: JSON.stringify(webhookData),
         createdAt: new Date(),
       });
+      this.logger.log(`Inbound syncLog created: id=${syncLog.id}`);
 
       // Process the webhook data based on channel type
       const channelApi = this.channelApiFactory.createChannelApi(
         integration.channelType
       );
+      this.logger.log(`[Webhook] Processing via channel API: ${integration.channelType}`);
       const result = await channelApi.processWebhook(integration, webhookData);
+      this.logger.log(
+        `[Webhook] Processed result: processed=${(result && result.processed) ?? 'n/a'} type=${(result && result.type) ?? 'n/a'}`
+      );
 
       // Apply availability blocking if reservation details are present
       await this.applyReservationAvailabilityIfPresent(
@@ -402,6 +450,47 @@ export class ChannelSyncEngine {
         webhookData,
         result
       );
+
+      // Optionally forward standardized guest payload to PMS
+      try {
+        const oreonGuestDto =
+          (result && (result.oreon_guest_dto || result.guest || result.createGuestDto)) ||
+          null;
+        if (oreonGuestDto) {
+          // Try to translate channel room type to PMS roomtype via mapping before forwarding
+          try {
+            const mappedRoomtype = await this.resolvePmsRoomtypeId(
+              integration,
+              webhookData,
+              result,
+              oreonGuestDto?.roomtype
+            );
+            if (mappedRoomtype) {
+              oreonGuestDto.roomtype = mappedRoomtype;
+            }
+          } catch (mapErr: any) {
+            this.logger.warn(
+              `[PMS Forward] Roomtype mapping skipped: ${mapErr?.message || mapErr}`
+            );
+          }
+
+          this.logger.log(
+            `[PMS Forward] Found oreon_guest_dto: fullName=${oreonGuestDto.fullName || 'n/a'} email=${oreonGuestDto.email || 'n/a'} roomtype=${oreonGuestDto.roomtype || 'n/a'} start=${oreonGuestDto.startDate || 'n/a'} end=${oreonGuestDto.endDate || 'n/a'} guests=${oreonGuestDto.numberOfGuests || 'n/a'}`
+          );
+
+          const forwardResult = await this.pmsReservationClient.createGuestReservation(
+            integration.hotelId,
+            oreonGuestDto
+          );
+          this.logger.log(
+            `[PMS Forward] Response: success=${forwardResult.success} status=${forwardResult.status ?? 'n/a'} error=${forwardResult.error ?? ''}`
+          );
+        } else {
+          this.logger.log(`[PMS Forward] No oreon_guest_dto from channel API; skipping forward`);
+        }
+      } catch (err: any) {
+        this.logger.error(`PMS reservation forward error: ${err?.message || err}`);
+      }
 
       // Update sync log with success
       await this.channelManagerRepository.updateSyncLog(syncLog.id, {
@@ -419,5 +508,47 @@ export class ChannelSyncEngine {
       );
       throw error;
     }
+  }
+
+  private async resolvePmsRoomtypeId(
+    integration: ChannelIntegration,
+    webhookData: any,
+    result: any,
+    currentRoomtype: any
+  ): Promise<number | null> {
+    // Prefer channel-provided room_type_id from webhook result/summary
+    const summary = this.normalizeReservationSummary(result, webhookData);
+    const candidate =
+      (summary && (summary as any).roomTypeIdOrChannelId) ??
+      webhookData?.data?.room_type_id ??
+      webhookData?.room_type_id ??
+      currentRoomtype;
+
+    if (candidate === undefined || candidate === null) return null;
+
+    // If candidate appears to be a PMS roomtype already (non-string channel ID unlikely), we still try mapping by string match
+    const channelId = String(candidate);
+    try {
+      const mapping = await this.channelManagerRepository.findMappingByChannelRoomTypeId(
+        integration.id,
+        channelId
+      );
+      if (mapping?.roomtypeId) {
+        this.logger.log(
+          `[PMS Forward] Roomtype mapped: channelRoomTypeId=${channelId} -> pmsRoomtypeId=${mapping.roomtypeId}`
+        );
+        return mapping.roomtypeId;
+      }
+    } catch {}
+
+    // No mapping found; if candidate is a finite number, assume it's already a PMS roomtype
+    const num = Number(candidate);
+    if (Number.isFinite(num)) return num;
+
+    // Unable to resolve
+    this.logger.warn(
+      `[PMS Forward] No roomtype mapping found for channelRoomTypeId=${channelId}; forwarding as-is may fail.`
+    );
+    return null;
   }
 }

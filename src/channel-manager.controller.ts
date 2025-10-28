@@ -13,7 +13,15 @@ import {
   HttpCode,
 } from "@nestjs/common";
 import { ChannelManagerService } from "./channel-manager.service";
-import { ApiTags, ApiParam, ApiBody, ApiResponse, ApiConsumes, ApiExtraModels, getSchemaPath } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiParam,
+  ApiBody,
+  ApiResponse,
+  ApiConsumes,
+  ApiExtraModels,
+  getSchemaPath,
+} from "@nestjs/swagger";
 import { WebhookPayloadDto } from "./dto/webhook-payload.dto";
 import { SevenWebhookPayloadDto } from "./dto/seven-webhook-payload.dto";
 import { CreateChannelIntegrationDto } from "./dto/create-channel-integration.dto";
@@ -318,12 +326,14 @@ export class ChannelManagerController {
   async handleChannelWebhook(
     @Param("type") type: ChannelType,
     @Body() body: WebhookPayloadDto
-  ): Promise<{ status: string }> {
+  ): Promise<{ status: string; message: string }> {
     // Expect hotelId in payload to resolve the correct integration
     const hotelId = body?.hotelId;
     if (!hotelId) {
       throw new Error("hotelId is required in webhook payload");
     }
+
+    this.logger.log(`[Webhook] Received type=${type} hotelId=${hotelId}`);
 
     await this.channelManagerService.handleIncomingWebhookByHotelAndType(
       hotelId,
@@ -331,7 +341,8 @@ export class ChannelManagerController {
       body
     );
 
-    return { status: "accepted" };
+    this.logger.log(`[Webhook] Accepted type=${type} hotelId=${hotelId}`);
+    return { status: "accepted", message: "Webhook processed successfully" };
   }
 
   // Dashboard and Analytics Endpoints

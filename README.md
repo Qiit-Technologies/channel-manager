@@ -122,10 +122,15 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
    TRIPADVISOR_API_KEY=your_tripadvisor_api_key
    AGODA_API_KEY=your_agoda_api_key
 
-   # Application
-   PORT=3001
-   NODE_ENV=development
-   ```
+  # Application
+  PORT=3001
+  NODE_ENV=development
+  
+  # Optional PMS Reservation Forwarding
+  PMS_RESERVATION_FORWARD=true
+  PMS_RESERVATION_CREATE_URL=https://oreon.example.com/api/v1/guests/{hotelId}
+  PMS_API_KEY=your_pms_api_key
+  ```
 
 4. **Database Setup**
 
@@ -179,6 +184,13 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
 
 - `POST /api/v1/guests/:guestId/checkin` - Handle guest check-in
 - `POST /api/v1/guests/:guestId/checkout` - Handle guest check-out
+
+### PMS Reservation Forwarding (Optional)
+
+- When inbound webhooks include reservation details, the system can forward a standardized `CreateGuestDto` payload to your PMS.
+- Enable by setting `PMS_RESERVATION_FORWARD=true` and configuring `PMS_RESERVATION_CREATE_URL`.
+- The URL may include a `{hotelId}` placeholder which will be replaced; otherwise `hotelId` is appended as a query param.
+- If `PMS_API_KEY` is set, it is sent in the `X-API-Key` header.
 
 ## Usage Examples
 
@@ -352,4 +364,4 @@ For technical support or questions:
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.

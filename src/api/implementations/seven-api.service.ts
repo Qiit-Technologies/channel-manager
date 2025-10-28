@@ -572,10 +572,22 @@ export class SevenApiService implements ChannelApiInterface {
       payload.guest?.phone || payload.guest?.phoneNumber
     );
 
-    const roomtype = payload.room_type_id;
+    const roomtypeRaw = payload.room_type_id;
+    const roomtypeNum = Number(roomtypeRaw);
+    const roomtype = Number.isFinite(roomtypeNum) ? roomtypeNum : undefined;
+    if (roomtype === undefined) {
+      this.logger.warn(`[7even] Non-numeric room_type_id: ${roomtypeRaw}`);
+    }
+
     const startDate = payload.check_in;
     const endDate = payload.check_out;
-    const numberOfGuests = payload.rooms ?? 1;
+    const roomNumber = payload.room_number ?? payload.roomNumber ?? "";
+    const numberOfGuests =
+      payload.number_of_guests ??
+      payload.numberOfGuests ??
+      payload.guests ??
+      payload.rooms ??
+      1;
 
     return {
       // Required string fields
@@ -583,7 +595,7 @@ export class SevenApiService implements ChannelApiInterface {
       email,
       phoneNumber: phone,
       property: payload.property_id || integration.channelPropertyId,
-      roomNumber: "", // Will be assigned by PMS based on roomtype and availability
+      roomNumber,
       // Required dates and ints
       createdAt: new Date(),
       roomtype,
@@ -596,6 +608,15 @@ export class SevenApiService implements ChannelApiInterface {
       // Optional financials
       amountPaid: Number(payload.amount_paid ?? 0),
       outstanding: Number(payload.outstanding ?? 0),
+      // Source tracking
+      reservationSource:
+        integration?.channelName || integration?.channelType || "seven",
+      sourceReservationId:
+        payload?.source_reservation_id ||
+        payload?.reservation_id ||
+        payload?.booking_id ||
+        payload?.id ||
+        undefined,
     };
   }
 

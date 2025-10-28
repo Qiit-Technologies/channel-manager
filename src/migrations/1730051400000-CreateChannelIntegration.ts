@@ -6,6 +6,12 @@ export class CreateChannelIntegration1730051400000
   name = "CreateChannelIntegration1730051400000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Skip if table already exists (idempotent in dev environments)
+    const hasTable = await queryRunner.hasTable("channel_integration");
+    if (hasTable) {
+      return;
+    }
+
     // Create enums for Postgres
     await queryRunner.query(
       `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'channel_type_enum') THEN CREATE TYPE channel_type_enum AS ENUM ('BOOKING_COM','EXPEDIA','AIRBNB','HOTELS_COM','TRIPADVISOR','AGODA','HOTELBEDS','CUSTOM','SEVEN'); END IF; END $$;`
@@ -83,7 +89,8 @@ export class CreateChannelIntegration1730051400000
             isUnique: true,
           },
         ],
-      })
+      }),
+      true
     );
   }
 

@@ -65,6 +65,9 @@ async function bootstrap() {
   console.log(`✅ Channel Manager is running on: http://localhost:${port}`);
   console.log(`🌐 API Base URL: http://localhost:${port}/api/v1`);
   // SSL configuration enabled for production database connections
+  console.log(
+    `[PMS Forward] PMS_RESERVATION_FORWARD=${process.env.PMS_RESERVATION_FORWARD ?? 'unset'} PMS_RESERVATION_CREATE_URL=${process.env.PMS_RESERVATION_CREATE_URL ? 'set' : 'unset'} PMS_API_KEY=${process.env.PMS_API_KEY ? 'set' : 'unset'}`
+  );
 
   if (isTestMode) {
     console.log("\n🧪 TEST MODE ENDPOINTS (no authentication required):");
