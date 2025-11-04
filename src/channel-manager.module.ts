@@ -8,6 +8,7 @@ import { ChannelMapping } from "./entities/channel-mapping.entity";
 import { ChannelSyncLog } from "./entities/channel-sync-log.entity";
 import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 import { ChannelAvailability } from "./entities/channel-availability.entity";
+import { Guest } from "./entities/guest.entity";
 import { ApiKey } from "./entities/api-key.entity";
 import { OtaConfiguration } from "./entities/ota-configuration.entity";
 import { HttpModule } from "@nestjs/axios";
@@ -44,6 +45,7 @@ import { PmsReservationClient } from "./services/pms-reservation-client.service"
               ChannelSyncLog,
               ChannelRatePlan,
               ChannelAvailability,
+              Guest,
               ApiKey,
               OtaConfiguration,
             ],
@@ -69,6 +71,7 @@ import { PmsReservationClient } from "./services/pms-reservation-client.service"
             ChannelSyncLog,
             ChannelRatePlan,
             ChannelAvailability,
+            Guest,
             ApiKey,
             OtaConfiguration,
           ]),

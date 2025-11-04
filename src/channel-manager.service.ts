@@ -322,6 +322,40 @@ export class ChannelManagerService {
     );
   }
 
+  async updateChannelRatePlan(
+    id: number,
+    updates: Partial<ChannelRatePlan>,
+    userId: number
+  ): Promise<ChannelRatePlan> {
+    try {
+      const ratePlan = await this.channelManagerRepository.updateRatePlan(id, {
+        ...updates,
+        updatedBy: userId,
+      });
+
+      if (!ratePlan) {
+        throw new HttpException(
+          `Rate plan with ID ${id} not found`,
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      this.logger.log(
+        `Updated channel rate plan: ${ratePlan.channelRatePlanName}`
+      );
+      return ratePlan;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to update rate plan: ${error.message}`);
+      throw new HttpException(
+        `Failed to update rate plan: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
   // Sync Management
   async triggerManualSync(
     integrationId: number,
@@ -361,7 +395,10 @@ export class ChannelManagerService {
       );
     }
 
-    await this.channelSyncEngine.handleIncomingWebhook(integration, webhookData);
+    await this.channelSyncEngine.handleIncomingWebhook(
+      integration,
+      webhookData
+    );
   }
 
   async getSyncLogs(
@@ -724,6 +761,82 @@ export class ChannelManagerService {
     } catch (error) {
       this.logger.error(
         `Failed to update availability for guest: ${error.message}`
+      );
+    }
+  }
+
+  // Booking Management Methods
+  async getBookings(dto: any): Promise<{ bookings: any[]; total: number }> {
+    try {
+      const [bookings, total] =
+        await this.channelManagerRepository.findBookings(dto);
+      return { bookings, total };
+    } catch (error) {
+      this.logger.error(`Failed to get bookings: ${error.message}`);
+      throw new HttpException(
+        `Failed to retrieve bookings: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async getBookingByCode(bookingCode: string): Promise<any> {
+    try {
+      const booking =
+        await this.channelManagerRepository.findBookingByCode(bookingCode);
+      if (!booking) {
+        throw new HttpException(
+          `Booking with code ${bookingCode} not found`,
+          HttpStatus.NOT_FOUND
+        );
+      }
+      return booking;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to get booking: ${error.message}`);
+      throw new HttpException(
+        `Failed to retrieve booking: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async createBooking(bookingData: any): Promise<any> {
+    try {
+      return await this.channelManagerRepository.createBooking(bookingData);
+    } catch (error) {
+      this.logger.error(`Failed to create booking: ${error.message}`);
+      throw new HttpException(
+        `Failed to create booking: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async updateBooking(bookingCode: string, updates: any): Promise<any> {
+    try {
+      const booking =
+        await this.channelManagerRepository.findBookingByCode(bookingCode);
+      if (!booking) {
+        throw new HttpException(
+          `Booking with code ${bookingCode} not found`,
+          HttpStatus.NOT_FOUND
+        );
+      }
+      return await this.channelManagerRepository.updateBooking(
+        bookingCode,
+        updates
+      );
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to update booking: ${error.message}`);
+      throw new HttpException(
+        `Failed to update booking: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }

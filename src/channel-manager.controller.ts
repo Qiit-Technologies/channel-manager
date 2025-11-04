@@ -27,16 +27,19 @@ import { SevenWebhookPayloadDto } from "./dto/seven-webhook-payload.dto";
 import { CreateChannelIntegrationDto } from "./dto/create-channel-integration.dto";
 import { CreateChannelMappingDto } from "./dto/create-channel-mapping.dto";
 import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
+import { GetBookingsDto } from "./dto/get-bookings.dto";
 import { ChannelIntegration } from "./entities/channel-integration.entity";
 import { ChannelMapping } from "./entities/channel-mapping.entity";
 import { ChannelAvailability } from "./entities/channel-availability.entity";
 import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 import { ChannelSyncLog } from "./entities/channel-sync-log.entity";
+import { Guest, BookingStatus } from "./entities/guest.entity";
 import { SyncOperationType } from "./entities/channel-sync-log.entity";
 import { ChannelType } from "./entities/channel-integration.entity";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
 
 @ApiTags("Channel Manager")
+@ApiExtraModels(Guest, GetBookingsDto)
 @Controller("channel-manager")
 export class ChannelManagerController {
   private readonly logger = new Logger(ChannelManagerController.name);
@@ -180,6 +183,213 @@ export class ChannelManagerController {
     @Param("integrationId") integrationId: number
   ): Promise<any[]> {
     return await this.channelManagerService.getChannelRatePlans(integrationId);
+  }
+
+  @Put("rate-plans/:id")
+  @ApiParam({
+    name: "id",
+    description: "Rate plan ID",
+    example: 1,
+  })
+  @ApiBody({
+    description: "Rate plan fields to update (prices and minimum stay)",
+    schema: {
+      type: "object",
+      properties: {
+        baseRate: {
+          type: "number",
+          example: 175.0,
+          description: "Base price for the rate plan",
+        },
+        minStay: {
+          type: "number",
+          example: 2,
+          description: "Minimum stay requirement (nights)",
+        },
+        maxStay: {
+          type: "number",
+          example: 30,
+          description: "Maximum stay allowed (nights)",
+        },
+        currency: { type: "string", example: "USD" },
+        cancellationPolicy: {
+          type: "string",
+          example: "Free cancellation 48h before check-in",
+        },
+        closedToArrival: { type: "boolean" },
+        closedToDeparture: { type: "boolean" },
+        advanceBookingDays: { type: "number" },
+        rateModifier: { type: "number" },
+        isActive: { type: "boolean" },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Rate plan updated successfully",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Rate plan not found",
+  })
+  async updateChannelRatePlan(
+    @Param("id") id: number,
+    @Body() updates: Partial<ChannelRatePlan>
+  ): Promise<ChannelRatePlan> {
+    // For testing purposes, use a default user ID
+    const userId = 1;
+    return await this.channelManagerService.updateChannelRatePlan(
+      id,
+      updates,
+      userId
+    );
+  }
+
+  // Booking Management Endpoints
+  @Get("bookings")
+  @ApiResponse({
+    status: 200,
+    description: "Returns list of bookings with filters",
+    schema: {
+      type: "object",
+      properties: {
+        bookings: {
+          type: "array",
+          items: { $ref: getSchemaPath(Guest) },
+        },
+        total: {
+          type: "number",
+          description: "Total number of matching bookings",
+        },
+      },
+    },
+  })
+  async getBookings(@Query() query: GetBookingsDto): Promise<any> {
+    return await this.channelManagerService.getBookings(query);
+  }
+
+  @Get("bookings/:bookingCode")
+  @ApiParam({
+    name: "bookingCode",
+    description: "Unique booking code",
+    example: "BK-2024-001",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Returns single booking",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Booking not found",
+  })
+  async getBookingByCode(
+    @Param("bookingCode") bookingCode: string
+  ): Promise<any> {
+    return await this.channelManagerService.getBookingByCode(bookingCode);
+  }
+
+  @Post("bookings")
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBody({
+    description: "Booking data",
+    schema: {
+      type: "object",
+      required: [
+        "bookingCode",
+        "firstName",
+        "lastName",
+        "email",
+        "startDate",
+        "endDate",
+        "hotelId",
+        "roomTypeId",
+      ],
+      properties: {
+        bookingCode: { type: "string", example: "BK-2024-001" },
+        otaBookingCode: { type: "string", example: "BCOM-12345678" },
+        firstName: { type: "string", example: "John" },
+        lastName: { type: "string", example: "Doe" },
+        email: { type: "string", example: "john.doe@example.com" },
+        phone: { type: "string", example: "+1234567890" },
+        startDate: { type: "string", format: "date", example: "2024-06-01" },
+        endDate: { type: "string", format: "date", example: "2024-06-05" },
+        amount: { type: "number", example: 500.0 },
+        currency: { type: "string", example: "USD" },
+        source: { type: "string", example: "BOOKING_COM" },
+        status: {
+          type: "string",
+          enum: [
+            "PENDING",
+            "CONFIRMED",
+            "CHECKED_IN",
+            "CHECKED_OUT",
+            "CANCELED",
+            "NO_SHOW",
+            "MODIFIED",
+          ],
+          example: "CONFIRMED",
+        },
+        hotelId: { type: "number", example: 1 },
+        roomTypeId: { type: "number", example: 101 },
+        integrationId: { type: "number", example: 1 },
+        guestDetails: { type: "object" },
+        channelData: { type: "object" },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: "Booking created successfully",
+  })
+  async createBooking(@Body() bookingData: any): Promise<any> {
+    return await this.channelManagerService.createBooking(bookingData);
+  }
+
+  @Put("bookings/:bookingCode")
+  @ApiParam({
+    name: "bookingCode",
+    description: "Unique booking code",
+    example: "BK-2024-001",
+  })
+  @ApiBody({
+    description: "Fields to update",
+    schema: {
+      type: "object",
+      properties: {
+        status: {
+          type: "string",
+          enum: [
+            "PENDING",
+            "CONFIRMED",
+            "CHECKED_IN",
+            "CHECKED_OUT",
+            "CANCELED",
+            "NO_SHOW",
+            "MODIFIED",
+          ],
+        },
+        amount: { type: "number" },
+        currency: { type: "string" },
+        startDate: { type: "string", format: "date" },
+        endDate: { type: "string", format: "date" },
+        cancelReason: { type: "string" },
+        canceledAt: { type: "string", format: "date-time" },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Booking updated successfully",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Booking not found",
+  })
+  async updateBooking(
+    @Param("bookingCode") bookingCode: string,
+    @Body() updates: any
+  ): Promise<any> {
+    return await this.channelManagerService.updateBooking(bookingCode, updates);
   }
 
   // Sync Management Endpoints
