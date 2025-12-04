@@ -10,6 +10,7 @@ import { AgodaApiService } from "./implementations/agoda-api.service";
 import { HotelbedsApiService } from "./implementations/hotelbeds-api.service";
 import { CustomApiService } from "./implementations/custom-api.service";
 import { SevenApiService } from "./implementations/seven-api.service";
+import { CornicheApiService } from "./implementations/corniche-api.service";
 
 @Injectable()
 export class ChannelApiFactory {
@@ -46,6 +47,9 @@ export class ChannelApiFactory {
       case ChannelType.SEVEN:
         return new SevenApiService();
 
+      case ChannelType.CORNICHE:
+        return new CornicheApiService();
+
       default:
         throw new Error(`Unsupported channel type: ${channelType}`);
     }
@@ -75,6 +79,8 @@ export class ChannelApiFactory {
         return "Custom Integration";
       case ChannelType.SEVEN:
         return "7even";
+      case ChannelType.CORNICHE:
+        return "Corniche";
       default:
         return channelType;
     }
@@ -159,6 +165,17 @@ export class ChannelApiFactory {
           "Webhook support",
           "Custom property mapping",
           "Multi-language support",
+        ];
+
+      case ChannelType.CORNICHE:
+        return [
+          "Hotel-specific integration",
+          "Real-time availability sync",
+          "Rate management",
+          "Guest reservation management",
+          "Webhook support",
+          "WordPress plugin integration",
+          "Custom property mapping",
         ];
 
       default:

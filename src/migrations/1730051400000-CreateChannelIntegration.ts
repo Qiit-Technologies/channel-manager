@@ -14,7 +14,7 @@ export class CreateChannelIntegration1730051400000
 
     // Create enums for Postgres
     await queryRunner.query(
-      `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'channel_type_enum') THEN CREATE TYPE channel_type_enum AS ENUM ('BOOKING_COM','EXPEDIA','AIRBNB','HOTELS_COM','TRIPADVISOR','AGODA','HOTELBEDS','CUSTOM','SEVEN'); END IF; END $$;`
+      `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'channel_type_enum') THEN CREATE TYPE channel_type_enum AS ENUM ('BOOKING_COM','EXPEDIA','AIRBNB','HOTELS_COM','TRIPADVISOR','AGODA','HOTELBEDS','CUSTOM','SEVEN','CORNICHE'); END IF; END $$;`
     );
     await queryRunner.query(
       `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'integration_status_enum') THEN CREATE TYPE integration_status_enum AS ENUM ('ACTIVE','INACTIVE','ERROR','PENDING','TESTING'); END IF; END $$;`

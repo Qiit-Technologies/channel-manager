@@ -39,9 +39,31 @@ import { Guest, BookingStatus } from "./entities/guest.entity";
 import { SyncOperationType } from "./entities/channel-sync-log.entity";
 import { ChannelType } from "./entities/channel-integration.entity";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
+import {
+  sampleChannelIntegrations,
+  sampleChannelMappings,
+  sampleAvailability,
+  sampleRatePlans,
+  sampleBookings,
+  sampleSyncLogs,
+  sampleDashboard,
+  sampleChannelInfo,
+  sampleTesting,
+  sampleWebhooks,
+  sampleGuestOperations,
+} from "./sample-data";
+import { createSwaggerExample } from "./swagger-helpers";
 
 @ApiTags("Channel Manager")
-@ApiExtraModels(Guest, GetBookingsDto)
+@ApiExtraModels(
+  Guest,
+  GetBookingsDto,
+  ChannelIntegration,
+  ChannelMapping,
+  ChannelAvailability,
+  ChannelRatePlan,
+  ChannelSyncLog
+)
 @Controller("channel-manager")
 export class ChannelManagerController {
   private readonly logger = new Logger(ChannelManagerController.name);
@@ -65,19 +87,19 @@ export class ChannelManagerController {
     examples: {
       bookingCom: {
         summary: "Booking.com integration",
+        value: sampleChannelIntegrations.createRequest,
+      },
+      expedia: {
+        summary: "Expedia integration",
         value: {
-          hotelId: 101,
-          channelType: "BOOKING_COM",
-          credentials: {
-            username: "hotel-account",
-            password: "super-secret",
-            hotelCode: "BCOM-HOTEL-01",
-          },
-          settings: {
-            autoSync: true,
-            defaultCurrency: "USD",
-            timeZone: "America/New_York",
-          },
+          hotelId: 1,
+          channelType: "EXPEDIA",
+          channelName: "Expedia Partner Integration",
+          apiKey: "exp_api_key_67890",
+          apiSecret: "exp_secret_xyz",
+          channelPropertyId: "EXP-PROP-12345",
+          isWebhookEnabled: true,
+          syncIntervalMinutes: 30,
         },
       },
     },
@@ -85,7 +107,12 @@ export class ChannelManagerController {
   @ApiResponse({
     status: 201,
     description: "Channel integration created successfully",
-    type: ChannelIntegration,
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelIntegration) },
+        example: createSwaggerExample(sampleChannelIntegrations.single),
+      },
+    },
   })
   async createChannelIntegration(
     @Body() dto: CreateChannelIntegrationDto
@@ -109,13 +136,22 @@ export class ChannelManagerController {
     required: false,
     type: Number,
     description: "Filter integrations belonging to a specific hotel",
-    example: 101,
+    example: 1,
   })
   @ApiResponse({
     status: 200,
     description: "List of channel integrations",
     type: ChannelIntegration,
     isArray: true,
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: { $ref: getSchemaPath(ChannelIntegration) },
+        },
+        example: createSwaggerExample(sampleChannelIntegrations.list),
+      },
+    },
   })
   async getChannelIntegrations(
     @Query("hotelId") hotelId?: number
@@ -142,6 +178,12 @@ export class ChannelManagerController {
     status: 200,
     description: "Channel integration details",
     type: ChannelIntegration,
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelIntegration) },
+        example: createSwaggerExample(sampleChannelIntegrations.single),
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -196,6 +238,12 @@ export class ChannelManagerController {
     status: 200,
     description: "Channel integration updated successfully",
     type: ChannelIntegration,
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelIntegration) },
+        example: createSwaggerExample(sampleChannelIntegrations.single),
+      },
+    },
   })
   async updateChannelIntegration(
     @Param("id") id: number,
@@ -239,7 +287,7 @@ export class ChannelManagerController {
   @ApiParam({
     name: "hotelId",
     description: "Hotel identifier to check availability for",
-    example: 101,
+    example: 1,
   })
   @ApiResponse({
     status: 200,
@@ -249,6 +297,18 @@ export class ChannelManagerController {
       items: {
         type: "string",
         enum: Object.values(ChannelType),
+      },
+    },
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: Object.values(ChannelType),
+          },
+        },
+        example: sampleChannelIntegrations.availableTypes,
       },
     },
   })
@@ -274,14 +334,7 @@ export class ChannelManagerController {
     examples: {
       standardRoom: {
         summary: "Standard room mapping",
-        value: {
-          integrationId: 42,
-          roomTypeId: 301,
-          ratePlanId: 10,
-          channelRoomIdentifier: "STD-DOUBLE",
-          channelRatePlanIdentifier: "BAR",
-          restrictions: { minStay: 1 },
-        },
+        value: createSwaggerExample(sampleChannelMappings.createRequest),
       },
     },
   })
@@ -289,6 +342,12 @@ export class ChannelManagerController {
     status: 201,
     description: "Channel mapping created successfully",
     type: ChannelMapping,
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelMapping) },
+        example: createSwaggerExample(sampleChannelMappings.list[0]),
+      },
+    },
   })
   async createChannelMapping(
     @Body() dto: CreateChannelMappingDto
@@ -314,6 +373,15 @@ export class ChannelManagerController {
     description: "Channel mappings for the integration",
     type: ChannelMapping,
     isArray: true,
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: { $ref: getSchemaPath(ChannelMapping) },
+        },
+        example: createSwaggerExample(sampleChannelMappings.list),
+      },
+    },
   })
   async getChannelMappings(
     @Param("integrationId") integrationId: number
@@ -364,6 +432,12 @@ export class ChannelManagerController {
     status: 200,
     description: "Channel mapping updated successfully",
     type: ChannelMapping,
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelMapping) },
+        example: createSwaggerExample(sampleChannelMappings.list[0]),
+      },
+    },
   })
   async updateChannelMapping(
     @Param("id") id: number,
@@ -391,21 +465,11 @@ export class ChannelManagerController {
     examples: {
       nightlyAvailability: {
         summary: "Nightly availability update",
-        value: {
-          integrationId: 42,
-          updates: [
-            {
-              roomTypeId: 301,
-              date: "2025-02-10",
-              availableRooms: 5,
-            },
-            {
-              roomTypeId: 301,
-              date: "2025-02-11",
-              availableRooms: 4,
-            },
-          ],
-        },
+        value: createSwaggerExample(sampleAvailability.syncRequest),
+      },
+      singleDate: {
+        summary: "Single date availability update",
+        value: createSwaggerExample(sampleAvailability.syncRequestSingle),
       },
     },
   })
@@ -413,6 +477,12 @@ export class ChannelManagerController {
     status: 200,
     description: "Availability sync queued/executed",
     type: ChannelAvailability,
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelAvailability) },
+        example: createSwaggerExample(sampleAvailability.list[0]),
+      },
+    },
   })
   async syncAvailability(
     @Body() dto: SyncAvailabilityDto
@@ -455,6 +525,15 @@ export class ChannelManagerController {
     description: "Channel availability records for the time range",
     type: ChannelAvailability,
     isArray: true,
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: { $ref: getSchemaPath(ChannelAvailability) },
+        },
+        example: createSwaggerExample(sampleAvailability.list),
+      },
+    },
   })
   async getAvailabilityByDateRange(
     @Query("integrationId") integrationId: number,
@@ -519,10 +598,34 @@ export class ChannelManagerController {
         },
       },
     },
+    examples: {
+      standardFlexible: {
+        summary: "Standard Flexible Rate Plan",
+        value: sampleRatePlans.createRequest,
+      },
+      nonRefundable: {
+        summary: "Non-Refundable Discount Rate",
+        value: {
+          integrationId: 1,
+          name: "Non-Refundable Discount",
+          baseRate: 120,
+          currency: "USD",
+          restrictions: { minStay: 2, maxStay: 14 },
+          cancellationPolicy: "Non-refundable. No cancellation allowed.",
+          channelRatePlanIdentifier: "NON-REFUNDABLE",
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 201,
     description: "Rate plan created successfully",
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelRatePlan) },
+        example: createSwaggerExample(sampleRatePlans.list[0]),
+      },
+    },
   })
   async createChannelRatePlan(@Body() ratePlan: any): Promise<any> {
     // For testing purposes, use a default user ID
@@ -548,6 +651,15 @@ export class ChannelManagerController {
     description: "Rate plans linked to the integration",
     type: ChannelRatePlan,
     isArray: true,
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: { $ref: getSchemaPath(ChannelRatePlan) },
+        },
+        example: createSwaggerExample(sampleRatePlans.list),
+      },
+    },
   })
   async getChannelRatePlans(
     @Param("integrationId") integrationId: number
@@ -597,6 +709,12 @@ export class ChannelManagerController {
   @ApiResponse({
     status: 200,
     description: "Rate plan updated successfully",
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(ChannelRatePlan) },
+        example: createSwaggerExample(sampleRatePlans.list[0]),
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -638,6 +756,24 @@ export class ChannelManagerController {
         },
       },
     },
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties: {
+            bookings: {
+              type: "array",
+              items: { $ref: getSchemaPath(Guest) },
+            },
+            total: {
+              type: "number",
+              description: "Total number of matching bookings",
+            },
+          },
+        },
+        example: createSwaggerExample(sampleBookings.list),
+      },
+    },
   })
   async getBookings(@Query() query: GetBookingsDto): Promise<any> {
     return await this.channelManagerService.getBookings(query);
@@ -656,6 +792,12 @@ export class ChannelManagerController {
   @ApiResponse({
     status: 200,
     description: "Returns single booking",
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(Guest) },
+        example: createSwaggerExample(sampleBookings.single),
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -714,16 +856,48 @@ export class ChannelManagerController {
           example: "CONFIRMED",
         },
         hotelId: { type: "number", example: 1 },
-        roomTypeId: { type: "number", example: 101 },
+        roomTypeId: { type: "number", example: 14 },
         integrationId: { type: "number", example: 1 },
         guestDetails: { type: "object" },
         channelData: { type: "object" },
+      },
+    },
+    examples: {
+      bookingCom: {
+        summary: "Booking.com booking",
+        value: sampleBookings.createRequest,
+      },
+      expedia: {
+        summary: "Expedia booking",
+        value: {
+          bookingCode: "BK-2024-002",
+          otaBookingCode: "EXP-98765432",
+          firstName: "Jane",
+          lastName: "Smith",
+          email: "jane.smith@example.com",
+          phone: "+0987654321",
+          startDate: "2024-06-10",
+          endDate: "2024-06-12",
+          amount: 300.0,
+          currency: "USD",
+          source: "EXPEDIA",
+          status: "CONFIRMED",
+          hotelId: 1,
+          roomTypeId: 15,
+          integrationId: 2,
+        },
       },
     },
   })
   @ApiResponse({
     status: 201,
     description: "Booking created successfully",
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(Guest) },
+        example: createSwaggerExample(sampleBookings.single),
+      },
+    },
   })
   async createBooking(@Body() bookingData: any): Promise<any> {
     return await this.channelManagerService.createBooking(bookingData);
@@ -769,6 +943,12 @@ export class ChannelManagerController {
   @ApiResponse({
     status: 200,
     description: "Booking updated successfully",
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(Guest) },
+        example: createSwaggerExample(sampleBookings.single),
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -803,6 +983,24 @@ export class ChannelManagerController {
           type: "string",
           enum: Object.values(SyncOperationType),
           example: "AVAILABILITY",
+        },
+      },
+    },
+    examples: {
+      fullSync: {
+        summary: "Full sync operation",
+        value: sampleSyncLogs.triggerSyncRequest,
+      },
+      availabilitySync: {
+        summary: "Availability sync only",
+        value: {
+          operationType: "AVAILABILITY_UPDATE",
+        },
+      },
+      rateSync: {
+        summary: "Rate sync only",
+        value: {
+          operationType: "RATE_UPDATE",
         },
       },
     },
@@ -841,6 +1039,15 @@ export class ChannelManagerController {
     description: "Sync logs for the integration",
     type: ChannelSyncLog,
     isArray: true,
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: { $ref: getSchemaPath(ChannelSyncLog) },
+        },
+        example: createSwaggerExample(sampleSyncLogs.list),
+      },
+    },
   })
   async getSyncLogs(
     @Param("id") id: number,
@@ -870,6 +1077,20 @@ export class ChannelManagerController {
   @ApiResponse({
     status: 200,
     description: "Aggregated sync statistics",
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties: {
+            totalSyncs: { type: "number" },
+            successfulSyncs: { type: "number" },
+            failedSyncs: { type: "number" },
+            successRate: { type: "number" },
+          },
+        },
+        example: createSwaggerExample(sampleSyncLogs.statistics),
+      },
+    },
   })
   async getSyncStatistics(
     @Param("id") id: number,
@@ -904,6 +1125,27 @@ export class ChannelManagerController {
         },
       },
     },
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            error: { type: "string", nullable: true },
+          },
+        },
+        examples: {
+          success: {
+            summary: "Successful test",
+            value: sampleTesting.testResponse,
+          },
+          failure: {
+            summary: "Failed test",
+            value: sampleTesting.testResponseFailure,
+          },
+        },
+      },
+    },
   })
   async testChannelIntegration(
     @Param("id") id: number
@@ -930,6 +1172,18 @@ export class ChannelManagerController {
         enum: Object.values(ChannelType),
       },
     },
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: Object.values(ChannelType),
+          },
+        },
+        example: sampleChannelInfo.supportedChannels,
+      },
+    },
   })
   async getSupportedChannels(): Promise<ChannelType[]> {
     // This would come from the ChannelApiFactory
@@ -953,6 +1207,15 @@ export class ChannelManagerController {
     description: "List of features supported by the channel",
     type: String,
     isArray: true,
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: { type: "string" },
+        },
+        example: sampleChannelInfo.features[ChannelType.BOOKING_COM],
+      },
+    },
   })
   async getChannelFeatures(
     @Param("type") type: ChannelType
@@ -1033,54 +1296,57 @@ export class ChannelManagerController {
     examples: {
       seven_reservation: {
         summary: "7even reservation webhook",
-        value: {
-          hotelId: 42,
-          event_type: "reservation",
-          data: {
-            room_type_id: "voyager-deluxe-plus",
-            check_in: "2025-10-12",
-            check_out: "2025-10-15",
-            rooms: 1,
-            guest: {
-              name: "Frank George",
-              email: "admin@7evensuites.com",
-            },
-          },
-        },
+        value: sampleWebhooks.sevenReservation,
       },
       seven_cancellation: {
         summary: "7even cancellation webhook",
+        value: sampleWebhooks.sevenCancellation,
+      },
+      seven_modification: {
+        summary: "7even modification webhook",
+        value: sampleWebhooks.sevenModification,
+      },
+      corniche_reservation: {
+        summary: "Corniche reservation webhook",
+        value: sampleWebhooks.cornicheReservation,
+      },
+      corniche_cancellation: {
+        summary: "Corniche cancellation webhook",
         value: {
-          hotelId: 42,
+          hotelId: 1,
           event_type: "cancellation",
           data: {
-            room_type_id: "voyager-deluxe-plus",
+            room_type_id: "14",
             check_in: "2025-10-12",
             check_out: "2025-10-15",
             rooms: 1,
             guest: {
-              name: "Frank George",
-              email: "admin@7evensuites.com",
+              name: "John Doe",
+              email: "john.doe@example.com",
             },
           },
         },
       },
-      seven_modification: {
-        summary: "7even modification webhook",
+      corniche_modification: {
+        summary: "Corniche modification webhook",
         value: {
-          hotelId: 42,
+          hotelId: 1,
           event_type: "modification",
           data: {
-            room_type_id: "voyager-deluxe-plus",
+            room_type_id: "14",
             check_in: "2025-10-12",
             check_out: "2025-10-16",
             rooms: 2,
             guest: {
-              name: "Frank George",
-              email: "admin@7evensuites.com",
+              name: "John Doe",
+              email: "john.doe@example.com",
             },
           },
         },
+      },
+      booking_com: {
+        summary: "Booking.com webhook",
+        value: sampleWebhooks.bookingComWebhook,
       },
     },
   })
@@ -1118,11 +1384,26 @@ export class ChannelManagerController {
     name: "hotelId",
     type: Number,
     description: "Hotel identifier",
-    example: 101,
+    example: 1,
   })
   @ApiResponse({
     status: 200,
     description: "Dashboard summary metrics",
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties: {
+            totalIntegrations: { type: "number" },
+            activeIntegrations: { type: "number" },
+            pendingIntegrations: { type: "number" },
+            errorIntegrations: { type: "number" },
+            channels: { type: "array" },
+          },
+        },
+        example: createSwaggerExample(sampleDashboard.summary),
+      },
+    },
   })
   async getDashboardSummary(@Query("hotelId") hotelId: number): Promise<any> {
     const integrations =
@@ -1158,7 +1439,7 @@ export class ChannelManagerController {
     name: "hotelId",
     type: Number,
     description: "Hotel identifier",
-    example: 101,
+    example: 1,
   })
   @ApiQuery({
     name: "days",
@@ -1170,6 +1451,24 @@ export class ChannelManagerController {
   @ApiResponse({
     status: 200,
     description: "Performance metrics per integration",
+    content: {
+      "application/json": {
+        schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              integrationId: { type: "number" },
+              channelName: { type: "string" },
+              channelType: { type: "string" },
+              totalSyncs: { type: "number" },
+              successRate: { type: "number" },
+            },
+          },
+        },
+        example: createSwaggerExample(sampleDashboard.performance),
+      },
+    },
   })
   async getPerformanceMetrics(
     @Query("hotelId") hotelId: number,

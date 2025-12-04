@@ -17,6 +17,7 @@ export enum ChannelType {
   HOTELBEDS = "HOTELBEDS",
   CUSTOM = "CUSTOM",
   SEVEN = "SEVEN",
+  CORNICHE = "CORNICHE",
 }
 
 export enum IntegrationStatus {
