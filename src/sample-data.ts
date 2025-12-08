@@ -225,13 +225,12 @@ export const sampleChannelIntegrations = {
     hotelId: 1,
     channelType: ChannelType.BOOKING_COM,
     channelName: "Booking.com Integration",
-    credentials: {
-      username: "hotel-account",
-      password: "super-secret",
-      hotelCode: "BCOM-HOTEL-01",
-    },
-    settings: {
-      autoSync: true,
+    channelUsername: "hotel-account",
+    channelPassword: "super-secret",
+    channelPropertyId: "BCOM-HOTEL-01",
+    isWebhookEnabled: true,
+    syncIntervalMinutes: 30,
+    channelSettings: {
       defaultCurrency: "USD",
       timeZone: "America/New_York",
     },
