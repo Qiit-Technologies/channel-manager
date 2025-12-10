@@ -20,6 +20,7 @@ import {
   SyncDirection,
 } from "./entities/channel-sync-log.entity";
 import { BookingStatus } from "./entities/guest.entity";
+import { HotelRegistrationSource } from "./dto/create-hotel.dto";
 
 // ============================================================================
 // 1. CHANNEL INTEGRATION SAMPLE DATA
@@ -220,7 +221,7 @@ export const sampleChannelIntegrations = {
     updatedBy: 1,
   },
 
-  // POST /integrations - Create integration request body
+  // POST /integrations - Create integration request body (existing hotel)
   createRequest: {
     hotelId: 1,
     channelType: ChannelType.BOOKING_COM,
@@ -230,6 +231,30 @@ export const sampleChannelIntegrations = {
     channelPropertyId: "BCOM-HOTEL-01",
     isWebhookEnabled: true,
     syncIntervalMinutes: 30,
+    channelSettings: {
+      defaultCurrency: "USD",
+      timeZone: "America/New_York",
+    },
+  },
+
+  // POST /integrations - Create integration with hotel onboarding
+  createRequestWithHotelOnboarding: {
+    channelType: ChannelType.BOOKING_COM,
+    channelName: "Booking.com Integration",
+    channelUsername: "hotel-account",
+    channelPassword: "super-secret",
+    isWebhookEnabled: true,
+    syncIntervalMinutes: 30,
+    registrationSource: HotelRegistrationSource.CHANNEL_MANAGER, // Optional: specify registration source
+    hotel: {
+      name: "Grand Hotel",
+      email: "info@grandhotel.com",
+      address: "123 Main Street",
+      country: "United States",
+      state: "New York",
+      isActive: true,
+      registrationSource: HotelRegistrationSource.CHANNEL_MANAGER, // Can also be specified in hotel object
+    },
     channelSettings: {
       defaultCurrency: "USD",
       timeZone: "America/New_York",

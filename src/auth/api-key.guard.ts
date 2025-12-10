@@ -5,10 +5,19 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { Request } from "express";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { ApiKey, ApiKeyStatus } from "../entities/api-key.entity";
+import { createHash } from "crypto";
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(
+    @InjectRepository(ApiKey)
+    private readonly apiKeyRepository?: Repository<ApiKey>
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const apiKey = this.extractApiKey(request);
 
@@ -16,8 +25,9 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException("API key is required");
     }
 
-    // Validate API key (you can enhance this with database lookup)
-    if (!this.validateApiKey(apiKey)) {
+    // Validate API key (check database first, then fallback to env variable)
+    const isValid = await this.validateApiKey(apiKey);
+    if (!isValid) {
       throw new UnauthorizedException("Invalid API key");
     }
 
@@ -49,8 +59,39 @@ export class ApiKeyGuard implements CanActivate {
     return undefined;
   }
 
-  private validateApiKey(apiKey: string): boolean {
-    // Get API key from environment variable
+  private async validateApiKey(apiKey: string): Promise<boolean> {
+    try {
+      // First, try to validate against database (if repository is available)
+      if (this.apiKeyRepository && process.env.TEST_MODE !== "true") {
+        const keyHash = createHash("sha256").update(apiKey).digest("hex");
+        const dbApiKey = await this.apiKeyRepository.findOne({
+          where: { keyHash },
+        });
+
+        if (dbApiKey) {
+          // Check if API key is active
+          if (dbApiKey.status !== ApiKeyStatus.ACTIVE) {
+            return false;
+          }
+
+          // Check if API key is expired
+          if (dbApiKey.expiresAt && new Date(dbApiKey.expiresAt) < new Date()) {
+            return false;
+          }
+
+          // Update last used timestamp
+          dbApiKey.lastUsedAt = new Date();
+          dbApiKey.usageCount = (dbApiKey.usageCount || 0) + 1;
+          await this.apiKeyRepository.save(dbApiKey);
+
+          return true;
+        }
+      }
+    } catch (error) {
+      // If database lookup fails, fall back to environment variable
+    }
+
+    // Fallback to environment variable validation
     const validApiKey = process.env.CHANNEL_MANAGER_API_KEY;
 
     if (!validApiKey) {

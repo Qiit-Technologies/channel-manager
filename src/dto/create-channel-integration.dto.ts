@@ -6,18 +6,38 @@ import {
   IsBoolean,
   IsNumber,
   IsArray,
+  ValidateIf,
+  ValidateNested,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   ChannelType,
   IntegrationStatus,
 } from "../entities/channel-integration.entity";
+import { CreateHotelDto } from "./create-hotel.dto";
 
 export class CreateChannelIntegrationDto {
-  @ApiProperty({ description: "Hotel identifier", example: 123 })
-  @IsNotEmpty()
+  @ApiPropertyOptional({
+    description:
+      "Hotel identifier. Required if hotel is already registered. Omit if onboarding new hotel.",
+    example: 123,
+  })
+  @ValidateIf((o) => !o.hotel)
+  @IsOptional()
   @IsNumber()
-  hotelId: number;
+  hotelId?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "Hotel information for onboarding new hotels. Required if hotelId is not provided.",
+    type: CreateHotelDto,
+  })
+  @ValidateIf((o) => !o.hotelId)
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateHotelDto)
+  hotel?: CreateHotelDto;
 
   @ApiProperty({ enum: ChannelType, description: "Channel type (OTA)" })
   @IsNotEmpty()

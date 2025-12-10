@@ -1,6 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, Between, FindOptionsWhere, MoreThanOrEqual, LessThanOrEqual } from "typeorm";
+import {
+  Repository,
+  Between,
+  FindOptionsWhere,
+  MoreThanOrEqual,
+  LessThanOrEqual,
+} from "typeorm";
 import { ChannelIntegration } from "./entities/channel-integration.entity";
 import { ChannelMapping } from "./entities/channel-mapping.entity";
 import { ChannelSyncLog } from "./entities/channel-sync-log.entity";
@@ -402,10 +408,13 @@ export class ChannelManagerRepository {
     });
 
     if (dto.createdFrom && dto.createdTo) {
-      queryBuilder.andWhere("guest.createdAt BETWEEN :createdFrom AND :createdTo", {
-        createdFrom: new Date(dto.createdFrom),
-        createdTo: new Date(dto.createdTo),
-      });
+      queryBuilder.andWhere(
+        "guest.createdAt BETWEEN :createdFrom AND :createdTo",
+        {
+          createdFrom: new Date(dto.createdFrom),
+          createdTo: new Date(dto.createdTo),
+        }
+      );
     } else if (dto.createdFrom) {
       queryBuilder.andWhere("guest.createdAt >= :createdFrom", {
         createdFrom: new Date(dto.createdFrom),
@@ -417,10 +426,13 @@ export class ChannelManagerRepository {
     }
 
     if (dto.checkInFrom && dto.checkInTo) {
-      queryBuilder.andWhere("guest.startDate BETWEEN :checkInFrom AND :checkInTo", {
-        checkInFrom: new Date(dto.checkInFrom),
-        checkInTo: new Date(dto.checkInTo),
-      });
+      queryBuilder.andWhere(
+        "guest.startDate BETWEEN :checkInFrom AND :checkInTo",
+        {
+          checkInFrom: new Date(dto.checkInFrom),
+          checkInTo: new Date(dto.checkInTo),
+        }
+      );
     } else if (dto.checkInFrom) {
       queryBuilder.andWhere("guest.startDate >= :checkInFrom", {
         checkInFrom: new Date(dto.checkInFrom),
@@ -450,7 +462,10 @@ export class ChannelManagerRepository {
     return await this.guestRepo.save(newBooking);
   }
 
-  async updateBooking(bookingCode: string, updates: Partial<Guest>): Promise<Guest> {
+  async updateBooking(
+    bookingCode: string,
+    updates: Partial<Guest>
+  ): Promise<Guest> {
     await this.guestRepo.update({ bookingCode }, updates);
     return await this.findBookingByCode(bookingCode);
   }

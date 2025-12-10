@@ -17,10 +17,12 @@ import { ChannelManagerRepository } from "./channel-manager.repository";
 import { ChannelSyncEngine } from "./sync/channel-sync-engine.service";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
 import { ApiKeyService } from "./auth/api-key.service";
+import { ApiKeyGuard } from "./auth/api-key.guard";
 import { OtaConfigurationService } from "./services/ota-configuration.service";
 import { OtaConfigurationController } from "./controllers/ota-configuration.controller";
 import { PmsSyncService } from "./services/pms-sync.service";
 import { PmsReservationClient } from "./services/pms-reservation-client.service";
+import { OreonHotelClient } from "./services/oreon-hotel-client.service";
 
 @Module({
   imports: [
@@ -88,6 +90,7 @@ import { PmsReservationClient } from "./services/pms-reservation-client.service"
   ],
   providers: [
     ChannelManagerService,
+    ApiKeyGuard,
     ...(process.env.TEST_MODE !== "true"
       ? [
           ChannelManagerRepository,
@@ -98,6 +101,7 @@ import { PmsReservationClient } from "./services/pms-reservation-client.service"
           OtaConfigurationService,
           PmsSyncService,
           PmsReservationClient,
+          OreonHotelClient,
         ]
       : []),
   ],

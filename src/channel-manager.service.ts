@@ -26,6 +26,8 @@ import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 import { ChannelSyncEngine } from "./sync/channel-sync-engine.service";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
 import { OtaConfigurationService } from "./services/ota-configuration.service";
+import { OreonHotelClient } from "./services/oreon-hotel-client.service";
+import { HotelRegistrationSource } from "./dto/create-hotel.dto";
 
 // Anli entity imports - these will be loaded from the Anli database
 // We'll use type annotations to ensure compatibility
@@ -38,8 +40,30 @@ export class ChannelManagerService {
     private readonly channelManagerRepository: ChannelManagerRepository,
     private readonly channelSyncEngine: ChannelSyncEngine,
     private readonly channelApiFactory: ChannelApiFactory,
-    private readonly otaConfigurationService: OtaConfigurationService
+    private readonly otaConfigurationService: OtaConfigurationService,
+    private readonly oreonHotelClient: OreonHotelClient
   ) {}
+
+  // Hotel Management Methods
+  async getHotelsByRegistrationSource(
+    registrationSource?: string
+  ): Promise<{ count: number; hotels: any[] }> {
+    return this.oreonHotelClient.getHotelsByRegistrationSource(
+      registrationSource
+    );
+  }
+
+  async createRoomType(roomTypeData: any) {
+    return this.oreonHotelClient.createRoomType(roomTypeData);
+  }
+
+  async createRoom(roomData: any) {
+    return this.oreonHotelClient.createRoom(roomData);
+  }
+
+  async getHotelRoomTypes(hotelId: number) {
+    return this.oreonHotelClient.getHotelRoomTypes(hotelId);
+  }
 
   // Channel Integration Management
   async createChannelIntegration(
@@ -47,13 +71,49 @@ export class ChannelManagerService {
     userId: number
   ): Promise<ChannelIntegration> {
     try {
-      // Note: Hotel verification will be handled by Anli's existing validation
-      // For now, we assume the hotelId is valid
+      let hotelId: number;
+
+      // Handle hotel onboarding if hotelId is not provided
+      if (!dto.hotelId) {
+        if (!dto.hotel) {
+          throw new HttpException(
+            "Either hotelId or hotel information must be provided",
+            HttpStatus.BAD_REQUEST
+          );
+        }
+
+        this.logger.log(
+          `Onboarding new hotel: ${dto.hotel.name} for channel integration`
+        );
+
+        // Pass registration source from integration DTO to hotel DTO if provided
+        const hotelData = {
+          ...dto.hotel,
+          registrationSource:
+            dto.hotel.registrationSource ||
+            HotelRegistrationSource.CHANNEL_MANAGER,
+        };
+
+        // Create the hotel in Oreon PMS via API
+        const newHotel = await this.oreonHotelClient.createHotel(hotelData);
+        hotelId = newHotel.id;
+
+        this.logger.log(
+          `Created new hotel in Oreon with ID: ${hotelId} for channel integration`
+        );
+      } else {
+        hotelId = dto.hotelId;
+        // Note: Hotel verification should be done via Oreon API
+        // For now, we assume the hotelId is valid if provided
+        this.logger.log(
+          `Using existing hotel ID: ${hotelId} for channel integration`
+        );
+      }
 
       // Check if hotel already has an integration of this type
       const existingIntegration =
         await this.channelManagerRepository.findIntegrationByHotelAndType(
-          dto.hotelId,
+          hotelId,
           dto.channelType
         );
 
@@ -67,7 +127,7 @@ export class ChannelManagerService {
       // Generate property ID if not provided
       if (!dto.channelPropertyId) {
         dto.channelPropertyId = this.generatePropertyId(
-          dto.hotelId,
+          hotelId,
           dto.channelType as string
         );
       }
@@ -88,6 +148,7 @@ export class ChannelManagerService {
       const integration = await this.channelManagerRepository.createIntegration(
         {
           ...dto,
+          hotelId, // Use the resolved hotelId
           createdBy: userId,
           status: dto.status || IntegrationStatus.PENDING,
         }
@@ -97,7 +158,7 @@ export class ChannelManagerService {
       await this.autoSetupIntegration(integration);
 
       this.logger.log(
-        `Created channel integration: ${integration.channelName} for hotel ID: ${dto.hotelId}`
+        `Created channel integration: ${integration.channelName} for hotel ID: ${hotelId}`
       );
       return integration;
     } catch (error) {

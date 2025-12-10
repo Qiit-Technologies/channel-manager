@@ -4,7 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from 'typeorm';
+} from "typeorm";
 
 @Entity()
 export class Hotel {
@@ -13,6 +13,9 @@ export class Hotel {
 
   @Column()
   name: string;
+
+  @Column({ nullable: true })
+  email: string;
 
   @Column()
   isActive: boolean;
@@ -26,9 +29,9 @@ export class Hotel {
   @Column()
   state: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
-} 
+}

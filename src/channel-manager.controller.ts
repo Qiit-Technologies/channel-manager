@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, UseGuards } from "@nestjs/common";
 import {
   Controller,
   Get,
@@ -8,10 +8,10 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   HttpStatus,
   HttpCode,
 } from "@nestjs/common";
+import { ApiKeyGuard } from "./auth/api-key.guard";
 import { ChannelManagerService } from "./channel-manager.service";
 import {
   ApiTags,
@@ -22,6 +22,7 @@ import {
   ApiExtraModels,
   ApiOperation,
   ApiQuery,
+  ApiSecurity,
   getSchemaPath,
 } from "@nestjs/swagger";
 import { WebhookPayloadDto } from "./dto/webhook-payload.dto";
@@ -29,6 +30,8 @@ import { SevenWebhookPayloadDto } from "./dto/seven-webhook-payload.dto";
 import { CreateChannelIntegrationDto } from "./dto/create-channel-integration.dto";
 import { CreateChannelMappingDto } from "./dto/create-channel-mapping.dto";
 import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
+import { CreateRoomTypeDto } from "./dto/create-roomtype.dto";
+import { CreateRoomDto } from "./dto/create-room.dto";
 import { GetBookingsDto } from "./dto/get-bookings.dto";
 import { ChannelIntegration } from "./entities/channel-integration.entity";
 import { ChannelMapping } from "./entities/channel-mapping.entity";
@@ -55,6 +58,7 @@ import {
 import { createSwaggerExample } from "./swagger-helpers";
 
 @ApiTags("Channel Manager")
+@ApiSecurity("ApiKeyAuth")
 @ApiExtraModels(
   Guest,
   GetBookingsDto,
@@ -73,6 +77,130 @@ export class ChannelManagerController {
     private readonly channelApiFactory: ChannelApiFactory
   ) {}
 
+  // Hotel Management Endpoints
+  @Get("hotels")
+  @UseGuards(ApiKeyGuard)
+  @ApiOperation({
+    summary: "Get hotels by registration source",
+    description:
+      "Fetches hotels from Oreon PMS filtered by registration source, excluding DIRECT registrations. If no source is specified, returns all hotels except those registered DIRECT.",
+  })
+  @ApiQuery({
+    name: "registrationSource",
+    required: false,
+    enum: ["WAKANOW", "CHANNEL_MANAGER", "PARTNER", "API", "ADMIN"],
+    description: "Filter by specific registration source (optional)",
+    example: "CHANNEL_MANAGER",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "List of hotels retrieved successfully",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - invalid API key",
+  })
+  async getHotelsByRegistrationSource(
+    @Query("registrationSource") registrationSource?: string
+  ) {
+    return this.channelManagerService.getHotelsByRegistrationSource(
+      registrationSource
+    );
+  }
+
+  @Post("roomtypes")
+  @UseGuards(ApiKeyGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: "Create room type for a hotel",
+    description:
+      "Creates a new room type for a hotel in Oreon PMS. Used to set up hotel inventory.",
+  })
+  @ApiBody({
+    type: CreateRoomTypeDto,
+    description: "Room type creation data",
+  })
+  @ApiResponse({
+    status: 201,
+    description: "Room type created successfully",
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - invalid API key",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Hotel not found",
+  })
+  async createRoomType(@Body() payload: CreateRoomTypeDto) {
+    return this.channelManagerService.createRoomType(payload);
+  }
+
+  @Post("rooms")
+  @UseGuards(ApiKeyGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: "Create room for a hotel",
+    description:
+      "Creates a new room for a hotel in Oreon PMS. Requires an existing room type.",
+  })
+  @ApiBody({
+    type: CreateRoomDto,
+    description: "Room creation data",
+  })
+  @ApiResponse({
+    status: 201,
+    description: "Room created successfully",
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request - room type does not belong to hotel",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - invalid API key",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Hotel or room type not found",
+  })
+  async createRoom(@Body() payload: CreateRoomDto) {
+    return this.channelManagerService.createRoom(payload);
+  }
+
+  @Get("hotels/:hotelId/roomtypes")
+  @UseGuards(ApiKeyGuard)
+  @ApiOperation({
+    summary: "Get hotel room types with rooms",
+    description:
+      "Fetches all room types for a hotel along with their associated rooms from Oreon PMS.",
+  })
+  @ApiParam({
+    name: "hotelId",
+    description: "Hotel ID",
+    type: Number,
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Room types with rooms retrieved successfully",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - invalid API key",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Hotel not found",
+  })
+  async getHotelRoomTypes(@Param("hotelId") hotelId: number) {
+    return this.channelManagerService.getHotelRoomTypes(hotelId);
+  }
+
   // Channel Integration Endpoints
   @Post("integrations")
   @HttpCode(HttpStatus.CREATED)
@@ -82,12 +210,17 @@ export class ChannelManagerController {
       "Registers a new channel integration for a hotel and returns the created integration record.",
   })
   @ApiBody({
-    description: "Payload for creating a channel integration",
+    description:
+      "Payload for creating a channel integration. Can include hotelId for existing hotels, or hotel object for onboarding new hotels.",
     type: CreateChannelIntegrationDto,
     examples: {
       bookingCom: {
-        summary: "Booking.com integration",
+        summary: "Booking.com integration (existing hotel)",
         value: sampleChannelIntegrations.createRequest,
+      },
+      bookingComWithOnboarding: {
+        summary: "Booking.com integration with hotel onboarding",
+        value: sampleChannelIntegrations.createRequestWithHotelOnboarding,
       },
       expedia: {
         summary: "Expedia integration",

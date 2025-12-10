@@ -4,6 +4,10 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { ChannelManagerModule } from "./channel-manager.module";
 import { EnhancedApiKeyGuard } from "./auth/enhanced-api-key.guard";
 
+// Load environment variables from .env file
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+require("dotenv").config();
+
 async function bootstrap() {
   const app = await NestFactory.create(ChannelManagerModule);
 
@@ -65,9 +69,6 @@ async function bootstrap() {
   console.log(`✅ Channel Manager is running on: http://localhost:${port}`);
   console.log(`🌐 API Base URL: http://localhost:${port}/api/v1`);
   // SSL configuration enabled for production database connections
-  console.log(
-    `[PMS Forward] PMS_RESERVATION_FORWARD=${process.env.PMS_RESERVATION_FORWARD ?? 'unset'} PMS_RESERVATION_CREATE_URL=${process.env.PMS_RESERVATION_CREATE_URL ? 'set' : 'unset'} PMS_API_KEY=${process.env.PMS_API_KEY ? 'set' : 'unset'}`
-  );
 
   if (isTestMode) {
     console.log("\n🧪 TEST MODE ENDPOINTS (no authentication required):");
