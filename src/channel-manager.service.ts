@@ -41,16 +41,23 @@ export class ChannelManagerService {
     private readonly channelSyncEngine: ChannelSyncEngine,
     private readonly channelApiFactory: ChannelApiFactory,
     private readonly otaConfigurationService: OtaConfigurationService,
-    private readonly oreonHotelClient: OreonHotelClient
+    private readonly oreonHotelClient: OreonHotelClient,
   ) {}
 
   // Hotel Management Methods
   async getHotelsByRegistrationSource(
-    registrationSource?: string
+    registrationSource?: string,
   ): Promise<{ count: number; hotels: any[] }> {
     return this.oreonHotelClient.getHotelsByRegistrationSource(
-      registrationSource
+      registrationSource,
     );
+  }
+
+  async searchHotels(
+    name?: string,
+    email?: string,
+  ): Promise<{ count: number; hotels: any[] }> {
+    return this.oreonHotelClient.searchHotels(name, email);
   }
 
   async createRoomType(roomTypeData: any) {
@@ -68,7 +75,7 @@ export class ChannelManagerService {
   // Channel Integration Management
   async createChannelIntegration(
     dto: CreateChannelIntegrationDto,
-    userId: number
+    userId: number,
   ): Promise<ChannelIntegration> {
     try {
       let hotelId: number;
@@ -78,12 +85,12 @@ export class ChannelManagerService {
         if (!dto.hotel) {
           throw new HttpException(
             "Either hotelId or hotel information must be provided",
-            HttpStatus.BAD_REQUEST
+            HttpStatus.BAD_REQUEST,
           );
         }
 
         this.logger.log(
-          `Onboarding new hotel: ${dto.hotel.name} for channel integration`
+          `Onboarding new hotel: ${dto.hotel.name} for channel integration`,
         );
 
         // Pass registration source from integration DTO to hotel DTO if provided
@@ -99,14 +106,14 @@ export class ChannelManagerService {
         hotelId = newHotel.id;
 
         this.logger.log(
-          `Created new hotel in Oreon with ID: ${hotelId} for channel integration`
+          `Created new hotel in Oreon with ID: ${hotelId} for channel integration`,
         );
       } else {
         hotelId = dto.hotelId;
         // Note: Hotel verification should be done via Oreon API
         // For now, we assume the hotelId is valid if provided
         this.logger.log(
-          `Using existing hotel ID: ${hotelId} for channel integration`
+          `Using existing hotel ID: ${hotelId} for channel integration`,
         );
       }
 
@@ -114,13 +121,13 @@ export class ChannelManagerService {
       const existingIntegration =
         await this.channelManagerRepository.findIntegrationByHotelAndType(
           hotelId,
-          dto.channelType
+          dto.channelType,
         );
 
       if (existingIntegration) {
         throw new HttpException(
           `Hotel already has a ${dto.channelType} integration`,
-          HttpStatus.CONFLICT
+          HttpStatus.CONFLICT,
         );
       }
 
@@ -128,20 +135,20 @@ export class ChannelManagerService {
       if (!dto.channelPropertyId) {
         dto.channelPropertyId = this.generatePropertyId(
           hotelId,
-          dto.channelType as string
+          dto.channelType as string,
         );
       }
 
       // Test the integration using centralized OTA config
       this.logger.log(
-        `NODE_ENV: ${process.env.NODE_ENV}, running connection test...`
+        `NODE_ENV: ${process.env.NODE_ENV}, running connection test...`,
       );
 
       const testResult = await this.testChannelIntegration(dto);
       if (!testResult.success) {
         throw new HttpException(
           `Integration test failed: ${testResult.error}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -151,19 +158,19 @@ export class ChannelManagerService {
           hotelId, // Use the resolved hotelId
           createdBy: userId,
           status: dto.status || IntegrationStatus.PENDING,
-        }
+        },
       );
 
       // Auto-setup integration using PMS data
       await this.autoSetupIntegration(integration);
 
       this.logger.log(
-        `Created channel integration: ${integration.channelName} for hotel ID: ${hotelId}`
+        `Created channel integration: ${integration.channelName} for hotel ID: ${hotelId}`,
       );
       return integration;
     } catch (error) {
       this.logger.error(
-        `Failed to create channel integration: ${error.message}`
+        `Failed to create channel integration: ${error.message}`,
       );
       throw error;
     }
@@ -183,7 +190,7 @@ export class ChannelManagerService {
     if (!integration) {
       throw new HttpException(
         "Channel integration not found",
-        HttpStatus.NOT_FOUND
+        HttpStatus.NOT_FOUND,
       );
     }
     return integration;
@@ -192,7 +199,7 @@ export class ChannelManagerService {
   async updateChannelIntegration(
     id: number,
     updates: Partial<ChannelIntegration>,
-    userId: number
+    userId: number,
   ): Promise<ChannelIntegration> {
     const integration = await this.getChannelIntegration(id);
 
@@ -205,13 +212,13 @@ export class ChannelManagerService {
       const existingIntegration =
         await this.channelManagerRepository.findIntegrationByHotelAndType(
           integration.hotelId,
-          updates.channelType
+          updates.channelType,
         );
 
       if (existingIntegration && existingIntegration.id !== id) {
         throw new HttpException(
           `Hotel already has a ${updates.channelType} integration`,
-          HttpStatus.CONFLICT
+          HttpStatus.CONFLICT,
         );
       }
 
@@ -220,7 +227,7 @@ export class ChannelManagerService {
       if (!testResult.success) {
         throw new HttpException(
           `Integration test failed: ${testResult.error}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
     }
@@ -232,7 +239,7 @@ export class ChannelManagerService {
       });
 
     this.logger.log(
-      `Updated channel integration: ${updatedIntegration.channelName}`
+      `Updated channel integration: ${updatedIntegration.channelName}`,
     );
     return updatedIntegration;
   }
@@ -246,7 +253,7 @@ export class ChannelManagerService {
   // Channel Mapping Management
   async createChannelMapping(
     dto: CreateChannelMappingDto,
-    userId: number
+    userId: number,
   ): Promise<ChannelMapping> {
     try {
       // Verify integration exists
@@ -261,7 +268,7 @@ export class ChannelManagerService {
       });
 
       this.logger.log(
-        `Created channel mapping for room type ID: ${dto.roomtypeId}`
+        `Created channel mapping for room type ID: ${dto.roomtypeId}`,
       );
       return mapping;
     } catch (error) {
@@ -272,20 +279,20 @@ export class ChannelManagerService {
 
   async getChannelMappings(integrationId: number): Promise<ChannelMapping[]> {
     return await this.channelManagerRepository.findMappingsByIntegration(
-      integrationId
+      integrationId,
     );
   }
 
   async updateChannelMapping(
     id: number,
     updates: Partial<ChannelMapping>,
-    userId: number
+    userId: number,
   ): Promise<ChannelMapping> {
     const mapping = await this.channelManagerRepository.findMappingById(id);
     if (!mapping) {
       throw new HttpException(
         "Channel mapping not found",
-        HttpStatus.NOT_FOUND
+        HttpStatus.NOT_FOUND,
       );
     }
 
@@ -294,18 +301,18 @@ export class ChannelManagerService {
       {
         ...updates,
         updatedBy: userId,
-      }
+      },
     );
 
     this.logger.log(
-      `Updated channel mapping: ${updatedMapping.channelRoomTypeName}`
+      `Updated channel mapping: ${updatedMapping.channelRoomTypeName}`,
     );
     return updatedMapping;
   }
 
   // Availability Management
   async syncAvailability(
-    dto: SyncAvailabilityDto
+    dto: SyncAvailabilityDto,
   ): Promise<ChannelAvailability> {
     try {
       const integration = await this.getChannelIntegration(dto.integrationId);
@@ -316,14 +323,14 @@ export class ChannelManagerService {
           dto.integrationId,
           dto.roomtypeId,
           new Date(dto.date),
-          new Date(dto.date)
+          new Date(dto.date),
         );
 
       if (availability.length > 0) {
         const updatedAvailability =
           await this.channelManagerRepository.updateAvailability(
             availability[0].id,
-            { ...dto, date: new Date(dto.date) }
+            { ...dto, date: new Date(dto.date) },
           );
         return updatedAvailability;
       } else {
@@ -351,20 +358,20 @@ export class ChannelManagerService {
     integrationId: number,
     roomtypeId: number,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<ChannelAvailability[]> {
     return await this.channelManagerRepository.findAvailabilityByDateRange(
       integrationId,
       roomtypeId,
       startDate,
-      endDate
+      endDate,
     );
   }
 
   // Rate Management
   async createChannelRatePlan(
     ratePlan: Partial<ChannelRatePlan>,
-    userId: number
+    userId: number,
   ): Promise<ChannelRatePlan> {
     const newRatePlan = await this.channelManagerRepository.createRatePlan({
       ...ratePlan,
@@ -372,21 +379,21 @@ export class ChannelManagerService {
     });
 
     this.logger.log(
-      `Created channel rate plan: ${newRatePlan.channelRatePlanName}`
+      `Created channel rate plan: ${newRatePlan.channelRatePlanName}`,
     );
     return newRatePlan;
   }
 
   async getChannelRatePlans(integrationId: number): Promise<ChannelRatePlan[]> {
     return await this.channelManagerRepository.findRatePlansByIntegration(
-      integrationId
+      integrationId,
     );
   }
 
   async updateChannelRatePlan(
     id: number,
     updates: Partial<ChannelRatePlan>,
-    userId: number
+    userId: number,
   ): Promise<ChannelRatePlan> {
     try {
       const ratePlan = await this.channelManagerRepository.updateRatePlan(id, {
@@ -397,12 +404,12 @@ export class ChannelManagerService {
       if (!ratePlan) {
         throw new HttpException(
           `Rate plan with ID ${id} not found`,
-          HttpStatus.NOT_FOUND
+          HttpStatus.NOT_FOUND,
         );
       }
 
       this.logger.log(
-        `Updated channel rate plan: ${ratePlan.channelRatePlanName}`
+        `Updated channel rate plan: ${ratePlan.channelRatePlanName}`,
       );
       return ratePlan;
     } catch (error) {
@@ -412,7 +419,7 @@ export class ChannelManagerService {
       this.logger.error(`Failed to update rate plan: ${error.message}`);
       throw new HttpException(
         `Failed to update rate plan: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -420,20 +427,20 @@ export class ChannelManagerService {
   // Sync Management
   async triggerManualSync(
     integrationId: number,
-    operationType: SyncOperationType
+    operationType: SyncOperationType,
   ): Promise<void> {
     const integration = await this.getChannelIntegration(integrationId);
 
     if (integration.status !== IntegrationStatus.ACTIVE) {
       throw new HttpException(
         "Integration is not active",
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
 
     await this.channelSyncEngine.triggerSync(integration, operationType);
     this.logger.log(
-      `Manual sync triggered for integration: ${integration.channelName}`
+      `Manual sync triggered for integration: ${integration.channelName}`,
     );
   }
 
@@ -441,56 +448,56 @@ export class ChannelManagerService {
   async handleIncomingWebhookByHotelAndType(
     hotelId: number,
     channelType: ChannelType,
-    webhookData: any
+    webhookData: any,
   ): Promise<void> {
     const integration =
       await this.channelManagerRepository.findIntegrationByHotelAndType(
         hotelId,
-        channelType
+        channelType,
       );
 
     if (!integration) {
       throw new HttpException(
         `Channel integration not found for hotelId=${hotelId} and type=${channelType}`,
-        HttpStatus.NOT_FOUND
+        HttpStatus.NOT_FOUND,
       );
     }
 
     await this.channelSyncEngine.handleIncomingWebhook(
       integration,
-      webhookData
+      webhookData,
     );
   }
 
   async getSyncLogs(
     integrationId: number,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<ChannelSyncLog[]> {
     return await this.channelManagerRepository.findSyncLogsByIntegration(
       integrationId,
-      limit
+      limit,
     );
   }
 
   async getSyncStatistics(
     integrationId: number,
-    days: number = 7
+    days: number = 7,
   ): Promise<any> {
     return await this.channelManagerRepository.getSyncStatistics(
       integrationId,
-      days
+      days,
     );
   }
 
   // Testing and Validation
   async testChannelIntegration(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       console.log("integration", integration);
       // Get the OTA configuration for this channel type
       const otaConfig = await this.otaConfigurationService.getConfiguration(
-        integration.channelType
+        integration.channelType,
       );
       console.log("otaConfig", otaConfig);
       if (!otaConfig || !otaConfig.apiKey) {
@@ -511,13 +518,13 @@ export class ChannelManagerService {
       };
 
       const channelApi = this.channelApiFactory.createChannelApi(
-        integration.channelType
+        integration.channelType,
       );
       const testResult = await channelApi.testConnection(testIntegration);
 
       if (testResult.success) {
         this.logger.log(
-          `Integration test successful for ${integration.channelType}`
+          `Integration test successful for ${integration.channelType}`,
         );
         return { success: true };
       } else {
@@ -540,14 +547,14 @@ export class ChannelManagerService {
         try {
           await this.channelSyncEngine.triggerSync(
             integration,
-            SyncOperationType.FULL_SYNC
+            SyncOperationType.FULL_SYNC,
           );
           this.logger.log(
-            `Scheduled sync completed for: ${integration.channelName}`
+            `Scheduled sync completed for: ${integration.channelName}`,
           );
         } catch (error) {
           this.logger.error(
-            `Scheduled sync failed for ${integration.channelName}: ${error.message}`
+            `Scheduled sync failed for ${integration.channelName}: ${error.message}`,
           );
 
           // Update integration status if sync fails repeatedly
@@ -556,7 +563,7 @@ export class ChannelManagerService {
             {
               status: IntegrationStatus.ERROR,
               errorMessage: error.message,
-            }
+            },
           );
         }
       }
@@ -596,11 +603,11 @@ export class ChannelManagerService {
 
   // Auto-setup integration using Anli data
   private async autoSetupIntegration(
-    integration: ChannelIntegration
+    integration: ChannelIntegration,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Starting auto-setup for integration: ${integration.channelName}`
+        `Starting auto-setup for integration: ${integration.channelName}`,
       );
 
       // 1. Auto-create room type mappings
@@ -618,11 +625,11 @@ export class ChannelManagerService {
       });
 
       this.logger.log(
-        `Auto-setup completed for integration: ${integration.channelName}`
+        `Auto-setup completed for integration: ${integration.channelName}`,
       );
     } catch (error) {
       this.logger.error(
-        `Auto-setup failed for integration ${integration.channelName}: ${error.message}`
+        `Auto-setup failed for integration ${integration.channelName}: ${error.message}`,
       );
 
       // Update integration status to ERROR if auto-setup fails
@@ -637,7 +644,7 @@ export class ChannelManagerService {
 
   // Auto-create room type mappings from PMS data
   private async autoCreateRoomTypeMappings(
-    integration: ChannelIntegration
+    integration: ChannelIntegration,
   ): Promise<void> {
     try {
       // TODO: Read room types from PMS database
@@ -645,7 +652,7 @@ export class ChannelManagerService {
       // This will be implemented when PMS integration is complete
 
       this.logger.log(
-        `Auto-creating room type mappings for integration: ${integration.id}`
+        `Auto-creating room type mappings for integration: ${integration.id}`,
       );
 
       // Placeholder: Create default room type mapping
@@ -661,11 +668,11 @@ export class ChannelManagerService {
 
       await this.channelManagerRepository.createMapping(defaultMapping);
       this.logger.log(
-        `Created default room type mapping for integration: ${integration.id}`
+        `Created default room type mapping for integration: ${integration.id}`,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to auto-create room type mappings: ${error.message}`
+        `Failed to auto-create room type mappings: ${error.message}`,
       );
       throw error;
     }
@@ -673,11 +680,11 @@ export class ChannelManagerService {
 
   // Auto-setup availability sync
   private async autoSetupAvailabilitySync(
-    integration: ChannelIntegration
+    integration: ChannelIntegration,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Setting up availability sync for integration: ${integration.id}`
+        `Setting up availability sync for integration: ${integration.id}`,
       );
 
       // TODO: Read room inventory from PMS and create availability records
@@ -707,7 +714,7 @@ export class ChannelManagerService {
       }
 
       this.logger.log(
-        `Availability sync setup completed for integration: ${integration.id}`
+        `Availability sync setup completed for integration: ${integration.id}`,
       );
     } catch (error) {
       this.logger.error(`Failed to setup availability sync: ${error.message}`);
@@ -717,11 +724,11 @@ export class ChannelManagerService {
 
   // Auto-setup rate sync
   private async autoSetupRateSync(
-    integration: ChannelIntegration
+    integration: ChannelIntegration,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Setting up rate sync for integration: ${integration.id}`
+        `Setting up rate sync for integration: ${integration.id}`,
       );
 
       // TODO: Read rate plans from PMS and create channel rate plans
@@ -739,7 +746,7 @@ export class ChannelManagerService {
 
       await this.channelManagerRepository.createRatePlan(defaultRatePlan);
       this.logger.log(
-        `Rate sync setup completed for integration: ${integration.id}`
+        `Rate sync setup completed for integration: ${integration.id}`,
       );
     } catch (error) {
       this.logger.error(`Failed to setup rate sync: ${error.message}`);
@@ -753,7 +760,7 @@ export class ChannelManagerService {
       const existingIntegrations =
         await this.channelManagerRepository.findIntegrationsByHotel(hotelId);
       const existingTypes = existingIntegrations.map(
-        (integration) => integration.channelType
+        (integration) => integration.channelType,
       );
 
       // Return all channel types that the hotel doesn't have
@@ -761,7 +768,7 @@ export class ChannelManagerService {
       return allTypes.filter((type) => !existingTypes.includes(type));
     } catch (error) {
       this.logger.error(
-        `Failed to get available integration types: ${error.message}`
+        `Failed to get available integration types: ${error.message}`,
       );
       throw error;
     }
@@ -777,7 +784,7 @@ export class ChannelManagerService {
 
   private async updateAvailabilityForGuest(
     integration: ChannelIntegration,
-    guest: any
+    guest: any,
   ): Promise<void> {
     try {
       const startDate = new Date(guest.startDate);
@@ -794,14 +801,14 @@ export class ChannelManagerService {
             integration.id,
             guest.roomTypeId,
             date,
-            date
+            date,
           );
 
         if (availability.length > 0) {
           const currentAvailability = availability[0];
           const newOccupiedRooms = Math.max(
             0,
-            currentAvailability.occupiedRooms - 1
+            currentAvailability.occupiedRooms - 1,
           );
           const newAvailableRooms =
             currentAvailability.totalRooms - newOccupiedRooms;
@@ -815,13 +822,13 @@ export class ChannelManagerService {
                 newAvailableRooms > 0
                   ? AvailabilityStatus.AVAILABLE
                   : AvailabilityStatus.UNAVAILABLE,
-            }
+            },
           );
         }
       }
     } catch (error) {
       this.logger.error(
-        `Failed to update availability for guest: ${error.message}`
+        `Failed to update availability for guest: ${error.message}`,
       );
     }
   }
@@ -836,7 +843,7 @@ export class ChannelManagerService {
       this.logger.error(`Failed to get bookings: ${error.message}`);
       throw new HttpException(
         `Failed to retrieve bookings: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -848,7 +855,7 @@ export class ChannelManagerService {
       if (!booking) {
         throw new HttpException(
           `Booking with code ${bookingCode} not found`,
-          HttpStatus.NOT_FOUND
+          HttpStatus.NOT_FOUND,
         );
       }
       return booking;
@@ -859,7 +866,7 @@ export class ChannelManagerService {
       this.logger.error(`Failed to get booking: ${error.message}`);
       throw new HttpException(
         `Failed to retrieve booking: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -871,7 +878,7 @@ export class ChannelManagerService {
       this.logger.error(`Failed to create booking: ${error.message}`);
       throw new HttpException(
         `Failed to create booking: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -883,12 +890,12 @@ export class ChannelManagerService {
       if (!booking) {
         throw new HttpException(
           `Booking with code ${bookingCode} not found`,
-          HttpStatus.NOT_FOUND
+          HttpStatus.NOT_FOUND,
         );
       }
       return await this.channelManagerRepository.updateBooking(
         bookingCode,
-        updates
+        updates,
       );
     } catch (error) {
       if (error instanceof HttpException) {
@@ -897,7 +904,7 @@ export class ChannelManagerService {
       this.logger.error(`Failed to update booking: ${error.message}`);
       throw new HttpException(
         `Failed to update booking: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

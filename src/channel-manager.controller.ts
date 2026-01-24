@@ -66,7 +66,7 @@ import { createSwaggerExample } from "./swagger-helpers";
   ChannelMapping,
   ChannelAvailability,
   ChannelRatePlan,
-  ChannelSyncLog
+  ChannelSyncLog,
 )
 @Controller("channel-manager")
 export class ChannelManagerController {
@@ -74,7 +74,7 @@ export class ChannelManagerController {
 
   constructor(
     private readonly channelManagerService: ChannelManagerService,
-    private readonly channelApiFactory: ChannelApiFactory
+    private readonly channelApiFactory: ChannelApiFactory,
   ) {}
 
   // Hotel Management Endpoints
@@ -101,11 +101,20 @@ export class ChannelManagerController {
     description: "Unauthorized - invalid API key",
   })
   async getHotelsByRegistrationSource(
-    @Query("registrationSource") registrationSource?: string
+    @Query("registrationSource") registrationSource?: string,
   ) {
     return this.channelManagerService.getHotelsByRegistrationSource(
-      registrationSource
+      registrationSource,
     );
+  }
+
+  @Get("hotels/search")
+  @ApiOperation({ summary: "Search hotels by name or email" })
+  @ApiQuery({ name: "name", required: false, type: String })
+  @ApiQuery({ name: "email", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Found matching hotels" })
+  searchHotels(@Query("name") name?: string, @Query("email") email?: string) {
+    return this.channelManagerService.searchHotels(name, email);
   }
 
   @Post("roomtypes")
@@ -248,13 +257,13 @@ export class ChannelManagerController {
     },
   })
   async createChannelIntegration(
-    @Body() dto: CreateChannelIntegrationDto
+    @Body() dto: CreateChannelIntegrationDto,
   ): Promise<ChannelIntegration> {
     // For testing purposes, use a default user ID
     const userId = 1;
     return await this.channelManagerService.createChannelIntegration(
       dto,
-      userId
+      userId,
     );
   }
 
@@ -287,7 +296,7 @@ export class ChannelManagerController {
     },
   })
   async getChannelIntegrations(
-    @Query("hotelId") hotelId?: number
+    @Query("hotelId") hotelId?: number,
   ): Promise<ChannelIntegration[]> {
     if (hotelId) {
       return await this.channelManagerService.getChannelIntegrations(hotelId);
@@ -323,7 +332,7 @@ export class ChannelManagerController {
     description: "Channel integration not found",
   })
   async getChannelIntegration(
-    @Param("id") id: number
+    @Param("id") id: number,
   ): Promise<ChannelIntegration> {
     return await this.channelManagerService.getChannelIntegration(id);
   }
@@ -380,14 +389,14 @@ export class ChannelManagerController {
   })
   async updateChannelIntegration(
     @Param("id") id: number,
-    @Body() updates: Partial<ChannelIntegration>
+    @Body() updates: Partial<ChannelIntegration>,
   ): Promise<ChannelIntegration> {
     // For testing purposes, use a default user ID
     const userId = 1;
     return await this.channelManagerService.updateChannelIntegration(
       id,
       updates,
-      userId
+      userId,
     );
   }
 
@@ -446,10 +455,10 @@ export class ChannelManagerController {
     },
   })
   async getAvailableIntegrationTypes(
-    @Param("hotelId") hotelId: number
+    @Param("hotelId") hotelId: number,
   ): Promise<ChannelType[]> {
     return await this.channelManagerService.getAvailableIntegrationTypes(
-      hotelId
+      hotelId,
     );
   }
 
@@ -483,7 +492,7 @@ export class ChannelManagerController {
     },
   })
   async createChannelMapping(
-    @Body() dto: CreateChannelMappingDto
+    @Body() dto: CreateChannelMappingDto,
   ): Promise<ChannelMapping> {
     // For testing purposes, use a default user ID
     const userId = 1;
@@ -517,7 +526,7 @@ export class ChannelManagerController {
     },
   })
   async getChannelMappings(
-    @Param("integrationId") integrationId: number
+    @Param("integrationId") integrationId: number,
   ): Promise<ChannelMapping[]> {
     return await this.channelManagerService.getChannelMappings(integrationId);
   }
@@ -574,14 +583,14 @@ export class ChannelManagerController {
   })
   async updateChannelMapping(
     @Param("id") id: number,
-    @Body() updates: Partial<ChannelMapping>
+    @Body() updates: Partial<ChannelMapping>,
   ): Promise<ChannelMapping> {
     // For testing purposes, use a default user ID
     const userId = 1;
     return await this.channelManagerService.updateChannelMapping(
       id,
       updates,
-      userId
+      userId,
     );
   }
 
@@ -618,7 +627,7 @@ export class ChannelManagerController {
     },
   })
   async syncAvailability(
-    @Body() dto: SyncAvailabilityDto
+    @Body() dto: SyncAvailabilityDto,
   ): Promise<ChannelAvailability> {
     return await this.channelManagerService.syncAvailability(dto);
   }
@@ -672,13 +681,13 @@ export class ChannelManagerController {
     @Query("integrationId") integrationId: number,
     @Query("roomtypeId") roomtypeId: number,
     @Query("startDate") startDate: string,
-    @Query("endDate") endDate: string
+    @Query("endDate") endDate: string,
   ): Promise<ChannelAvailability[]> {
     return await this.channelManagerService.getAvailabilityByDateRange(
       integrationId,
       roomtypeId,
       new Date(startDate),
-      new Date(endDate)
+      new Date(endDate),
     );
   }
 
@@ -765,7 +774,7 @@ export class ChannelManagerController {
     const userId = 1;
     return await this.channelManagerService.createChannelRatePlan(
       ratePlan,
-      userId
+      userId,
     );
   }
 
@@ -795,7 +804,7 @@ export class ChannelManagerController {
     },
   })
   async getChannelRatePlans(
-    @Param("integrationId") integrationId: number
+    @Param("integrationId") integrationId: number,
   ): Promise<any[]> {
     return await this.channelManagerService.getChannelRatePlans(integrationId);
   }
@@ -855,14 +864,14 @@ export class ChannelManagerController {
   })
   async updateChannelRatePlan(
     @Param("id") id: number,
-    @Body() updates: Partial<ChannelRatePlan>
+    @Body() updates: Partial<ChannelRatePlan>,
   ): Promise<ChannelRatePlan> {
     // For testing purposes, use a default user ID
     const userId = 1;
     return await this.channelManagerService.updateChannelRatePlan(
       id,
       updates,
-      userId
+      userId,
     );
   }
 
@@ -937,7 +946,7 @@ export class ChannelManagerController {
     description: "Booking not found",
   })
   async getBookingByCode(
-    @Param("bookingCode") bookingCode: string
+    @Param("bookingCode") bookingCode: string,
   ): Promise<any> {
     return await this.channelManagerService.getBookingByCode(bookingCode);
   }
@@ -1089,7 +1098,7 @@ export class ChannelManagerController {
   })
   async updateBooking(
     @Param("bookingCode") bookingCode: string,
-    @Body() updates: any
+    @Body() updates: any,
   ): Promise<any> {
     return await this.channelManagerService.updateBooking(bookingCode, updates);
   }
@@ -1144,7 +1153,7 @@ export class ChannelManagerController {
   })
   async triggerManualSync(
     @Param("id") id: number,
-    @Body() body: { operationType: SyncOperationType }
+    @Body() body: { operationType: SyncOperationType },
   ): Promise<void> {
     await this.channelManagerService.triggerManualSync(id, body.operationType);
   }
@@ -1184,7 +1193,7 @@ export class ChannelManagerController {
   })
   async getSyncLogs(
     @Param("id") id: number,
-    @Query("limit") limit: number = 100
+    @Query("limit") limit: number = 100,
   ): Promise<ChannelSyncLog[]> {
     return await this.channelManagerService.getSyncLogs(id, limit);
   }
@@ -1227,7 +1236,7 @@ export class ChannelManagerController {
   })
   async getSyncStatistics(
     @Param("id") id: number,
-    @Query("days") days: number = 7
+    @Query("days") days: number = 7,
   ): Promise<any> {
     return await this.channelManagerService.getSyncStatistics(id, days);
   }
@@ -1281,7 +1290,7 @@ export class ChannelManagerController {
     },
   })
   async testChannelIntegration(
-    @Param("id") id: number
+    @Param("id") id: number,
   ): Promise<{ success: boolean; error?: string }> {
     const integration =
       await this.channelManagerService.getChannelIntegration(id);
@@ -1351,13 +1360,13 @@ export class ChannelManagerController {
     },
   })
   async getChannelFeatures(
-    @Param("type") type: ChannelType
+    @Param("type") type: ChannelType,
   ): Promise<string[]> {
     try {
       return this.channelApiFactory.getChannelFeatures(type);
     } catch (error) {
       this.logger.error(
-        `Failed to get features for channel ${type}: ${error.message}`
+        `Failed to get features for channel ${type}: ${error.message}`,
       );
       return ["Basic integration support"];
     }
@@ -1486,7 +1495,7 @@ export class ChannelManagerController {
   @ApiResponse({ status: 202, description: "Webhook accepted for processing" })
   async handleChannelWebhook(
     @Param("type") type: ChannelType,
-    @Body() body: WebhookPayloadDto
+    @Body() body: WebhookPayloadDto,
   ): Promise<{ status: string; message: string }> {
     // Expect hotelId in payload to resolve the correct integration
     const hotelId = body?.hotelId;
@@ -1499,7 +1508,7 @@ export class ChannelManagerController {
     await this.channelManagerService.handleIncomingWebhookByHotelAndType(
       hotelId,
       type,
-      body
+      body,
     );
 
     this.logger.log(`[Webhook] Accepted type=${type} hotelId=${hotelId}`);
@@ -1605,7 +1614,7 @@ export class ChannelManagerController {
   })
   async getPerformanceMetrics(
     @Query("hotelId") hotelId: number,
-    @Query("days") days: number = 30
+    @Query("days") days: number = 30,
   ): Promise<any> {
     const integrations =
       await this.channelManagerService.getChannelIntegrations(hotelId);
@@ -1614,7 +1623,7 @@ export class ChannelManagerController {
       integrations.map(async (integration) => {
         const stats = await this.channelManagerService.getSyncStatistics(
           integration.id,
-          days
+          days,
         );
         return {
           integrationId: integration.id,
@@ -1622,7 +1631,7 @@ export class ChannelManagerController {
           channelType: integration.channelType,
           ...stats,
         };
-      })
+      }),
     );
 
     return performanceData;

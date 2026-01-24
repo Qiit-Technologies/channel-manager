@@ -24,22 +24,22 @@ export class OreonHotelClient {
    * This calls the Oreon public endpoint to create hotels
    */
   async createHotel(
-    hotelData: CreateHotelDto
+    hotelData: CreateHotelDto,
   ): Promise<{ id: number; name: string; email?: string }> {
     try {
       const url = `${this.baseUrl}/public/channel-manager/hotels`;
       const apiKey = this.apiKey;
 
       this.logger.log(
-        `[Oreon Hotel] URL: ${url}, API Key configured: ${apiKey ? "Yes" : "No"}`
+        `[Oreon Hotel] URL: ${url}, API Key configured: ${apiKey ? "Yes" : "No"}`,
       );
       if (!apiKey) {
         this.logger.error(
-          "[Oreon Hotel] CM_FORWARD_API_KEY not configured in channel manager. Please set CM_FORWARD_API_KEY environment variable to match Oreon's CM_FORWARD_API_KEY"
+          "[Oreon Hotel] CM_FORWARD_API_KEY not configured in channel manager. Please set CM_FORWARD_API_KEY environment variable to match Oreon's CM_FORWARD_API_KEY",
         );
         throw new HttpException(
           "CM_FORWARD_API_KEY not configured in channel manager. Please set the environment variable.",
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
@@ -59,21 +59,21 @@ export class OreonHotelClient {
       };
 
       this.logger.log(
-        `[Oreon Hotel] Creating hotel in Oreon: ${hotelData.name}`
+        `[Oreon Hotel] Creating hotel in Oreon: ${hotelData.name}`,
       );
 
       const response = await firstValueFrom(
-        this.http.post(url, oreonPayload, { headers })
+        this.http.post(url, oreonPayload, { headers }),
       );
       if (response.status === 201 || response.status === 200) {
         this.logger.log(
-          `[Oreon Hotel] Hotel created successfully: id=${response.data.id} name=${response.data.name}`
+          `[Oreon Hotel] Hotel created successfully: id=${response.data.id} name=${response.data.name}`,
         );
         return response.data;
       } else {
         throw new HttpException(
           `Failed to create hotel in Oreon: ${response.statusText}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
     } catch (error: any) {
@@ -82,23 +82,23 @@ export class OreonHotelClient {
       const errorMessage = data?.message || error?.message || "Unknown error";
 
       this.logger.error(
-        `[Oreon Hotel] Failed to create hotel: status=${status ?? "n/a"} message=${errorMessage}`
+        `[Oreon Hotel] Failed to create hotel: status=${status ?? "n/a"} message=${errorMessage}`,
       );
 
       if (status === 400) {
         throw new HttpException(
           `Hotel creation failed: ${errorMessage}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       } else if (status === 401) {
         throw new HttpException(
           "Invalid API key for Oreon hotel creation",
-          HttpStatus.UNAUTHORIZED
+          HttpStatus.UNAUTHORIZED,
         );
       } else {
         throw new HttpException(
           `Failed to create hotel in Oreon: ${errorMessage}`,
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
     }
@@ -109,7 +109,7 @@ export class OreonHotelClient {
    * Excludes DIRECT registrations
    */
   async getHotelsByRegistrationSource(
-    registrationSource?: string
+    registrationSource?: string,
   ): Promise<{ count: number; hotels: any[] }> {
     try {
       let url = `${this.baseUrl}/public/channel-manager/hotels`;
@@ -121,11 +121,11 @@ export class OreonHotelClient {
 
       if (!apiKey) {
         this.logger.error(
-          "[Oreon Hotel] CM_FORWARD_API_KEY not configured in channel manager. Please set CM_FORWARD_API_KEY environment variable to match Oreon's CM_FORWARD_API_KEY"
+          "[Oreon Hotel] CM_FORWARD_API_KEY not configured in channel manager. Please set CM_FORWARD_API_KEY environment variable to match Oreon's CM_FORWARD_API_KEY",
         );
         throw new HttpException(
           "CM_FORWARD_API_KEY not configured in channel manager. Please set the environment variable.",
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
@@ -135,20 +135,20 @@ export class OreonHotelClient {
       };
 
       this.logger.log(
-        `[Oreon Hotel] Fetching hotels${registrationSource ? ` with source=${registrationSource}` : " (all non-DIRECT)"} from Oreon`
+        `[Oreon Hotel] Fetching hotels${registrationSource ? ` with source=${registrationSource}` : " (all non-DIRECT)"} from Oreon`,
       );
 
       const response = await firstValueFrom(this.http.get(url, { headers }));
 
       if (response.status === 200) {
         this.logger.log(
-          `[Oreon Hotel] Successfully fetched ${response.data.count} hotels`
+          `[Oreon Hotel] Successfully fetched ${response.data.count} hotels`,
         );
         return response.data;
       } else {
         throw new HttpException(
           `Failed to fetch hotels from Oreon: ${response.statusText}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
     } catch (error: any) {
@@ -157,23 +157,23 @@ export class OreonHotelClient {
       const errorMessage = data?.message || error?.message || "Unknown error";
 
       this.logger.error(
-        `[Oreon Hotel] Failed to fetch hotels: status=${status ?? "n/a"} message=${errorMessage}`
+        `[Oreon Hotel] Failed to fetch hotels: status=${status ?? "n/a"} message=${errorMessage}`,
       );
 
       if (status === 400) {
         throw new HttpException(
           `Failed to fetch hotels: ${errorMessage}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       } else if (status === 401) {
         throw new HttpException(
           "Invalid API key for Oreon hotel fetch",
-          HttpStatus.UNAUTHORIZED
+          HttpStatus.UNAUTHORIZED,
         );
       } else {
         throw new HttpException(
           `Failed to fetch hotels from Oreon: ${errorMessage}`,
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
     }
@@ -194,11 +194,11 @@ export class OreonHotelClient {
 
       if (!apiKey) {
         this.logger.error(
-          "[Oreon RoomType] CM_FORWARD_API_KEY not configured in channel manager."
+          "[Oreon RoomType] CM_FORWARD_API_KEY not configured in channel manager.",
         );
         throw new HttpException(
           "CM_FORWARD_API_KEY not configured in channel manager.",
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
@@ -208,22 +208,22 @@ export class OreonHotelClient {
       };
 
       this.logger.log(
-        `[Oreon RoomType] Creating room type in Oreon: ${roomTypeData.name} for hotel ${roomTypeData.hotelId}`
+        `[Oreon RoomType] Creating room type in Oreon: ${roomTypeData.name} for hotel ${roomTypeData.hotelId}`,
       );
 
       const response = await firstValueFrom(
-        this.http.post(url, roomTypeData, { headers })
+        this.http.post(url, roomTypeData, { headers }),
       );
 
       if (response.status === 201 || response.status === 200) {
         this.logger.log(
-          `[Oreon RoomType] Room type created successfully: id=${response.data.id} name=${response.data.name}`
+          `[Oreon RoomType] Room type created successfully: id=${response.data.id} name=${response.data.name}`,
         );
         return response.data;
       } else {
         throw new HttpException(
           `Failed to create room type in Oreon: ${response.statusText}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
     } catch (error: any) {
@@ -232,23 +232,23 @@ export class OreonHotelClient {
       const errorMessage = data?.message || error?.message || "Unknown error";
 
       this.logger.error(
-        `[Oreon RoomType] Failed to create room type: status=${status ?? "n/a"} message=${errorMessage}`
+        `[Oreon RoomType] Failed to create room type: status=${status ?? "n/a"} message=${errorMessage}`,
       );
 
       if (status === 400) {
         throw new HttpException(
           `Room type creation failed: ${errorMessage}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       } else if (status === 401) {
         throw new HttpException(
           "Invalid API key for Oreon room type creation",
-          HttpStatus.UNAUTHORIZED
+          HttpStatus.UNAUTHORIZED,
         );
       } else {
         throw new HttpException(
           `Failed to create room type in Oreon: ${errorMessage}`,
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
     }
@@ -273,11 +273,11 @@ export class OreonHotelClient {
 
       if (!apiKey) {
         this.logger.error(
-          "[Oreon Room] CM_FORWARD_API_KEY not configured in channel manager."
+          "[Oreon Room] CM_FORWARD_API_KEY not configured in channel manager.",
         );
         throw new HttpException(
           "CM_FORWARD_API_KEY not configured in channel manager.",
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
@@ -287,22 +287,22 @@ export class OreonHotelClient {
       };
 
       this.logger.log(
-        `[Oreon Room] Creating room in Oreon: ${roomData.roomNumber} for hotel ${roomData.hotelId}`
+        `[Oreon Room] Creating room in Oreon: ${roomData.roomNumber} for hotel ${roomData.hotelId}`,
       );
 
       const response = await firstValueFrom(
-        this.http.post(url, roomData, { headers })
+        this.http.post(url, roomData, { headers }),
       );
 
       if (response.status === 201 || response.status === 200) {
         this.logger.log(
-          `[Oreon Room] Room created successfully: id=${response.data.id} number=${response.data.roomNumber}`
+          `[Oreon Room] Room created successfully: id=${response.data.id} number=${response.data.roomNumber}`,
         );
         return response.data;
       } else {
         throw new HttpException(
           `Failed to create room in Oreon: ${response.statusText}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
     } catch (error: any) {
@@ -311,23 +311,23 @@ export class OreonHotelClient {
       const errorMessage = data?.message || error?.message || "Unknown error";
 
       this.logger.error(
-        `[Oreon Room] Failed to create room: status=${status ?? "n/a"} message=${errorMessage}`
+        `[Oreon Room] Failed to create room: status=${status ?? "n/a"} message=${errorMessage}`,
       );
 
       if (status === 400) {
         throw new HttpException(
           `Room creation failed: ${errorMessage}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       } else if (status === 401) {
         throw new HttpException(
           "Invalid API key for Oreon room creation",
-          HttpStatus.UNAUTHORIZED
+          HttpStatus.UNAUTHORIZED,
         );
       } else {
         throw new HttpException(
           `Failed to create room in Oreon: ${errorMessage}`,
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
     }
@@ -360,11 +360,11 @@ export class OreonHotelClient {
 
       if (!apiKey) {
         this.logger.error(
-          "[Oreon RoomTypes] CM_FORWARD_API_KEY not configured in channel manager."
+          "[Oreon RoomTypes] CM_FORWARD_API_KEY not configured in channel manager.",
         );
         throw new HttpException(
           "CM_FORWARD_API_KEY not configured in channel manager.",
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
@@ -374,20 +374,20 @@ export class OreonHotelClient {
       };
 
       this.logger.log(
-        `[Oreon RoomTypes] Fetching room types for hotel ${hotelId} from Oreon`
+        `[Oreon RoomTypes] Fetching room types for hotel ${hotelId} from Oreon`,
       );
 
       const response = await firstValueFrom(this.http.get(url, { headers }));
 
       if (response.status === 200) {
         this.logger.log(
-          `[Oreon RoomTypes] Successfully fetched ${response.data.count} room types`
+          `[Oreon RoomTypes] Successfully fetched ${response.data.count} room types`,
         );
         return response.data;
       } else {
         throw new HttpException(
           `Failed to fetch room types from Oreon: ${response.statusText}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
     } catch (error: any) {
@@ -396,28 +396,108 @@ export class OreonHotelClient {
       const errorMessage = data?.message || error?.message || "Unknown error";
 
       this.logger.error(
-        `[Oreon RoomTypes] Failed to fetch room types: status=${status ?? "n/a"} message=${errorMessage}`
+        `[Oreon RoomTypes] Failed to fetch room types: status=${status ?? "n/a"} message=${errorMessage}`,
       );
 
       if (status === 400) {
         throw new HttpException(
           `Failed to fetch room types: ${errorMessage}`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       } else if (status === 401) {
         throw new HttpException(
           "Invalid API key for Oreon room types fetch",
-          HttpStatus.UNAUTHORIZED
+          HttpStatus.UNAUTHORIZED,
         );
       } else if (status === 404) {
         throw new HttpException(
           `Hotel not found: ${errorMessage}`,
-          HttpStatus.NOT_FOUND
+          HttpStatus.NOT_FOUND,
         );
       } else {
         throw new HttpException(
           `Failed to fetch room types from Oreon: ${errorMessage}`,
-          HttpStatus.INTERNAL_SERVER_ERROR
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  /**
+   * Search hotels in Oreon PMS via API by name or email
+   */
+  async searchHotels(
+    name?: string,
+    email?: string,
+  ): Promise<{ count: number; hotels: any[] }> {
+    try {
+      let url = `${this.baseUrl}/public/channel-manager/hotels/search`;
+      const params = new URLSearchParams();
+      if (name) params.append("name", name);
+      if (email) params.append("email", email);
+
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
+      const apiKey = this.apiKey;
+
+      if (!apiKey) {
+        this.logger.error(
+          "[Oreon Hotel] CM_FORWARD_API_KEY not configured in channel manager.",
+        );
+        throw new HttpException(
+          "CM_FORWARD_API_KEY not configured in channel manager.",
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      };
+
+      this.logger.log(
+        `[Oreon Hotel] Searching hotels with name=${name || "any"} and/or email=${email || "any"} from Oreon`,
+      );
+
+      const response = await firstValueFrom(this.http.get(url, { headers }));
+
+      if (response.status === 200) {
+        this.logger.log(
+          `[Oreon Hotel] Successfully found ${response.data.count} matching hotels`,
+        );
+        return response.data;
+      } else {
+        throw new HttpException(
+          `Failed to search hotels from Oreon: ${response.statusText}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+      const errorMessage = data?.message || error?.message || "Unknown error";
+
+      this.logger.error(
+        `[Oreon Hotel] Failed to search hotels: status=${status ?? "n/a"} message=${errorMessage}`,
+      );
+
+      if (status === 400) {
+        throw new HttpException(
+          `Failed to search hotels: ${errorMessage}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      } else if (status === 401) {
+        throw new HttpException(
+          "Invalid API key for Oreon hotel search",
+          HttpStatus.UNAUTHORIZED,
+        );
+      } else {
+        throw new HttpException(
+          `Failed to search hotels from Oreon: ${errorMessage}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
     }
