@@ -32,10 +32,7 @@ export class Guest {
   otaBookingCode: string;
 
   @Column()
-  firstName: string;
-
-  @Column()
-  lastName: string;
+  fullName: string;
 
   @Column()
   email: string;

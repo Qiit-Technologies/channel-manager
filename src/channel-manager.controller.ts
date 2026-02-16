@@ -964,8 +964,7 @@ export class ChannelManagerController {
       type: "object",
       required: [
         "bookingCode",
-        "firstName",
-        "lastName",
+        "fullName",
         "email",
         "startDate",
         "endDate",
@@ -975,8 +974,7 @@ export class ChannelManagerController {
       properties: {
         bookingCode: { type: "string", example: "BK-2024-001" },
         otaBookingCode: { type: "string", example: "BCOM-12345678" },
-        firstName: { type: "string", example: "John" },
-        lastName: { type: "string", example: "Doe" },
+        fullName: { type: "string", example: "John Doe" },
         email: { type: "string", example: "john.doe@example.com" },
         phone: { type: "string", example: "+1234567890" },
         startDate: { type: "string", format: "date", example: "2024-06-01" },
@@ -1014,8 +1012,7 @@ export class ChannelManagerController {
         value: {
           bookingCode: "BK-2024-002",
           otaBookingCode: "EXP-98765432",
-          firstName: "Jane",
-          lastName: "Smith",
+          fullName: "Jane Smith",
           email: "jane.smith@example.com",
           phone: "+0987654321",
           startDate: "2024-06-10",
