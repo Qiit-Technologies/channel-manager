@@ -7,7 +7,7 @@ import {
 } from "typeorm";
 import { ChannelType } from "./channel-integration.entity";
 
-@Entity()
+@Entity("ota_configuration")
 export class OtaConfiguration {
   @PrimaryGeneratedColumn()
   id: number;

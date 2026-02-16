@@ -10,14 +10,14 @@ import { ChannelRatePlan } from "../../entities/channel-rate-plan.entity";
 @Injectable()
 export class CornicheApiService implements ChannelApiInterface {
   private readonly logger = new Logger(CornicheApiService.name);
-  private readonly baseUrl = "https://api.corniche.com/v1"; // Replace with actual Corniche API URL
+  private readonly baseUrl = "https://www.thecornichehotel.com/wp-json/cmw/v1";
   private readonly httpService = new HttpService();
 
   // Hotel-specific configuration for Corniche integration
   private readonly SUPPORTED_HOTEL_IDS = [8]; // Add specific hotel IDs that support Corniche
 
   async testConnection(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       this.logger.log("Testing Corniche connection...");
@@ -25,7 +25,7 @@ export class CornicheApiService implements ChannelApiInterface {
       // Check if this hotel is supported for Corniche integration
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
@@ -43,7 +43,7 @@ export class CornicheApiService implements ChannelApiInterface {
       const inTestMode = Boolean(integration.testMode);
       if (inDevMode || inTestMode) {
         this.logger.log(
-          "Dev/Test mode: skipping external Corniche API connectivity check"
+          "Dev/Test mode: skipping external Corniche API connectivity check",
         );
         return { success: true };
       }
@@ -57,8 +57,8 @@ export class CornicheApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status === 200) {
@@ -78,16 +78,16 @@ export class CornicheApiService implements ChannelApiInterface {
 
   async updateInventory(
     integration: ChannelIntegration,
-    mapping: ChannelMapping
+    mapping: ChannelMapping,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Corniche inventory for room type: ${mapping.channelRoomTypeName}`
+        `Updating Corniche inventory for room type: ${mapping.channelRoomTypeName}`,
       );
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
@@ -102,8 +102,8 @@ export class CornicheApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       this.logger.log("Corniche inventory update successful");
@@ -115,16 +115,16 @@ export class CornicheApiService implements ChannelApiInterface {
 
   async updateRates(
     integration: ChannelIntegration,
-    ratePlan: ChannelRatePlan
+    ratePlan: ChannelRatePlan,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Corniche rates for rate plan: ${ratePlan.channelRatePlanName}`
+        `Updating Corniche rates for rate plan: ${ratePlan.channelRatePlanName}`,
       );
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
@@ -139,8 +139,8 @@ export class CornicheApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       this.logger.log("Corniche rate update successful");
@@ -152,22 +152,22 @@ export class CornicheApiService implements ChannelApiInterface {
 
   async updateAvailability(
     integration: ChannelIntegration,
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Corniche availability for date: ${availability.date}`
+        `Updating Corniche availability for date: ${availability.date}`,
       );
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
       const availabilityData = this.buildAvailabilityRequest(
         integration,
-        availability
+        availability,
       );
 
       await firstValueFrom(
@@ -179,14 +179,14 @@ export class CornicheApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       this.logger.log("Corniche availability update successful");
     } catch (error) {
       this.logger.error(
-        `Corniche availability update failed: ${error.message}`
+        `Corniche availability update failed: ${error.message}`,
       );
       throw error;
     }
@@ -194,14 +194,14 @@ export class CornicheApiService implements ChannelApiInterface {
 
   async processWebhook(
     integration: ChannelIntegration,
-    webhookData: any
+    webhookData: any,
   ): Promise<any> {
     try {
       this.logger.log("Processing Corniche webhook...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
@@ -226,20 +226,20 @@ export class CornicheApiService implements ChannelApiInterface {
 
   async createGuestReservation(
     integration: ChannelIntegration,
-    guestData: any
+    guestData: any,
   ): Promise<any> {
     try {
       this.logger.log("Creating Corniche guest reservation...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
       const reservationData = this.buildReservationRequest(
         integration,
-        guestData
+        guestData,
       );
 
       const response = await firstValueFrom(
@@ -251,15 +251,15 @@ export class CornicheApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       this.logger.log("Corniche guest reservation created successfully");
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Corniche guest reservation creation failed: ${error.message}`
+        `Corniche guest reservation creation failed: ${error.message}`,
       );
       throw error;
     }
@@ -268,21 +268,21 @@ export class CornicheApiService implements ChannelApiInterface {
   async updateGuestReservation(
     integration: ChannelIntegration,
     guestId: string,
-    updates: any
+    updates: any,
   ): Promise<any> {
     try {
       this.logger.log(`Updating Corniche guest reservation: ${guestId}`);
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
       const updateData = this.buildReservationUpdateRequest(
         integration,
         guestId,
-        updates
+        updates,
       );
 
       const response = await firstValueFrom(
@@ -294,15 +294,15 @@ export class CornicheApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       this.logger.log("Corniche guest reservation updated successfully");
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Corniche guest reservation update failed: ${error.message}`
+        `Corniche guest reservation update failed: ${error.message}`,
       );
       throw error;
     }
@@ -310,14 +310,14 @@ export class CornicheApiService implements ChannelApiInterface {
 
   async cancelGuestReservation(
     integration: ChannelIntegration,
-    guestId: string
+    guestId: string,
   ): Promise<any> {
     try {
       this.logger.log(`Cancelling Corniche guest reservation: ${guestId}`);
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
@@ -329,15 +329,15 @@ export class CornicheApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       this.logger.log("Corniche guest reservation cancelled successfully");
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Corniche guest reservation cancellation failed: ${error.message}`
+        `Corniche guest reservation cancellation failed: ${error.message}`,
       );
       throw error;
     }
@@ -349,7 +349,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`
+          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
         );
       }
 
@@ -360,8 +360,8 @@ export class CornicheApiService implements ChannelApiInterface {
             headers: {
               Authorization: `Bearer ${integration.apiKey}`,
             },
-          }
-        )
+          },
+        ),
       );
 
       return {
@@ -372,14 +372,14 @@ export class CornicheApiService implements ChannelApiInterface {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to get Corniche channel info: ${error.message}`
+        `Failed to get Corniche channel info: ${error.message}`,
       );
       throw error;
     }
   }
 
   async validateCredentials(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<boolean> {
     const testResult = await this.testConnection(integration);
     return testResult.success;
@@ -393,7 +393,7 @@ export class CornicheApiService implements ChannelApiInterface {
   // Private helper methods
   private buildInventoryRequest(
     integration: ChannelIntegration,
-    mapping: ChannelMapping
+    mapping: ChannelMapping,
   ): any {
     return {
       propertyId: integration.channelPropertyId,
@@ -414,7 +414,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
   private buildRateRequest(
     integration: ChannelIntegration,
-    ratePlan: ChannelRatePlan
+    ratePlan: ChannelRatePlan,
   ): any {
     return {
       propertyId: integration.channelPropertyId,
@@ -433,7 +433,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
   private buildAvailabilityRequest(
     integration: ChannelIntegration,
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): any {
     return {
       propertyId: integration.channelPropertyId,
@@ -455,7 +455,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
   private buildReservationRequest(
     integration: ChannelIntegration,
-    guestData: any
+    guestData: any,
   ): any {
     return {
       propertyId: integration.channelPropertyId,
@@ -470,7 +470,7 @@ export class CornicheApiService implements ChannelApiInterface {
   private buildReservationUpdateRequest(
     integration: ChannelIntegration,
     guestId: string,
-    updates: any
+    updates: any,
   ): any {
     return {
       propertyId: integration.channelPropertyId,
@@ -494,7 +494,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
   private async processReservationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     this.logger.log("Processing Corniche reservation webhook");
     const payload = data?.data ?? {};
@@ -561,12 +561,12 @@ export class CornicheApiService implements ChannelApiInterface {
 
   private buildOreonCreateGuestDto(
     integration: ChannelIntegration,
-    payload: any
+    payload: any,
   ): any {
     const fullName = payload.guest?.name;
     const email = payload.guest?.email;
     const phone = this.normalizePhoneNumber(
-      payload.guest?.phone || payload.guest?.phoneNumber
+      payload.guest?.phone || payload.guest?.phoneNumber,
     );
 
     const roomtypeRaw = payload.room_type_id;
@@ -614,7 +614,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
   private async processCancellationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     this.logger.log("Processing Corniche cancellation webhook");
     return { processed: true, type: "cancellation", data };
@@ -622,7 +622,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
   private async processModificationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     this.logger.log("Processing Corniche modification webhook");
     return { processed: true, type: "modification", data };
