@@ -32,12 +32,12 @@ export class ChannelManagerRepository {
     @InjectRepository(ChannelAvailability)
     private channelAvailabilityRepo: Repository<ChannelAvailability>,
     @InjectRepository(Guest)
-    private guestRepo: Repository<Guest>
+    private guestRepo: Repository<Guest>,
   ) {}
 
   // Channel Integration Methods
   async createIntegration(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<ChannelIntegration> {
     const newIntegration = this.channelIntegrationRepo.create(integration);
     return await this.channelIntegrationRepo.save(newIntegration);
@@ -78,7 +78,7 @@ export class ChannelManagerRepository {
   }
 
   async findIntegrationsByHotel(
-    hotelId: number
+    hotelId: number,
   ): Promise<ChannelIntegration[]> {
     const response = await axios.get(
       "https://api.test.hotelbeds.com/hotel-api/1.0/hotels",
@@ -88,7 +88,7 @@ export class ChannelManagerRepository {
           "X-Signature": "908ebfa5de",
           Accept: "application/json",
         },
-      }
+      },
     );
 
     console.log(response.data);
@@ -116,7 +116,7 @@ export class ChannelManagerRepository {
 
   async findIntegrationByHotelAndType(
     hotelId: number,
-    channelType: any
+    channelType: any,
   ): Promise<ChannelIntegration | null> {
     try {
       return await this.channelIntegrationRepo.findOne({
@@ -172,7 +172,7 @@ export class ChannelManagerRepository {
 
   async updateIntegration(
     id: number,
-    updates: Partial<ChannelIntegration>
+    updates: Partial<ChannelIntegration>,
   ): Promise<ChannelIntegration> {
     await this.channelIntegrationRepo.update(id, updates);
     return await this.findIntegrationById(id);
@@ -184,14 +184,14 @@ export class ChannelManagerRepository {
 
   // Channel Mapping Methods
   async createMapping(
-    mapping: Partial<ChannelMapping>
+    mapping: Partial<ChannelMapping>,
   ): Promise<ChannelMapping> {
     const newMapping = this.channelMappingRepo.create(mapping);
     return await this.channelMappingRepo.save(newMapping);
   }
 
   async findMappingsByIntegration(
-    integrationId: number
+    integrationId: number,
   ): Promise<ChannelMapping[]> {
     return await this.channelMappingRepo.find({
       where: { integrationId },
@@ -200,7 +200,7 @@ export class ChannelManagerRepository {
 
   async findMappingByChannelRoomTypeId(
     integrationId: number,
-    channelRoomTypeId: string
+    channelRoomTypeId: string,
   ): Promise<ChannelMapping | null> {
     return await this.channelMappingRepo.findOne({
       where: { integrationId, channelRoomTypeId },
@@ -215,7 +215,7 @@ export class ChannelManagerRepository {
 
   async updateMapping(
     id: number,
-    updates: Partial<ChannelMapping>
+    updates: Partial<ChannelMapping>,
   ): Promise<ChannelMapping> {
     await this.channelMappingRepo.update(id, updates);
     return await this.findMappingById(id);
@@ -227,14 +227,14 @@ export class ChannelManagerRepository {
 
   // Channel Rate Plan Methods
   async createRatePlan(
-    ratePlan: Partial<ChannelRatePlan>
+    ratePlan: Partial<ChannelRatePlan>,
   ): Promise<ChannelRatePlan> {
     const newRatePlan = this.channelRatePlanRepo.create(ratePlan);
     return await this.channelRatePlanRepo.save(newRatePlan);
   }
 
   async findRatePlansByIntegration(
-    integrationId: number
+    integrationId: number,
   ): Promise<ChannelRatePlan[]> {
     return await this.channelRatePlanRepo.find({
       where: { integrationId },
@@ -243,7 +243,7 @@ export class ChannelManagerRepository {
 
   async updateRatePlan(
     id: number,
-    updates: Partial<ChannelRatePlan>
+    updates: Partial<ChannelRatePlan>,
   ): Promise<ChannelRatePlan> {
     await this.channelRatePlanRepo.update(id, updates);
     return await this.channelRatePlanRepo.findOne({ where: { id } });
@@ -251,7 +251,7 @@ export class ChannelManagerRepository {
 
   // Channel Availability Methods
   async createAvailability(
-    availability: Partial<ChannelAvailability>
+    availability: Partial<ChannelAvailability>,
   ): Promise<ChannelAvailability> {
     const newAvailability = this.channelAvailabilityRepo.create(availability);
     return await this.channelAvailabilityRepo.save(newAvailability);
@@ -261,7 +261,7 @@ export class ChannelManagerRepository {
     integrationId: number,
     roomtypeId: number,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<ChannelAvailability[]> {
     return await this.channelAvailabilityRepo.find({
       where: {
@@ -275,21 +275,21 @@ export class ChannelManagerRepository {
 
   async updateAvailability(
     id: number,
-    updates: Partial<ChannelAvailability>
+    updates: Partial<ChannelAvailability>,
   ): Promise<ChannelAvailability> {
     await this.channelAvailabilityRepo.update(id, updates);
     return await this.channelAvailabilityRepo.findOne({ where: { id } });
   }
 
   async bulkUpdateAvailability(
-    updates: Partial<ChannelAvailability>[]
+    updates: Partial<ChannelAvailability>[],
   ): Promise<void> {
     await this.channelAvailabilityRepo.save(updates);
   }
 
   // Channel Sync Log Methods
   async createSyncLog(
-    syncLog: Partial<ChannelSyncLog>
+    syncLog: Partial<ChannelSyncLog>,
   ): Promise<ChannelSyncLog> {
     const newSyncLog = this.channelSyncLogRepo.create(syncLog);
     return await this.channelSyncLogRepo.save(newSyncLog);
@@ -297,7 +297,7 @@ export class ChannelManagerRepository {
 
   async findSyncLogsByIntegration(
     integrationId: number,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<ChannelSyncLog[]> {
     return await this.channelSyncLogRepo.find({
       where: { integrationId },
@@ -315,7 +315,7 @@ export class ChannelManagerRepository {
 
   async updateSyncLog(
     id: number,
-    updates: Partial<ChannelSyncLog>
+    updates: Partial<ChannelSyncLog>,
   ): Promise<ChannelSyncLog> {
     await this.channelSyncLogRepo.update(id, updates);
     return await this.channelSyncLogRepo.findOne({ where: { id } });
@@ -333,14 +333,14 @@ export class ChannelManagerRepository {
       })
       .andWhere(
         "(integration.lastSyncAt IS NULL OR integration.lastSyncAt < :fifteenMinutesAgo)",
-        { fifteenMinutesAgo }
+        { fifteenMinutesAgo },
       )
       .getMany();
   }
 
   async getSyncStatistics(
     integrationId: number,
-    days: number = 7
+    days: number = 7,
   ): Promise<any> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -354,13 +354,13 @@ export class ChannelManagerRepository {
 
     const total = logs.length;
     const successful = logs.filter(
-      (log) => log.status === SyncStatus.SUCCESS
+      (log) => log.status === SyncStatus.SUCCESS,
     ).length;
     const failed = logs.filter(
-      (log) => log.status === SyncStatus.FAILED
+      (log) => log.status === SyncStatus.FAILED,
     ).length;
     const pending = logs.filter(
-      (log) => log.status === SyncStatus.PENDING
+      (log) => log.status === SyncStatus.PENDING,
     ).length;
 
     return {
@@ -380,16 +380,12 @@ export class ChannelManagerRepository {
       where.hotelId = dto.hotelId;
     }
 
-    if (dto.integrationId) {
-      where.integrationId = dto.integrationId;
-    }
-
     if (dto.source) {
-      where.source = dto.source;
+      where.bookingSource = dto.source;
     }
 
     if (dto.status) {
-      where.status = dto.status;
+      where.bookingStatus = dto.status;
     }
 
     if (dto.bookingCode) {
@@ -413,7 +409,7 @@ export class ChannelManagerRepository {
         {
           createdFrom: new Date(dto.createdFrom),
           createdTo: new Date(dto.createdTo),
-        }
+        },
       );
     } else if (dto.createdFrom) {
       queryBuilder.andWhere("guest.createdAt >= :createdFrom", {
@@ -431,7 +427,7 @@ export class ChannelManagerRepository {
         {
           checkInFrom: new Date(dto.checkInFrom),
           checkInTo: new Date(dto.checkInTo),
-        }
+        },
       );
     } else if (dto.checkInFrom) {
       queryBuilder.andWhere("guest.startDate >= :checkInFrom", {
@@ -464,7 +460,7 @@ export class ChannelManagerRepository {
 
   async updateBooking(
     bookingCode: string,
-    updates: Partial<Guest>
+    updates: Partial<Guest>,
   ): Promise<Guest> {
     await this.guestRepo.update({ bookingCode }, updates);
     return await this.findBookingByCode(bookingCode);

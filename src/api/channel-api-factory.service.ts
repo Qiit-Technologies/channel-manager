@@ -11,6 +11,7 @@ import { HotelbedsApiService } from "./implementations/hotelbeds-api.service";
 import { CustomApiService } from "./implementations/custom-api.service";
 import { SevenApiService } from "./implementations/seven-api.service";
 import { CornicheApiService } from "./implementations/corniche-api.service";
+import { WakanowApiService } from "./implementations/wakanow-api.service";
 
 @Injectable()
 export class ChannelApiFactory {
@@ -50,6 +51,9 @@ export class ChannelApiFactory {
       case ChannelType.CORNICHE:
         return new CornicheApiService();
 
+      case ChannelType.WAKANOW:
+        return new WakanowApiService();
+
       default:
         throw new Error(`Unsupported channel type: ${channelType}`);
     }
@@ -81,6 +85,8 @@ export class ChannelApiFactory {
         return "7even";
       case ChannelType.CORNICHE:
         return "Corniche";
+      case ChannelType.WAKANOW:
+        return "Wakanow";
       default:
         return channelType;
     }
@@ -176,6 +182,15 @@ export class ChannelApiFactory {
           "Webhook support",
           "WordPress plugin integration",
           "Custom property mapping",
+        ];
+
+      case ChannelType.WAKANOW:
+        return [
+          "African market focus",
+          "Inventory management",
+          "One-way rate sync",
+          "Booking notifications",
+          "Currency: NGN/USD",
         ];
 
       default:

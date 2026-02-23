@@ -18,6 +18,7 @@ export enum ChannelType {
   CUSTOM = "CUSTOM",
   SEVEN = "SEVEN",
   CORNICHE = "CORNICHE",
+  WAKANOW = "WAKANOW",
 }
 
 export enum IntegrationStatus {

@@ -377,7 +377,7 @@ export class AirbnbApiService implements ChannelApiInterface {
   ): any {
     return {
       calendar: {
-        date: availability.date.toISOString().split('T')[0],
+        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split('T')[0],
         available: availability.status === 'AVAILABLE',
         min_nights: availability.restrictions?.minStay || 1,
         max_nights: availability.restrictions?.maxStay || 30,

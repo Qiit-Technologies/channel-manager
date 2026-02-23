@@ -384,7 +384,7 @@ export class AgodaApiService implements ChannelApiInterface {
   ): any {
     return {
       availability: {
-        date: availability.date.toISOString().split('T')[0],
+        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split('T')[0],
         available_rooms: availability.availableRooms,
         total_rooms: availability.totalRooms,
         status: availability.status === 'AVAILABLE' ? 'OPEN' : 'CLOSED',

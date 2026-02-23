@@ -16,46 +16,45 @@ export class PmsReservationClient {
     return process.env.PMS_API_KEY;
   }
 
-  private buildUrl(hotelId: number): string | null {
+  private buildUrl(): string | null {
     const base = this.baseUrl;
     if (!base) return null;
-    if (base.includes("{hotelId}")) {
-      return base.replace("{hotelId}", String(hotelId));
-    }
-    try {
-      const url = new URL(base);
-      if (!url.searchParams.has("hotelId")) {
-        url.searchParams.append("hotelId", String(hotelId));
-      }
-      return url.toString();
-    } catch {
-      const separator = base.includes("?") ? "&" : "?";
-      return `${base}${separator}hotelId=${hotelId}`;
-    }
+    return base;
   }
 
   async createGuestReservation(
     hotelId: number,
-    oreonGuestDto: any
-  ): Promise<{ success: boolean; status?: number; data?: any; error?: string }> {
+    oreonGuestDto: any,
+  ): Promise<{
+    success: boolean;
+    status?: number;
+    data?: any;
+    error?: string;
+  }> {
     try {
-      const enabled = (process.env.PMS_RESERVATION_FORWARD || "false").toLowerCase() === "true";
+      const enabled =
+        (process.env.PMS_RESERVATION_FORWARD || "false").toLowerCase() ===
+        "true";
       this.logger.log(
-        `[PMS Forward] enabled=${enabled} baseUrl=${this.baseUrl ?? 'unset'} apiKeySet=${Boolean(this.apiKey)}`
+        `[PMS Forward] enabled=${enabled} baseUrl=${this.baseUrl ?? "unset"} apiKeySet=${Boolean(this.apiKey)}`,
       );
       if (!enabled) {
         this.logger.log("[PMS Forward] Disabled by config");
         return { success: false, error: "forwarding_disabled" };
       }
 
-      const url = this.buildUrl(hotelId);
+      const url = this.buildUrl();
       if (!url) {
-        this.logger.warn("[PMS Forward] PMS_RESERVATION_CREATE_URL not configured; skipping");
+        this.logger.warn(
+          "[PMS Forward] PMS_RESERVATION_CREATE_URL not configured; skipping",
+        );
         return { success: false, error: "missing_url" };
       }
       this.logger.log(`[PMS Forward] builtUrl=${url}`);
 
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       if (this.apiKey) {
         headers["X-API-Key"] = this.apiKey;
       }
@@ -65,25 +64,40 @@ export class PmsReservationClient {
         const summary = {
           fullName: oreonGuestDto?.fullName,
           email: oreonGuestDto?.email,
-          roomtype: oreonGuestDto?.roomtype,
-          startDate: oreonGuestDto?.startDate,
-          endDate: oreonGuestDto?.endDate,
-          numberOfGuests: oreonGuestDto?.numberOfGuests,
+          roomTypeId: oreonGuestDto?.roomTypeId,
+          checkInDate: oreonGuestDto?.checkInDate,
+          checkOutDate: oreonGuestDto?.checkOutDate,
+          amount: oreonGuestDto?.amount,
+          amountPaid: oreonGuestDto?.amountPaid,
+          propertyReference: oreonGuestDto?.propertyReference,
         };
-        this.logger.log(`[PMS Forward] payload summary: ${JSON.stringify(summary)}`);
+        this.logger.log(
+          `[PMS Forward] payload summary: ${JSON.stringify(summary)}`,
+        );
       } catch {}
 
-      const resp = await firstValueFrom(this.http.post(url, oreonGuestDto, { headers }));
+      const resp = await firstValueFrom(
+        this.http.post(url, oreonGuestDto, { headers }),
+      );
       this.logger.log(`PMS reservation created: status=${resp.status}`);
-      return { success: resp.status < 300, status: resp.status, data: resp.data };
+      return {
+        success: resp.status < 300,
+        status: resp.status,
+        data: resp.data,
+      };
     } catch (error: any) {
       const status = error?.response?.status;
       const data = error?.response?.data;
       const dataPreview = data ? JSON.stringify(data).slice(0, 500) : undefined;
       this.logger.error(
-        `[PMS Forward] Failed: status=${status ?? 'n/a'} message=${error?.message || error} data=${dataPreview || 'n/a'}`
+        `[PMS Forward] Failed: status=${status ?? "n/a"} message=${error?.message || error} data=${dataPreview || "n/a"}`,
       );
-      return { success: false, status, data, error: error?.message || String(error) };
+      return {
+        success: false,
+        status,
+        data,
+        error: error?.message || String(error),
+      };
     }
   }
 }

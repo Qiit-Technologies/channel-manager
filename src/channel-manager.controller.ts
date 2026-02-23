@@ -27,6 +27,8 @@ import {
 } from "@nestjs/swagger";
 import { WebhookPayloadDto } from "./dto/webhook-payload.dto";
 import { SevenWebhookPayloadDto } from "./dto/seven-webhook-payload.dto";
+import { WakanowWebhookPayloadDto } from "./dto/wakanow-webhook-payload.dto";
+import { CreateExternalBookingDto } from "./dto/create-external-booking.dto";
 import { CreateChannelIntegrationDto } from "./dto/create-channel-integration.dto";
 import { CreateChannelMappingDto } from "./dto/create-channel-mapping.dto";
 import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
@@ -626,9 +628,7 @@ export class ChannelManagerController {
       },
     },
   })
-  async syncAvailability(
-    @Body() dto: SyncAvailabilityDto,
-  ): Promise<ChannelAvailability> {
+  async syncAvailability(@Body() dto: SyncAvailabilityDto): Promise<any> {
     return await this.channelManagerService.syncAvailability(dto);
   }
 
@@ -1408,6 +1408,23 @@ export class ChannelManagerController {
     await this.channelManagerService.handleGuestCheckOut(guestId);
   }
 
+  @Post("bookings")
+  @UseGuards(ApiKeyGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: "Create external booking (OTA/Partner)",
+    description:
+      "Allows external partners (like Wakanow) to create a reservation directly in the PMS.",
+  })
+  @ApiBody({ type: CreateExternalBookingDto })
+  @ApiResponse({
+    status: 201,
+    description: "Booking created successfully",
+  })
+  async createExternalBooking(@Body() dto: CreateExternalBookingDto) {
+    return this.channelManagerService.createExternalBooking(dto);
+  }
+
   // Inbound Webhook Endpoint for OTA bookings and updates
   @Post("webhooks/:type")
   @HttpCode(HttpStatus.ACCEPTED)
@@ -1422,13 +1439,18 @@ export class ChannelManagerController {
     enum: ChannelType,
   })
   @ApiConsumes("application/json")
-  @ApiExtraModels(WebhookPayloadDto, SevenWebhookPayloadDto)
+  @ApiExtraModels(
+    WebhookPayloadDto,
+    SevenWebhookPayloadDto,
+    WakanowWebhookPayloadDto,
+  )
   @ApiBody({
     description:
       "Inbound webhook payload. Must include hotelId to resolve integration. For 7even, use SevenWebhookPayloadDto structure.",
     schema: {
       oneOf: [
         { $ref: getSchemaPath(SevenWebhookPayloadDto) },
+        { $ref: getSchemaPath(WakanowWebhookPayloadDto) },
         { $ref: getSchemaPath(WebhookPayloadDto) },
       ],
     },
@@ -1436,6 +1458,31 @@ export class ChannelManagerController {
       seven_reservation: {
         summary: "7even reservation webhook",
         value: sampleWebhooks.sevenReservation,
+      },
+      wakanow_reservation: {
+        summary: "Wakanow booking confirmation",
+        value: {
+          hotelId: 1,
+          event_type: "BOOKING_CONFIRMATION",
+          timestamp: "2024-05-20T10:30:00Z",
+          data: {
+            booking_reference: "WKN-987654321",
+            property_id: "H1W123",
+            room_type_id: "WKN_DLX",
+            check_in_date: "2024-06-01",
+            check_out_date: "2024-06-05",
+            quantity: 1,
+            total_amount: 150000,
+            currency: "NGN",
+            guest: {
+              first_name: "Chinedu",
+              last_name: "Okafor",
+              email: "chinedu@example.com",
+              phone: "+2348012345678",
+            },
+            status: "CONFIRMED",
+          },
+        },
       },
       seven_cancellation: {
         summary: "7even cancellation webhook",

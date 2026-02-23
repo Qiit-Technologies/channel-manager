@@ -2,6 +2,8 @@ import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { WakanowWebhookPayloadDto } from "./dto/wakanow-webhook-payload.dto";
+import { CreateExternalBookingDto } from "./dto/create-external-booking.dto";
 import { ChannelManagerRepository } from "./channel-manager.repository";
 import { CreateChannelIntegrationDto } from "./dto/create-channel-integration.dto";
 import { CreateChannelMappingDto } from "./dto/create-channel-mapping.dto";
@@ -27,6 +29,7 @@ import { ChannelSyncEngine } from "./sync/channel-sync-engine.service";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
 import { OtaConfigurationService } from "./services/ota-configuration.service";
 import { OreonHotelClient } from "./services/oreon-hotel-client.service";
+import { PmsReservationClient } from "./services/pms-reservation-client.service";
 import { HotelRegistrationSource } from "./dto/create-hotel.dto";
 
 // Anli entity imports - these will be loaded from the Anli database
@@ -42,6 +45,7 @@ export class ChannelManagerService {
     private readonly channelApiFactory: ChannelApiFactory,
     private readonly otaConfigurationService: OtaConfigurationService,
     private readonly oreonHotelClient: OreonHotelClient,
+    private readonly pmsReservationClient: PmsReservationClient,
   ) {}
 
   // Hotel Management Methods
@@ -311,43 +315,94 @@ export class ChannelManagerService {
   }
 
   // Availability Management
-  async syncAvailability(
-    dto: SyncAvailabilityDto,
-  ): Promise<ChannelAvailability> {
+  async syncAvailability(dto: SyncAvailabilityDto): Promise<any> {
     try {
       const integration = await this.getChannelIntegration(dto.integrationId);
 
-      // Create or update availability record
-      const availability =
-        await this.channelManagerRepository.findAvailabilityByDateRange(
-          dto.integrationId,
-          dto.roomtypeId,
-          new Date(dto.date),
-          new Date(dto.date),
-        );
+      const updates =
+        dto.updates && dto.updates.length > 0
+          ? dto.updates
+          : [
+              {
+                roomtypeId: dto.roomtypeId,
+                roomTypeId: dto.roomTypeId,
+                date: dto.date,
+                availableRooms: dto.availableRooms,
+                status: dto.status,
+                totalRooms: dto.totalRooms,
+                occupiedRooms: dto.occupiedRooms,
+                blockedRooms: dto.blockedRooms,
+                maintenanceRooms: dto.maintenanceRooms,
+                rate: dto.rate,
+                currency: dto.currency,
+                isClosed: dto.isClosed,
+                closeReason: dto.closeReason,
+                restrictions: dto.restrictions,
+                channelData: dto.channelData,
+              },
+            ];
 
-      if (availability.length > 0) {
-        const updatedAvailability =
-          await this.channelManagerRepository.updateAvailability(
-            availability[0].id,
-            { ...dto, date: new Date(dto.date) },
+      const results = [];
+      for (const update of updates) {
+        const roomtypeId =
+          update.roomtypeId ||
+          update.roomTypeId ||
+          dto.roomtypeId ||
+          dto.roomTypeId;
+        const dateString = update.date || dto.date;
+
+        if (!roomtypeId || !dateString) {
+          this.logger.warn(
+            `Skipping availability update: missing roomtypeId or date`,
           );
-        return updatedAvailability;
-      } else {
-        const newAvailability =
-          await this.channelManagerRepository.createAvailability({
-            ...dto,
-            date: new Date(dto.date),
-          });
-        return newAvailability;
+          continue;
+        }
+
+        // Create or update availability record
+        const availability =
+          await this.channelManagerRepository.findAvailabilityByDateRange(
+            dto.integrationId,
+            roomtypeId,
+            new Date(dateString),
+            new Date(dateString),
+          );
+
+        let result;
+        const recordData = {
+          ...update,
+          roomtypeId,
+          integrationId: dto.integrationId,
+          date: new Date(dateString),
+        };
+
+        // Remove the roomTypeId alias before saving to DB to avoid extra field errors
+        delete (recordData as any).roomTypeId;
+
+        if (availability.length > 0) {
+          result = await this.channelManagerRepository.updateAvailability(
+            availability[0].id,
+            recordData,
+          );
+        } else {
+          result =
+            await this.channelManagerRepository.createAvailability(recordData);
+        }
+
+        // Trigger real-time sync if enabled
+        if (integration.isRealTimeSync) {
+          try {
+            await this.channelSyncEngine.syncAvailabilityToChannel(result);
+          } catch (syncError) {
+            this.logger.error(
+              `Real-time sync failed for integration ${dto.integrationId}: ${syncError.message}`,
+            );
+          }
+        }
+
+        results.push(result);
       }
 
-      // Trigger real-time sync if enabled
-      if (integration.isRealTimeSync) {
-        await this.channelSyncEngine.syncAvailabilityToChannel(availability[0]);
-      }
-
-      return availability[0];
+      return results.length === 1 && !dto.updates ? results[0] : results;
     } catch (error) {
       this.logger.error(`Failed to sync availability: ${error.message}`);
       throw error;
@@ -490,6 +545,72 @@ export class ChannelManagerService {
   }
 
   // Testing and Validation
+  async createExternalBooking(dto: CreateExternalBookingDto): Promise<any> {
+    this.logger.log(
+      `Creating external booking from ${dto.source}: ${dto.externalConfirmId}`,
+    );
+
+    // Validate Hotel exists via Oreon Client
+    // We assume ChannelManagerService has access to this, if not we'll use a direct PmsReservationClient approach
+    // or we skip strictly checking hotel existence if PmsReservationClient handles it.
+
+    // Map to Oreon Guest DTO structure
+    // Map to Oreon PartnerCreateBookingDto structure
+    // This strictly follows PartnerCreateBookingDto in Oreon
+    const guestReservationDto = {
+      propertyReference: `REF-${dto.hotelId}`,
+      fullName:
+        (dto.guest as any).fullName ||
+        [dto.guest.firstName, dto.guest.lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim() ||
+        dto.guest.email?.split("@")[0] ||
+        "Guest",
+      email: dto.guest.email,
+      phoneNumber: dto.guest.phoneNumber,
+      roomTypeId: Number(dto.roomTypeId),
+      roomNumber: dto.roomNumber,
+      checkInDate: dto.checkInDate,
+      checkOutDate: dto.checkOutDate,
+      numberOfGuests: dto.quantity || 1,
+      amount: dto.totalPrice,
+      amountPaid: dto.totalPrice, // External bookings are treated as prepaid
+      bookingSource: dto.source,
+      otaBookingCode: dto.externalConfirmId,
+      sourceReservationId: dto.externalConfirmId,
+      bookingStatus: "CONFIRMED",
+    };
+
+    try {
+      const result = await this.pmsReservationClient.createGuestReservation(
+        dto.hotelId,
+        guestReservationDto,
+      );
+
+      if (!result.success) {
+        throw new HttpException(
+          `PMS Booking failed: ${result.error}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const bookingId =
+        result.data?.bookingCode || result.data?.id || "UNKNOWN";
+      this.logger.log(`External booking created successfully: ${bookingId}`);
+
+      return {
+        success: true,
+        bookingReference: bookingId,
+        sourceReference: dto.externalConfirmId,
+        status: "CONFIRMED",
+      };
+    } catch (error) {
+      this.logger.error(`Booking creation failed: ${error.message}`);
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   async testChannelIntegration(
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
@@ -873,7 +994,132 @@ export class ChannelManagerService {
 
   async createBooking(bookingData: any): Promise<any> {
     try {
-      return await this.channelManagerRepository.createBooking(bookingData);
+      // Map incoming fields to database schema names strictly matching Guest entity
+      const mappedData = {
+        ...bookingData,
+        fullName:
+          bookingData.fullName ||
+          bookingData.name ||
+          bookingData.guestName ||
+          (bookingData.guest && bookingData.guest.fullName) ||
+          (bookingData.guest &&
+            [bookingData.guest.firstName, bookingData.guest.lastName]
+              .filter(Boolean)
+              .join(" ")
+              .trim()) ||
+          undefined,
+        email:
+          bookingData.email || (bookingData.guest && bookingData.guest.email),
+        phoneNumber:
+          bookingData.phoneNumber ||
+          bookingData.phone ||
+          (bookingData.guest && bookingData.guest.phoneNumber),
+        startDate:
+          bookingData.startDate ||
+          bookingData.checkInDate ||
+          bookingData.checkIn,
+        endDate:
+          bookingData.endDate ||
+          bookingData.checkOutDate ||
+          bookingData.checkOut,
+        roomtypeId:
+          bookingData.roomtypeId ||
+          bookingData.roomTypeId ||
+          bookingData.roomType,
+        bookingAmount:
+          bookingData.bookingAmount ||
+          bookingData.amount ||
+          bookingData.totalPrice,
+        amountPaid:
+          bookingData.amountPaid ||
+          bookingData.bookingAmount ||
+          bookingData.amount ||
+          bookingData.totalPrice,
+        outstanding: 0,
+        bookingSource: bookingData.bookingSource || bookingData.source,
+        bookingStatus: bookingData.bookingStatus || bookingData.status,
+        property: bookingData.property || bookingData.propertyName,
+        propertyReference:
+          bookingData.propertyReference ||
+          bookingData.propertyRef ||
+          `REF-${bookingData.hotelId}`,
+        otaBookingCode:
+          bookingData.otaBookingCode || bookingData.externalConfirmId,
+      };
+
+      // Remove non-existent field names to avoid TypeORM database errors
+      delete mappedData.amount;
+      delete mappedData.source;
+      delete mappedData.status;
+      delete mappedData.phone;
+      delete mappedData.roomTypeId;
+      delete mappedData.roomType;
+      delete mappedData.checkInDate;
+      delete mappedData.checkOutDate;
+      delete mappedData.checkIn;
+      delete mappedData.checkOut;
+      delete mappedData.totalPrice;
+      delete mappedData.externalConfirmId;
+      delete mappedData.currency;
+      delete mappedData.integrationId;
+      delete mappedData.guestDetails;
+      delete mappedData.channelData;
+      delete mappedData.cancelReason;
+      delete mappedData.canceledAt;
+      delete mappedData.guest;
+
+      // 1. Save to channel manager DB
+      const saved =
+        await this.channelManagerRepository.createBooking(mappedData);
+
+      // 2. Forward to Oreon PMS
+      const oreonPayload = {
+        propertyReference: mappedData.propertyReference,
+        fullName: mappedData.fullName,
+        email: mappedData.email,
+        phoneNumber: mappedData.phoneNumber,
+        roomTypeId: mappedData.roomtypeId
+          ? Number(mappedData.roomtypeId)
+          : undefined,
+        roomNumber: mappedData.roomNumber,
+        checkInDate:
+          bookingData.checkInDate ||
+          bookingData.checkIn ||
+          bookingData.startDate,
+        checkOutDate:
+          bookingData.checkOutDate ||
+          bookingData.checkOut ||
+          bookingData.endDate,
+        bookingCode: mappedData.bookingCode,
+        otaBookingCode: mappedData.otaBookingCode,
+        bookingStatus: mappedData.bookingStatus,
+        bookingSource: mappedData.bookingSource,
+        amount: mappedData.bookingAmount,
+        amountPaid: mappedData.bookingAmount, // treat as prepaid
+        numberOfGuests: mappedData.numberOfGuests,
+        sourceReservationId: mappedData.otaBookingCode,
+      };
+
+      const pmsResult = await this.pmsReservationClient.createGuestReservation(
+        mappedData.hotelId,
+        oreonPayload,
+      );
+
+      if (pmsResult.success) {
+        this.logger.log(
+          `[createBooking] Forwarded to Oreon: bookingCode=${pmsResult.data?.bookingCode || "n/a"}`,
+        );
+      } else {
+        this.logger.warn(
+          `[createBooking] Oreon forward failed: ${pmsResult.error} — CM record still saved`,
+        );
+      }
+
+      return {
+        ...saved,
+        oreonBookingCode: pmsResult.data?.bookingCode || null,
+        oreonForwarded: pmsResult.success,
+      };
     } catch (error) {
       this.logger.error(`Failed to create booking: ${error.message}`);
       throw new HttpException(
@@ -893,9 +1139,44 @@ export class ChannelManagerService {
           HttpStatus.NOT_FOUND,
         );
       }
+      const mappedUpdates = {
+        ...updates,
+        fullName: updates.fullName || updates.name || updates.guestName,
+        email: updates.email,
+        phoneNumber: updates.phoneNumber || updates.phone,
+        startDate: updates.startDate || updates.checkInDate || updates.checkIn,
+        endDate: updates.endDate || updates.checkOutDate || updates.checkOut,
+        roomtypeId:
+          updates.roomtypeId || updates.roomTypeId || updates.roomType,
+        bookingAmount:
+          updates.bookingAmount || updates.amount || updates.totalPrice,
+        bookingSource: updates.bookingSource || updates.source,
+        bookingStatus: updates.bookingStatus || updates.status,
+        otaBookingCode: updates.otaBookingCode || updates.externalConfirmId,
+      };
+
+      delete mappedUpdates.amount;
+      delete mappedUpdates.source;
+      delete mappedUpdates.status;
+      delete mappedUpdates.phone;
+      delete mappedUpdates.roomTypeId;
+      delete mappedUpdates.roomType;
+      delete mappedUpdates.checkInDate;
+      delete mappedUpdates.checkOutDate;
+      delete mappedUpdates.checkIn;
+      delete mappedUpdates.checkOut;
+      delete mappedUpdates.totalPrice;
+      delete mappedUpdates.externalConfirmId;
+      delete mappedUpdates.currency;
+      delete mappedUpdates.integrationId;
+      delete mappedUpdates.guestDetails;
+      delete mappedUpdates.channelData;
+      delete mappedUpdates.cancelReason;
+      delete mappedUpdates.canceledAt;
+
       return await this.channelManagerRepository.updateBooking(
         bookingCode,
-        updates,
+        mappedUpdates,
       );
     } catch (error) {
       if (error instanceof HttpException) {

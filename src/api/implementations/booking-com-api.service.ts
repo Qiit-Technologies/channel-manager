@@ -375,7 +375,7 @@ export class BookingComApiService implements ChannelApiInterface {
     // Build JSON request for availability update
     return {
       hotel_id: integration.channelPropertyId,
-      date: availability.date.toISOString().split("T")[0],
+      date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split("T")[0],
       action: "update",
       availability: {
         available_rooms: availability.availableRooms,

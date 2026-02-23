@@ -4,15 +4,14 @@ import {
   Entity,
   Index,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 
 export enum BookingStatus {
   PENDING = "PENDING",
   CONFIRMED = "CONFIRMED",
-  CHECKED_IN = "CHECKED_IN",
+  CANCELLED = "CANCELLED",
+  CHECKEDIN = "CHECKEDIN",
   CHECKED_OUT = "CHECKED_OUT",
-  CANCELED = "CANCELED",
   NO_SHOW = "NO_SHOW",
   MODIFIED = "MODIFIED",
 }
@@ -20,72 +19,86 @@ export enum BookingStatus {
 @Entity()
 @Index(["bookingCode"], { unique: true })
 @Index(["hotelId", "createdAt"])
-@Index(["source", "createdAt"])
+@Index(["bookingSource", "createdAt"])
 export class Guest {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
-  bookingCode: string;
-
   @Column({ nullable: true })
-  otaBookingCode: string;
-
-  @Column()
   fullName: string;
 
-  @Column()
+  @Column({ nullable: true })
   email: string;
 
   @Column({ nullable: true })
-  phone: string;
+  address: string;
 
-  @Column({ type: "date" })
+  @Column({ type: "varchar", length: 20, nullable: true })
+  phoneNumber: string;
+
+  @Column({ nullable: true })
   startDate: Date;
 
-  @Column({ type: "date" })
+  @Column({ nullable: true })
   endDate: Date;
 
-  @Column("decimal", { precision: 10, scale: 2, default: 0 })
-  amount: number;
+  @Column({ nullable: true, unique: true })
+  bookingCode: string;
 
-  @Column({ nullable: true })
-  currency: string;
-
-  @Column({ nullable: true })
-  source: string; // Booking source (OTA name)
+  @Column({ nullable: true, unique: true })
+  otaBookingCode: string;
 
   @Column({
     type: "enum",
     enum: BookingStatus,
-    default: BookingStatus.PENDING,
+    nullable: true,
   })
-  status: BookingStatus;
+  bookingStatus: BookingStatus;
 
-  @Column({ type: "int", nullable: false })
+  @Column({ nullable: true })
+  bookingSource: string;
+
+  @Column({ nullable: true })
+  property: string;
+
+  @Column({ nullable: true })
+  propertyReference: string;
+
+  @Column({ type: "decimal", precision: 10, scale: 2, nullable: true })
+  bookingAmount: number;
+
+  @Column({
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    default: 0,
+  })
+  amountPaid: number;
+
+  @Column({
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    default: 0,
+  })
+  outstanding: number;
+
+  @Column({ name: "hotelId", type: "int", nullable: false })
+  @Index()
   hotelId: number;
 
-  @Column({ type: "int", nullable: false })
-  roomTypeId: number;
-
-  @Column({ type: "int", nullable: true })
-  integrationId: number; // Reference to channel integration
-
-  @Column({ type: "json", nullable: true })
-  guestDetails: Record<string, any>; // Additional guest info
-
-  @Column({ type: "json", nullable: true })
-  channelData: Record<string, any>; // Raw data from OTA
+  @Column({ name: "roomtypeId", type: "int", nullable: false })
+  @Index()
+  roomtypeId: number;
 
   @Column({ nullable: true })
-  cancelReason: string;
+  roomNumber: string;
 
-  @Column({ nullable: true })
-  canceledAt: Date;
+  @Column({ default: 1 })
+  numberOfGuests: number;
 
   @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
-
-  @UpdateDateColumn({ type: "timestamp" })
-  updatedAt: Date;
 }
