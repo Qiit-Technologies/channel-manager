@@ -25,12 +25,15 @@ import {
 import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 // Note: These entities will be loaded from Anli database
 // Hotel, Roomtype, and Guest entities are imported from Anli
-import { ChannelSyncEngine } from "./sync/channel-sync-engine.service";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
+import { WebhookService, WebhookEventType } from "./services/webhook.service";
+import { BookingStatus } from "./entities/guest.entity";
 import { OtaConfigurationService } from "./services/ota-configuration.service";
 import { OreonHotelClient } from "./services/oreon-hotel-client.service";
 import { PmsReservationClient } from "./services/pms-reservation-client.service";
 import { HotelRegistrationSource } from "./dto/create-hotel.dto";
+import { ChannelSyncEngine } from "./sync/channel-sync-engine.service";
+import { PmsSyncService } from "./services/pms-sync.service";
 
 // Anli entity imports - these will be loaded from the Anli database
 // We'll use type annotations to ensure compatibility
@@ -46,6 +49,8 @@ export class ChannelManagerService {
     private readonly otaConfigurationService: OtaConfigurationService,
     private readonly oreonHotelClient: OreonHotelClient,
     private readonly pmsReservationClient: PmsReservationClient,
+    private readonly webhookService: WebhookService,
+    private readonly pmsSyncService: PmsSyncService,
   ) {}
 
   // Hotel Management Methods
@@ -699,11 +704,12 @@ export class ChannelManagerService {
   async handleGuestCheckIn(guestId: number): Promise<void> {
     try {
       this.logger.log(`Guest check-in triggered for guest ID: ${guestId}`);
-      // TODO: Implement guest check-in logic when Anli integration is complete
-      // This will involve:
-      // 1. Getting guest details from Anli
-      // 2. Updating availability across all channels
-      // 3. Triggering real-time sync
+      const guest = await this.channelManagerRepository.findGuestById(guestId);
+      if (guest) {
+        await this.pmsSyncService.handleGuestCheckIn(guestId, guest.hotelId);
+      } else {
+        this.logger.warn(`Guest ${guestId} not found for check-in`);
+      }
     } catch (error) {
       this.logger.error(`Failed to handle guest check-in: ${error.message}`);
     }
@@ -712,13 +718,28 @@ export class ChannelManagerService {
   async handleGuestCheckOut(guestId: number): Promise<void> {
     try {
       this.logger.log(`Guest check-out triggered for guest ID: ${guestId}`);
-      // TODO: Implement guest check-out logic when Anli integration is complete
-      // This will involve:
-      // 1. Getting guest details from Anli
-      // 2. Updating availability across all channels
-      // 3. Triggering real-time sync
+      const guest = await this.channelManagerRepository.findGuestById(guestId);
+      if (guest) {
+        await this.pmsSyncService.handleGuestCheckOut(guestId, guest.hotelId);
+      } else {
+        this.logger.warn(`Guest ${guestId} not found for check-out`);
+      }
     } catch (error) {
       this.logger.error(`Failed to handle guest check-out: ${error.message}`);
+    }
+  }
+
+  async handleGuestNoShow(guestId: number): Promise<void> {
+    try {
+      this.logger.log(`Guest no-show triggered for guest ID: ${guestId}`);
+      const guest = await this.channelManagerRepository.findGuestById(guestId);
+      if (guest) {
+        await this.pmsSyncService.handleGuestNoShow(guestId, guest.hotelId);
+      } else {
+        this.logger.warn(`Guest ${guestId} not found for no-show`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to handle guest no-show: ${error.message}`);
     }
   }
 
@@ -1115,11 +1136,28 @@ export class ChannelManagerService {
         );
       }
 
-      return {
+      const resultPayload = {
         ...saved,
         oreonBookingCode: pmsResult.data?.bookingCode || null,
         oreonForwarded: pmsResult.success,
       };
+
+      // Notify via webhook if enabled
+      const integrations =
+        await this.channelManagerRepository.findIntegrationsByHotel(
+          saved.hotelId,
+        );
+      for (const integration of integrations) {
+        if (integration.status === IntegrationStatus.ACTIVE) {
+          await this.webhookService.notify(
+            integration,
+            WebhookEventType.BOOKING_NEW,
+            { booking: resultPayload },
+          );
+        }
+      }
+
+      return resultPayload;
     } catch (error) {
       this.logger.error(`Failed to create booking: ${error.message}`);
       throw new HttpException(
@@ -1174,10 +1212,51 @@ export class ChannelManagerService {
       delete mappedUpdates.cancelReason;
       delete mappedUpdates.canceledAt;
 
-      return await this.channelManagerRepository.updateBooking(
+      const updatedBooking = await this.channelManagerRepository.updateBooking(
         bookingCode,
         mappedUpdates,
       );
+
+      // Notify via webhook if status changed to NO_SHOW
+      if (mappedUpdates.bookingStatus === BookingStatus.NO_SHOW) {
+        const integrations =
+          await this.channelManagerRepository.findIntegrationsByHotel(
+            updatedBooking.hotelId,
+          );
+        for (const integration of integrations) {
+          if (integration.status === IntegrationStatus.ACTIVE) {
+            await this.webhookService.notify(
+              integration,
+              WebhookEventType.BOOKING_NO_SHOW,
+              {
+                bookingCode,
+                hotelId: updatedBooking.hotelId,
+                status: BookingStatus.NO_SHOW,
+              },
+            );
+          }
+        }
+      } else if (mappedUpdates.bookingStatus === BookingStatus.CANCELLED) {
+        const integrations =
+          await this.channelManagerRepository.findIntegrationsByHotel(
+            updatedBooking.hotelId,
+          );
+        for (const integration of integrations) {
+          if (integration.status === IntegrationStatus.ACTIVE) {
+            await this.webhookService.notify(
+              integration,
+              WebhookEventType.BOOKING_CANCEL,
+              {
+                bookingCode,
+                hotelId: updatedBooking.hotelId,
+                status: BookingStatus.CANCELLED,
+              },
+            );
+          }
+        }
+      }
+
+      return updatedBooking;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

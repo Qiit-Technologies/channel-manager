@@ -11,7 +11,7 @@ export class PmsSyncService {
   private readonly logger = new Logger(PmsSyncService.name);
 
   constructor(
-    private readonly channelManagerRepository: ChannelManagerRepository
+    private readonly channelManagerRepository: ChannelManagerRepository,
   ) {}
 
   // Sync room types from PMS to channel manager
@@ -19,14 +19,14 @@ export class PmsSyncService {
     try {
       this.logger.log(`Starting room type sync for hotel: ${hotelId}`);
 
-                // TODO: Read room types from PMS database
+      // TODO: Read room types from PMS database
       // This will be implemented when PMS integration is complete
 
       // For now, log the sync attempt
       this.logger.log(`Room type sync completed for hotel: ${hotelId}`);
     } catch (error) {
       this.logger.error(
-        `Room type sync failed for hotel ${hotelId}: ${error.message}`
+        `Room type sync failed for hotel ${hotelId}: ${error.message}`,
       );
     }
   }
@@ -36,14 +36,14 @@ export class PmsSyncService {
     try {
       this.logger.log(`Starting inventory sync for hotel: ${hotelId}`);
 
-                // TODO: Read inventory from PMS database
+      // TODO: Read inventory from PMS database
       // This will be implemented when PMS integration is complete
 
       // For now, log the sync attempt
       this.logger.log(`Inventory sync completed for hotel: ${hotelId}`);
     } catch (error) {
       this.logger.error(
-        `Inventory sync failed for hotel ${hotelId}: ${error.message}`
+        `Inventory sync failed for hotel ${hotelId}: ${error.message}`,
       );
     }
   }
@@ -60,7 +60,7 @@ export class PmsSyncService {
       this.logger.log(`Rate sync completed for hotel: ${hotelId}`);
     } catch (error) {
       this.logger.error(
-        `Rate sync failed for hotel ${hotelId}: ${error.message}`
+        `Rate sync failed for hotel ${hotelId}: ${error.message}`,
       );
     }
   }
@@ -77,7 +77,7 @@ export class PmsSyncService {
       this.logger.log(`Guest booking sync completed for hotel: ${hotelId}`);
     } catch (error) {
       this.logger.error(
-        `Guest booking sync failed for hotel ${hotelId}: ${error.message}`
+        `Guest booking sync failed for hotel ${hotelId}: ${error.message}`,
       );
     }
   }
@@ -97,7 +97,7 @@ export class PmsSyncService {
       this.logger.log(`Full sync completed for hotel: ${hotelId}`);
     } catch (error) {
       this.logger.error(
-        `Full sync failed for hotel ${hotelId}: ${error.message}`
+        `Full sync failed for hotel ${hotelId}: ${error.message}`,
       );
     }
   }
@@ -115,7 +115,7 @@ export class PmsSyncService {
           await this.fullSync(integration.hotelId);
         } catch (error) {
           this.logger.error(
-            `Sync failed for integration ${integration.id}: ${error.message}`
+            `Sync failed for integration ${integration.id}: ${error.message}`,
           );
         }
       }
@@ -141,7 +141,7 @@ export class PmsSyncService {
   async handleGuestCheckIn(guestId: number, hotelId: number): Promise<void> {
     try {
       this.logger.log(
-        `Guest check-in detected: ${guestId} for hotel: ${hotelId}`
+        `Guest check-in detected: ${guestId} for hotel: ${hotelId}`,
       );
 
       // Update availability across all channels
@@ -157,7 +157,7 @@ export class PmsSyncService {
   async handleGuestCheckOut(guestId: number, hotelId: number): Promise<void> {
     try {
       this.logger.log(
-        `Guest check-out detected: ${guestId} for hotel: ${hotelId}`
+        `Guest check-out detected: ${guestId} for hotel: ${hotelId}`,
       );
 
       // Update availability across all channels
@@ -169,22 +169,38 @@ export class PmsSyncService {
     }
   }
 
+  // Sync when guest no-show
+  async handleGuestNoShow(guestId: number, hotelId: number): Promise<void> {
+    try {
+      this.logger.log(
+        `Guest no-show detected: ${guestId} for hotel: ${hotelId}`,
+      );
+
+      // Update availability across all channels
+      await this.updateAvailabilityForGuest(guestId, hotelId, "NO_SHOW");
+
+      this.logger.log(`Guest no-show sync completed: ${guestId}`);
+    } catch (error) {
+      this.logger.error(`Guest no-show sync failed: ${error.message}`);
+    }
+  }
+
   // Update availability for guest events
   private async updateAvailabilityForGuest(
     guestId: number,
     hotelId: number,
-    eventType: "CHECK_IN" | "CHECK_OUT"
+    eventType: "CHECK_IN" | "CHECK_OUT" | "NO_SHOW",
   ): Promise<void> {
     try {
       // TODO: Update availability records based on guest event
       // This will be implemented when Oreon integration is complete
 
       this.logger.log(
-        `Availability updated for guest ${guestId} event: ${eventType}`
+        `Availability updated for guest ${guestId} event: ${eventType}`,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to update availability for guest ${guestId}: ${error.message}`
+        `Failed to update availability for guest ${guestId}: ${error.message}`,
       );
     }
   }

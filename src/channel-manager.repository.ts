@@ -453,6 +453,12 @@ export class ChannelManagerRepository {
     });
   }
 
+  async findGuestById(id: number): Promise<Guest> {
+    return await this.guestRepo.findOne({
+      where: { id },
+    });
+  }
+
   async createBooking(booking: Partial<Guest>): Promise<Guest> {
     const newBooking = this.guestRepo.create(booking);
     return await this.guestRepo.save(newBooking);

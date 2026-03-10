@@ -22,12 +22,12 @@ export class ChannelSyncEngine {
   constructor(
     private readonly channelManagerRepository: ChannelManagerRepository,
     private readonly channelApiFactory: ChannelApiFactory,
-    private readonly pmsReservationClient: PmsReservationClient
+    private readonly pmsReservationClient: PmsReservationClient,
   ) {}
 
   async triggerSync(
     integration: ChannelIntegration,
-    operationType: SyncOperationType
+    operationType: SyncOperationType,
   ): Promise<void> {
     const startTime = Date.now();
     let syncLog: ChannelSyncLog;
@@ -43,12 +43,12 @@ export class ChannelSyncEngine {
       });
 
       this.logger.log(
-        `Starting sync for integration: ${integration.channelName}, operation: ${operationType}`
+        `Starting sync for integration: ${integration.channelName}, operation: ${operationType}`,
       );
 
       // Get channel API instance
       const channelApi = this.channelApiFactory.createChannelApi(
-        integration.channelType
+        integration.channelType,
       );
 
       // Perform the sync operation
@@ -89,11 +89,11 @@ export class ChannelSyncEngine {
       });
 
       this.logger.log(
-        `Sync completed successfully for: ${integration.channelName}`
+        `Sync completed successfully for: ${integration.channelName}`,
       );
     } catch (error) {
       this.logger.error(
-        `Sync failed for ${integration.channelName}: ${error.message}`
+        `Sync failed for ${integration.channelName}: ${error.message}`,
       );
 
       // Update sync log with failure
@@ -118,21 +118,21 @@ export class ChannelSyncEngine {
   }
 
   async syncAvailabilityToChannel(
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): Promise<void> {
     try {
       const integration =
         await this.channelManagerRepository.findIntegrationById(
-          availability.integrationId
+          availability.integrationId,
         );
       const channelApi = this.channelApiFactory.createChannelApi(
-        integration.channelType
+        integration.channelType,
       );
 
       await channelApi.updateAvailability(integration, availability);
 
       this.logger.log(
-        `Real-time availability sync completed for: ${integration.channelName}`
+        `Real-time availability sync completed for: ${integration.channelName}`,
       );
     } catch (error) {
       this.logger.error(`Real-time availability sync failed: ${error.message}`);
@@ -142,14 +142,14 @@ export class ChannelSyncEngine {
 
   private async syncInventory(
     integration: ChannelIntegration,
-    channelApi: ChannelApiInterface
+    channelApi: ChannelApiInterface,
   ): Promise<any> {
     this.logger.log(`Syncing inventory for: ${integration.channelName}`);
 
     // Get all room types for the hotel
     const mappings =
       await this.channelManagerRepository.findMappingsByIntegration(
-        integration.id
+        integration.id,
       );
 
     let recordsProcessed = 0;
@@ -162,7 +162,7 @@ export class ChannelSyncEngine {
         recordsSuccess++;
       } catch (error) {
         this.logger.error(
-          `Failed to sync inventory for mapping ${mapping.id}: ${error.message}`
+          `Failed to sync inventory for mapping ${mapping.id}: ${error.message}`,
         );
         recordsFailed++;
       }
@@ -174,14 +174,14 @@ export class ChannelSyncEngine {
 
   private async syncRates(
     integration: ChannelIntegration,
-    channelApi: ChannelApiInterface
+    channelApi: ChannelApiInterface,
   ): Promise<any> {
     this.logger.log(`Syncing rates for: ${integration.channelName}`);
 
     // Get all rate plans for the integration
     const ratePlans =
       await this.channelManagerRepository.findRatePlansByIntegration(
-        integration.id
+        integration.id,
       );
 
     let recordsProcessed = 0;
@@ -194,7 +194,7 @@ export class ChannelSyncEngine {
         recordsSuccess++;
       } catch (error) {
         this.logger.error(
-          `Failed to sync rates for rate plan ${ratePlan.id}: ${error.message}`
+          `Failed to sync rates for rate plan ${ratePlan.id}: ${error.message}`,
         );
         recordsFailed++;
       }
@@ -206,7 +206,7 @@ export class ChannelSyncEngine {
 
   private async syncAvailability(
     integration: ChannelIntegration,
-    channelApi: ChannelApiInterface
+    channelApi: ChannelApiInterface,
   ): Promise<any> {
     this.logger.log(`Syncing availability for: ${integration.channelName}`);
 
@@ -217,7 +217,7 @@ export class ChannelSyncEngine {
 
     const mappings =
       await this.channelManagerRepository.findMappingsByIntegration(
-        integration.id
+        integration.id,
       );
 
     let recordsProcessed = 0;
@@ -231,7 +231,7 @@ export class ChannelSyncEngine {
             integration.id,
             mapping.roomtypeId,
             startDate,
-            endDate
+            endDate,
           );
 
         for (const avail of availability) {
@@ -240,7 +240,7 @@ export class ChannelSyncEngine {
             recordsSuccess++;
           } catch (error) {
             this.logger.error(
-              `Failed to sync availability for date ${avail.date}: ${error.message}`
+              `Failed to sync availability for date ${avail.date}: ${error.message}`,
             );
             recordsFailed++;
           }
@@ -248,7 +248,7 @@ export class ChannelSyncEngine {
         }
       } catch (error) {
         this.logger.error(
-          `Failed to sync availability for mapping ${mapping.id}: ${error.message}`
+          `Failed to sync availability for mapping ${mapping.id}: ${error.message}`,
         );
         recordsFailed++;
       }
@@ -259,7 +259,7 @@ export class ChannelSyncEngine {
 
   private async performFullSync(
     integration: ChannelIntegration,
-    channelApi: ChannelApiInterface
+    channelApi: ChannelApiInterface,
   ): Promise<any> {
     this.logger.log(`Performing full sync for: ${integration.channelName}`);
 
@@ -267,7 +267,7 @@ export class ChannelSyncEngine {
     const ratesResult = await this.syncRates(integration, channelApi);
     const availabilityResult = await this.syncAvailability(
       integration,
-      channelApi
+      channelApi,
     );
 
     const totalProcessed =
@@ -295,7 +295,7 @@ export class ChannelSyncEngine {
 
   private normalizeReservationSummary(
     result: any,
-    webhookData: any
+    webhookData: any,
   ): {
     roomTypeIdOrChannelId: number | string;
     startDate: string | Date;
@@ -323,7 +323,7 @@ export class ChannelSyncEngine {
   private async applyReservationAvailabilityIfPresent(
     integration: ChannelIntegration,
     webhookData: any,
-    result: any
+    result: any,
   ): Promise<void> {
     try {
       const summary = this.normalizeReservationSummary(result, webhookData);
@@ -337,7 +337,7 @@ export class ChannelSyncEngine {
         const mapping =
           await this.channelManagerRepository.findMappingByChannelRoomTypeId(
             integration.id,
-            roomTypeIdOrChannelId
+            roomTypeIdOrChannelId,
           );
         roomtypeId = mapping?.roomtypeId ?? null;
       }
@@ -360,7 +360,7 @@ export class ChannelSyncEngine {
             integration.id,
             roomtypeId,
             day,
-            day
+            day,
           );
         if (!availability || availability.length === 0) continue;
 
@@ -368,14 +368,14 @@ export class ChannelSyncEngine {
         const baseTotal = current.totalRooms ?? current.availableRooms ?? 0;
         const newOccupied = Math.min(
           baseTotal,
-          (current.occupiedRooms ?? 0) + roomsToApply
+          (current.occupiedRooms ?? 0) + roomsToApply,
         );
         const newAvailable = Math.max(
           0,
           baseTotal -
             newOccupied -
             (current.blockedRooms ?? 0) -
-            (current.maintenanceRooms ?? 0)
+            (current.maintenanceRooms ?? 0),
         );
 
         await this.channelManagerRepository.updateAvailability(current.id, {
@@ -402,25 +402,25 @@ export class ChannelSyncEngine {
             await this.syncAvailabilityToChannel(updated);
           } catch (err) {
             this.logger.error(
-              `Real-time availability push failed: ${err.message}`
+              `Real-time availability push failed: ${err.message}`,
             );
           }
         }
       }
     } catch (error) {
       this.logger.error(
-        `Failed to apply reservation availability: ${error.message}`
+        `Failed to apply reservation availability: ${error.message}`,
       );
     }
   }
 
   async handleIncomingWebhook(
     integration: ChannelIntegration,
-    webhookData: any
+    webhookData: any,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Processing incoming webhook for: ${integration.channelName}`
+        `Processing incoming webhook for: ${integration.channelName}`,
       );
 
       // Create sync log for inbound operation
@@ -436,25 +436,30 @@ export class ChannelSyncEngine {
 
       // Process the webhook data based on channel type
       const channelApi = this.channelApiFactory.createChannelApi(
-        integration.channelType
+        integration.channelType,
       );
-      this.logger.log(`[Webhook] Processing via channel API: ${integration.channelType}`);
+      this.logger.log(
+        `[Webhook] Processing via channel API: ${integration.channelType}`,
+      );
       const result = await channelApi.processWebhook(integration, webhookData);
       this.logger.log(
-        `[Webhook] Processed result: processed=${(result && result.processed) ?? 'n/a'} type=${(result && result.type) ?? 'n/a'}`
+        `[Webhook] Processed result: processed=${(result && result.processed) ?? "n/a"} type=${(result && result.type) ?? "n/a"}`,
       );
 
       // Apply availability blocking if reservation details are present
       await this.applyReservationAvailabilityIfPresent(
         integration,
         webhookData,
-        result
+        result,
       );
 
       // Optionally forward standardized guest payload to PMS
       try {
         const oreonGuestDto =
-          (result && (result.oreon_guest_dto || result.guest || result.createGuestDto)) ||
+          (result &&
+            (result.oreon_guest_dto ||
+              result.guest ||
+              result.createGuestDto)) ||
           null;
         if (oreonGuestDto) {
           // Try to translate channel room type to PMS roomtype via mapping before forwarding
@@ -463,33 +468,38 @@ export class ChannelSyncEngine {
               integration,
               webhookData,
               result,
-              oreonGuestDto?.roomtype
+              oreonGuestDto?.roomtype,
             );
             if (mappedRoomtype) {
               oreonGuestDto.roomtype = mappedRoomtype;
             }
           } catch (mapErr: any) {
             this.logger.warn(
-              `[PMS Forward] Roomtype mapping skipped: ${mapErr?.message || mapErr}`
+              `[PMS Forward] Roomtype mapping skipped: ${mapErr?.message || mapErr}`,
             );
           }
 
           this.logger.log(
-            `[PMS Forward] Found oreon_guest_dto: fullName=${oreonGuestDto.fullName || 'n/a'} email=${oreonGuestDto.email || 'n/a'} roomtype=${oreonGuestDto.roomtype || 'n/a'} start=${oreonGuestDto.startDate || 'n/a'} end=${oreonGuestDto.endDate || 'n/a'} guests=${oreonGuestDto.numberOfGuests || 'n/a'}`
+            `[PMS Forward] Found oreon_guest_dto: fullName=${oreonGuestDto.fullName || "n/a"} email=${oreonGuestDto.email || "n/a"} roomtype=${oreonGuestDto.roomtype || "n/a"} start=${oreonGuestDto.startDate || "n/a"} end=${oreonGuestDto.endDate || "n/a"} guests=${oreonGuestDto.numberOfGuests || "n/a"}`,
           );
 
-          const forwardResult = await this.pmsReservationClient.createGuestReservation(
-            integration.hotelId,
-            oreonGuestDto
-          );
+          const forwardResult =
+            await this.pmsReservationClient.createGuestReservation(
+              integration.hotelId,
+              oreonGuestDto,
+            );
           this.logger.log(
-            `[PMS Forward] Response: success=${forwardResult.success} status=${forwardResult.status ?? 'n/a'} error=${forwardResult.error ?? ''}`
+            `[PMS Forward] Response: success=${forwardResult.success} status=${forwardResult.status ?? "n/a"} error=${forwardResult.error ?? ""}`,
           );
         } else {
-          this.logger.log(`[PMS Forward] No oreon_guest_dto from channel API; skipping forward`);
+          this.logger.log(
+            `[PMS Forward] No oreon_guest_dto from channel API; skipping forward`,
+          );
         }
       } catch (err: any) {
-        this.logger.error(`PMS reservation forward error: ${err?.message || err}`);
+        this.logger.error(
+          `PMS reservation forward error: ${err?.message || err}`,
+        );
       }
 
       // Update sync log with success
@@ -500,11 +510,11 @@ export class ChannelSyncEngine {
       });
 
       this.logger.log(
-        `Webhook processed successfully for: ${integration.channelName}`
+        `Webhook processed successfully for: ${integration.channelName}`,
       );
     } catch (error) {
       this.logger.error(
-        `Webhook processing failed for ${integration.channelName}: ${error.message}`
+        `Webhook processing failed for ${integration.channelName}: ${error.message}`,
       );
       throw error;
     }
@@ -514,7 +524,7 @@ export class ChannelSyncEngine {
     integration: ChannelIntegration,
     webhookData: any,
     result: any,
-    currentRoomtype: any
+    currentRoomtype: any,
   ): Promise<number | null> {
     // Prefer channel-provided room_type_id from webhook result/summary
     const summary = this.normalizeReservationSummary(result, webhookData);
@@ -529,13 +539,14 @@ export class ChannelSyncEngine {
     // If candidate appears to be a PMS roomtype already (non-string channel ID unlikely), we still try mapping by string match
     const channelId = String(candidate);
     try {
-      const mapping = await this.channelManagerRepository.findMappingByChannelRoomTypeId(
-        integration.id,
-        channelId
-      );
+      const mapping =
+        await this.channelManagerRepository.findMappingByChannelRoomTypeId(
+          integration.id,
+          channelId,
+        );
       if (mapping?.roomtypeId) {
         this.logger.log(
-          `[PMS Forward] Roomtype mapped: channelRoomTypeId=${channelId} -> pmsRoomtypeId=${mapping.roomtypeId}`
+          `[PMS Forward] Roomtype mapped: channelRoomTypeId=${channelId} -> pmsRoomtypeId=${mapping.roomtypeId}`,
         );
         return mapping.roomtypeId;
       }
@@ -547,7 +558,7 @@ export class ChannelSyncEngine {
 
     // Unable to resolve
     this.logger.warn(
-      `[PMS Forward] No roomtype mapping found for channelRoomTypeId=${channelId}; forwarding as-is may fail.`
+      `[PMS Forward] No roomtype mapping found for channelRoomTypeId=${channelId}; forwarding as-is may fail.`,
     );
     return null;
   }

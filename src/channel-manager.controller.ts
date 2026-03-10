@@ -35,14 +35,18 @@ import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
 import { CreateRoomTypeDto } from "./dto/create-roomtype.dto";
 import { CreateRoomDto } from "./dto/create-room.dto";
 import { GetBookingsDto } from "./dto/get-bookings.dto";
-import { ChannelIntegration } from "./entities/channel-integration.entity";
+import {
+  ChannelIntegration,
+  ChannelType,
+} from "./entities/channel-integration.entity";
 import { ChannelMapping } from "./entities/channel-mapping.entity";
 import { ChannelAvailability } from "./entities/channel-availability.entity";
 import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
-import { ChannelSyncLog } from "./entities/channel-sync-log.entity";
+import {
+  ChannelSyncLog,
+  SyncOperationType,
+} from "./entities/channel-sync-log.entity";
 import { Guest, BookingStatus } from "./entities/guest.entity";
-import { SyncOperationType } from "./entities/channel-sync-log.entity";
-import { ChannelType } from "./entities/channel-integration.entity";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
 import {
   sampleChannelIntegrations,
@@ -210,6 +214,28 @@ export class ChannelManagerController {
   })
   async getHotelRoomTypes(@Param("hotelId") hotelId: number) {
     return this.channelManagerService.getHotelRoomTypes(hotelId);
+  }
+
+  // Channel Type Endpoints
+  @Get("channel-types")
+  @ApiOperation({
+    summary: "Get all available channel types",
+    description:
+      "Returns a list of all supported channel/OTA types in the system.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "List of channel types",
+    schema: {
+      type: "array",
+      items: {
+        type: "string",
+        enum: Object.values(ChannelType),
+      },
+    },
+  })
+  async getChannelTypes(): Promise<string[]> {
+    return Object.values(ChannelType);
   }
 
   // Channel Integration Endpoints
@@ -1406,6 +1432,25 @@ export class ChannelManagerController {
   })
   async handleGuestCheckOut(@Param("guestId") guestId: number): Promise<void> {
     await this.channelManagerService.handleGuestCheckOut(guestId);
+  }
+
+  @Post("guests/:guestId/no-show")
+  @ApiOperation({
+    summary: "Tag guest as no-show",
+    description:
+      "Marks a guest as no-show and triggers downstream actions such as sync updates or notifications.",
+  })
+  @ApiParam({
+    name: "guestId",
+    description: "Guest identifier",
+    example: 555,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Guest no-show processed",
+  })
+  async handleGuestNoShow(@Param("guestId") guestId: number): Promise<void> {
+    await this.channelManagerService.handleGuestNoShow(guestId);
   }
 
   @Post("bookings")

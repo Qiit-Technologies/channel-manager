@@ -30,7 +30,7 @@ import { EnhancedApiKeyGuard } from "../auth/enhanced-api-key.guard";
 @UseGuards(EnhancedApiKeyGuard)
 export class OtaConfigurationController {
   constructor(
-    private readonly otaConfigurationService: OtaConfigurationService
+    private readonly otaConfigurationService: OtaConfigurationService,
   ) {}
 
   @Get()
@@ -134,7 +134,7 @@ export class OtaConfigurationController {
     },
   })
   async getConfiguration(
-    @Param("channelType") channelType: ChannelType
+    @Param("channelType") channelType: ChannelType,
   ): Promise<OtaConfiguration> {
     return await this.otaConfigurationService.getConfiguration(channelType);
   }
@@ -209,7 +209,7 @@ export class OtaConfigurationController {
     },
   })
   async createConfiguration(
-    @Body() config: Partial<OtaConfiguration>
+    @Body() config: Partial<OtaConfiguration>,
   ): Promise<OtaConfiguration> {
     return await this.otaConfigurationService.createConfiguration(config);
   }
@@ -241,7 +241,13 @@ export class OtaConfigurationController {
       updateConfig: {
         summary: "Update configuration",
         value: {
-          isActive: false,
+          apiKey: "new-api-key",
+          apiSecret: "new-api-secret",
+          baseUrl: "https://api.booking.com",
+          isActive: true,
+          additionalConfig: {
+            rateLimit: 2000,
+          },
         },
       },
     },
@@ -276,11 +282,11 @@ export class OtaConfigurationController {
   })
   async updateConfiguration(
     @Param("channelType") channelType: ChannelType,
-    @Body() updates: Partial<OtaConfiguration>
+    @Body() updates: Partial<OtaConfiguration>,
   ): Promise<OtaConfiguration> {
     return await this.otaConfigurationService.updateConfiguration(
       channelType,
-      updates
+      updates,
     );
   }
 
@@ -315,7 +321,7 @@ export class OtaConfigurationController {
     },
   })
   async testConfiguration(
-    @Param("channelType") channelType: ChannelType
+    @Param("channelType") channelType: ChannelType,
   ): Promise<{ success: boolean; error?: string }> {
     return await this.otaConfigurationService.testConfiguration(channelType);
   }
@@ -323,7 +329,7 @@ export class OtaConfigurationController {
   @Delete(":channelType")
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteConfiguration(
-    @Param("channelType") channelType: ChannelType
+    @Param("channelType") channelType: ChannelType,
   ): Promise<void> {
     // Soft delete by setting isActive to false
     await this.otaConfigurationService.updateConfiguration(channelType, {

@@ -23,6 +23,7 @@ import { OtaConfigurationController } from "./controllers/ota-configuration.cont
 import { PmsSyncService } from "./services/pms-sync.service";
 import { PmsReservationClient } from "./services/pms-reservation-client.service";
 import { OreonHotelClient } from "./services/oreon-hotel-client.service";
+import { WebhookService } from "./services/webhook.service";
 
 @Module({
   imports: [
@@ -102,12 +103,15 @@ import { OreonHotelClient } from "./services/oreon-hotel-client.service";
           PmsSyncService,
           PmsReservationClient,
           OreonHotelClient,
+          WebhookService,
         ]
       : []),
   ],
   exports: [
     ChannelManagerService,
-    ...(process.env.TEST_MODE !== "true" ? [ChannelManagerRepository] : []),
+    ...(process.env.TEST_MODE !== "true"
+      ? [ChannelManagerRepository, WebhookService]
+      : []),
   ],
 })
 export class ChannelManagerModule {}
