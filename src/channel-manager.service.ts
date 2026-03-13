@@ -1142,13 +1142,10 @@ export class ChannelManagerService {
           (bookingData.guest && bookingData.guest.roomNumber),
       };
 
-      // Resolve roomId if roomNumber and roomtypeId are available
-      if (
-        mappedData.hotelId &&
-        mappedData.roomtypeId &&
-        mappedData.roomNumber
-      ) {
-        const roomId = await this.resolveRoomId(
+      // 0. Validate references (hotel, roomtype, room) against PMS
+      // This will throw if any reference is invalid, preventing "orphaned" records
+      if (mappedData.hotelId && mappedData.roomtypeId) {
+        const roomId = await this.validateAndResolveRoomId(
           mappedData.hotelId,
           Number(mappedData.roomtypeId),
           mappedData.roomNumber,
@@ -1311,16 +1308,12 @@ export class ChannelManagerService {
           updates.roomNumber || (updates.guest && updates.guest.roomNumber),
       };
 
-      // Resolve roomId if roomNumber and roomtypeId are available
-      if (
-        booking.hotelId &&
-        (mappedUpdates.roomtypeId || booking.roomtypeId) &&
-        mappedUpdates.roomNumber
-      ) {
-        const roomId = await this.resolveRoomId(
+      // 0. Validate references (hotel, roomtype, room) against PMS
+      if (booking.hotelId && (mappedUpdates.roomtypeId || booking.roomtypeId)) {
+        const roomId = await this.validateAndResolveRoomId(
           booking.hotelId,
           Number(mappedUpdates.roomtypeId || booking.roomtypeId),
-          mappedUpdates.roomNumber,
+          mappedUpdates.roomNumber || (booking as any).roomNumber,
         );
         if (roomId) {
           (mappedUpdates as any).roomId = roomId;
@@ -1402,27 +1395,51 @@ export class ChannelManagerService {
     }
   }
 
-  private async resolveRoomId(
+  private async validateAndResolveRoomId(
     hotelId: number,
     roomtypeId: number,
-    roomNumber: string,
+    roomNumber?: string,
   ): Promise<number | undefined> {
-    if (!hotelId || !roomtypeId || !roomNumber) return undefined;
+    if (!hotelId || !roomtypeId) return undefined;
+
     try {
       const roomTypesData =
         await this.oreonHotelClient.getHotelRoomTypes(hotelId);
-      if (roomTypesData && roomTypesData.roomTypes) {
-        const roomType = roomTypesData.roomTypes.find(
-          (rt) => Number(rt.id) === Number(roomtypeId),
+
+      if (!roomTypesData || !roomTypesData.roomTypes) {
+        throw new HttpException(
+          `Hotel with ID ${hotelId} not found in PMS`,
+          HttpStatus.BAD_REQUEST,
         );
-        if (roomType && roomType.rooms) {
-          const room = roomType.rooms.find((r) => r.roomNumber === roomNumber);
-          return room?.id;
+      }
+
+      const roomType = roomTypesData.roomTypes.find(
+        (rt) => Number(rt.id) === Number(roomtypeId),
+      );
+
+      if (!roomType) {
+        throw new HttpException(
+          `Room type ID ${roomtypeId} not found for hotel ${hotelId}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (roomNumber) {
+        const room = roomType.rooms?.find((r) => r.roomNumber === roomNumber);
+        if (!room) {
+          throw new HttpException(
+            `Room number ${roomNumber} not found for room type ${roomType.name}`,
+            HttpStatus.BAD_REQUEST,
+          );
         }
+        return room.id;
       }
     } catch (error) {
-      this.logger.warn(
-        `Failed to resolve roomId for hotel=${hotelId} roomType=${roomtypeId} roomNumber=${roomNumber}: ${error.message}`,
+      if (error instanceof HttpException) throw error;
+      this.logger.error(`Validation error: ${error.message}`);
+      throw new HttpException(
+        `Failed to validate booking references: ${error.message}`,
+        HttpStatus.BAD_REQUEST,
       );
     }
     return undefined;

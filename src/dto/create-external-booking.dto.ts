@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Min,
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
@@ -32,6 +33,7 @@ export class ExternalGuestDto {
 export class CreateExternalBookingDto {
   @ApiProperty({ description: "Hotel ID for the booking" })
   @IsNumber()
+  @Min(1)
   hotelId: number;
 
   @ApiProperty({
