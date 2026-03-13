@@ -1462,7 +1462,33 @@ export class ChannelManagerController {
     description:
       "Allows external partners (like Wakanow) to create a reservation directly in the PMS.",
   })
-  @ApiBody({ type: CreateExternalBookingDto })
+  @ApiBody({
+    type: CreateExternalBookingDto,
+    examples: {
+      standardRequest: {
+        summary: "Standard External Booking",
+        value: {
+          hotelId: 1,
+          roomTypeId: "14",
+          checkInDate: "2025-06-01",
+          checkOutDate: "2025-06-05",
+          roomNumber: "401",
+          guest: {
+            fullName: "John Doe",
+            email: "john.doe@example.com",
+            phoneNumber: "+1234567890",
+          },
+          totalPrice: 500.0,
+          currency: "USD",
+          externalConfirmId: "OTA-123456",
+          source: "WAKANOW",
+          otaBookingCode: "OTA-123456",
+          status: "CONFIRMED",
+          numberOfGuests: 2,
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 201,
     description: "Booking created successfully",

@@ -639,36 +639,28 @@ export class ChannelManagerService {
       `Creating external booking from ${dto.source}: ${dto.externalConfirmId}`,
     );
 
-    // Validate Hotel exists via Oreon Client
-    // We assume ChannelManagerService has access to this, if not we'll use a direct PmsReservationClient approach
-    // or we skip strictly checking hotel existence if PmsReservationClient handles it.
+    // 1. Save to local Channel Manager database first (idempotent)
+    // This will also trigger roomId resolution via createBooking -> resolveRoomId
+    const localBooking = await this.createBooking(dto);
 
-    // Map to Oreon Guest DTO structure
-    // Map to Oreon PartnerCreateBookingDto structure
-    // This strictly follows PartnerCreateBookingDto in Oreon
+    // 2. Map to Oreon PartnerCreateBookingDto structure
     const guestReservationDto = {
       propertyReference: `REF-${dto.hotelId}`,
-      fullName:
-        (dto.guest as any).fullName ||
-        [dto.guest.firstName, dto.guest.lastName]
-          .filter(Boolean)
-          .join(" ")
-          .trim() ||
-        dto.guest.email?.split("@")[0] ||
-        "Guest",
-      email: dto.guest.email,
-      phoneNumber: dto.guest.phoneNumber,
-      roomTypeId: Number(dto.roomTypeId),
-      roomNumber: dto.roomNumber,
+      fullName: localBooking.fullName,
+      email: localBooking.email,
+      phoneNumber: localBooking.phoneNumber,
+      roomTypeId: localBooking.roomtypeId,
+      roomNumber: localBooking.roomNumber,
+      roomId: localBooking.roomId, // Include resolved roomId
       checkInDate: dto.checkInDate,
       checkOutDate: dto.checkOutDate,
-      numberOfGuests: dto.quantity || 1,
+      numberOfGuests: dto.numberOfGuests || 1,
       amount: dto.totalPrice,
       amountPaid: dto.totalPrice, // External bookings are treated as prepaid
       bookingSource: dto.source,
       otaBookingCode: dto.externalConfirmId,
       sourceReservationId: dto.externalConfirmId,
-      bookingStatus: "CONFIRMED",
+      bookingStatus: dto.status || "CONFIRMED",
     };
 
     try {
@@ -1107,11 +1099,6 @@ export class ChannelManagerService {
           bookingData.name ||
           bookingData.guestName ||
           (bookingData.guest && bookingData.guest.fullName) ||
-          (bookingData.guest &&
-            [bookingData.guest.firstName, bookingData.guest.lastName]
-              .filter(Boolean)
-              .join(" ")
-              .trim()) ||
           undefined,
         email:
           bookingData.email || (bookingData.guest && bookingData.guest.email),
@@ -1150,7 +1137,26 @@ export class ChannelManagerService {
           `REF-${bookingData.hotelId}`,
         otaBookingCode:
           bookingData.otaBookingCode || bookingData.externalConfirmId,
+        roomNumber:
+          bookingData.roomNumber ||
+          (bookingData.guest && bookingData.guest.roomNumber),
       };
+
+      // Resolve roomId if roomNumber and roomtypeId are available
+      if (
+        mappedData.hotelId &&
+        mappedData.roomtypeId &&
+        mappedData.roomNumber
+      ) {
+        const roomId = await this.resolveRoomId(
+          mappedData.hotelId,
+          Number(mappedData.roomtypeId),
+          mappedData.roomNumber,
+        );
+        if (roomId) {
+          (mappedData as any).roomId = roomId;
+        }
+      }
 
       // Remove non-existent field names to avoid TypeORM database errors
       delete mappedData.amount;
@@ -1172,6 +1178,10 @@ export class ChannelManagerService {
       delete mappedData.cancelReason;
       delete mappedData.canceledAt;
       delete mappedData.guest;
+      delete mappedData.quantity;
+      delete mappedData.firstName;
+      delete mappedData.lastName;
+      delete mappedData.numberOfRooms;
 
       // 1. Save to channel manager DB (Idempotent: check for existing)
       let saved: any;
@@ -1281,7 +1291,11 @@ export class ChannelManagerService {
       }
       const mappedUpdates = {
         ...updates,
-        fullName: updates.fullName || updates.name || updates.guestName,
+        fullName:
+          updates.fullName ||
+          updates.name ||
+          updates.guestName ||
+          (updates.guest && updates.guest.fullName),
         email: updates.email,
         phoneNumber: updates.phoneNumber || updates.phone,
         startDate: updates.startDate || updates.checkInDate || updates.checkIn,
@@ -1293,7 +1307,25 @@ export class ChannelManagerService {
         bookingSource: updates.bookingSource || updates.source,
         bookingStatus: updates.bookingStatus || updates.status,
         otaBookingCode: updates.otaBookingCode || updates.externalConfirmId,
+        roomNumber:
+          updates.roomNumber || (updates.guest && updates.guest.roomNumber),
       };
+
+      // Resolve roomId if roomNumber and roomtypeId are available
+      if (
+        booking.hotelId &&
+        (mappedUpdates.roomtypeId || booking.roomtypeId) &&
+        mappedUpdates.roomNumber
+      ) {
+        const roomId = await this.resolveRoomId(
+          booking.hotelId,
+          Number(mappedUpdates.roomtypeId || booking.roomtypeId),
+          mappedUpdates.roomNumber,
+        );
+        if (roomId) {
+          (mappedUpdates as any).roomId = roomId;
+        }
+      }
 
       delete mappedUpdates.amount;
       delete mappedUpdates.source;
@@ -1313,6 +1345,11 @@ export class ChannelManagerService {
       delete mappedUpdates.channelData;
       delete mappedUpdates.cancelReason;
       delete mappedUpdates.canceledAt;
+      delete mappedUpdates.quantity;
+      delete mappedUpdates.firstName;
+      delete mappedUpdates.lastName;
+      delete mappedUpdates.numberOfRooms;
+      delete mappedUpdates.guest;
 
       const updatedBooking = await this.channelManagerRepository.updateBooking(
         bookingCode,
@@ -1363,5 +1400,31 @@ export class ChannelManagerService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  private async resolveRoomId(
+    hotelId: number,
+    roomtypeId: number,
+    roomNumber: string,
+  ): Promise<number | undefined> {
+    if (!hotelId || !roomtypeId || !roomNumber) return undefined;
+    try {
+      const roomTypesData =
+        await this.oreonHotelClient.getHotelRoomTypes(hotelId);
+      if (roomTypesData && roomTypesData.roomTypes) {
+        const roomType = roomTypesData.roomTypes.find(
+          (rt) => Number(rt.id) === Number(roomtypeId),
+        );
+        if (roomType && roomType.rooms) {
+          const room = roomType.rooms.find((r) => r.roomNumber === roomNumber);
+          return room?.id;
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to resolve roomId for hotel=${hotelId} roomType=${roomtypeId} roomNumber=${roomNumber}: ${error.message}`,
+      );
+    }
+    return undefined;
   }
 }

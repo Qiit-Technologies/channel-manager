@@ -11,22 +11,13 @@ import {
 import { Type } from "class-transformer";
 
 export class ExternalGuestDto {
-  @ApiPropertyOptional({
-    description: "Guest Full Name (if sending joined name)",
+  @ApiProperty({
+    description: "Guest Full Name",
+    example: "John Doe",
   })
   @IsString()
-  @IsOptional()
-  fullName?: string;
-
-  @ApiProperty({ description: "Guest First Name" })
-  @IsString()
-  @IsOptional()
-  firstName?: string;
-
-  @ApiProperty({ description: "Guest Last Name" })
-  @IsString()
-  @IsOptional()
-  lastName?: string;
+  @IsNotEmpty()
+  fullName: string;
 
   @ApiProperty({ description: "Guest Email" })
   @IsEmail()
@@ -71,11 +62,6 @@ export class CreateExternalBookingDto {
   @Type(() => ExternalGuestDto)
   guest: ExternalGuestDto;
 
-  @ApiProperty({ description: "Number of rooms", default: 1 })
-  @IsNumber()
-  @IsOptional()
-  quantity?: number = 1;
-
   @ApiProperty({ description: "Total Price" })
   @IsNumber()
   totalPrice: number;
@@ -89,6 +75,39 @@ export class CreateExternalBookingDto {
   @IsString()
   @IsNotEmpty()
   externalConfirmId: string;
+
+  @ApiPropertyOptional({ description: "Internal Booking Code" })
+  @IsString()
+  @IsOptional()
+  bookingCode?: string;
+
+  @ApiPropertyOptional({
+    description: "OTA Booking Code (alias for externalConfirmId)",
+  })
+  @IsString()
+  @IsOptional()
+  otaBookingCode?: string;
+
+  @ApiPropertyOptional({
+    description: "Booking Status",
+    enum: [
+      "PENDING",
+      "CONFIRMED",
+      "CHECKED_IN",
+      "CHECKED_OUT",
+      "CANCELED",
+      "NO_SHOW",
+      "MODIFIED",
+    ],
+  })
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @ApiPropertyOptional({ description: "Number of guests", default: 1 })
+  @IsNumber()
+  @IsOptional()
+  numberOfGuests?: number = 1;
 
   @ApiProperty({
     description: "Source Channel Name (e.g. WAKANOW)",

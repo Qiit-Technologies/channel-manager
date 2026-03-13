@@ -65,6 +65,8 @@ export class PmsReservationClient {
           fullName: oreonGuestDto?.fullName,
           email: oreonGuestDto?.email,
           roomTypeId: oreonGuestDto?.roomTypeId,
+          roomNumber: oreonGuestDto?.roomNumber,
+          roomId: oreonGuestDto?.roomId,
           checkInDate: oreonGuestDto?.checkInDate,
           checkOutDate: oreonGuestDto?.checkOutDate,
           amount: oreonGuestDto?.amount,

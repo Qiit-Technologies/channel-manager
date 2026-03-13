@@ -96,6 +96,9 @@ export class Guest {
   @Column({ nullable: true })
   roomNumber: string;
 
+  @Column({ type: "int", nullable: true })
+  roomId: number;
+
   @Column({ default: 1 })
   numberOfGuests: number;
 
