@@ -48,6 +48,7 @@ import {
 } from "./entities/channel-sync-log.entity";
 import { Guest, BookingStatus } from "./entities/guest.entity";
 import { ChannelApiFactory } from "./api/channel-api-factory.service";
+import { WebhookEventType } from "./services/webhook.service";
 import {
   sampleChannelIntegrations,
   sampleChannelMappings,
@@ -1658,6 +1659,63 @@ export class ChannelManagerController {
     };
 
     return summary;
+  }
+
+  // Hotel Webhook Configuration
+  @Get("hotels/:hotelId/webhook-config")
+  @ApiOperation({
+    summary: "Get hotel webhook configuration",
+    description: "Returns the global webhook settings for a specific hotel.",
+  })
+  @ApiParam({ name: "hotelId", type: Number })
+  async getHotelWebhook(@Param("hotelId") hotelId: number) {
+    return await this.channelManagerService.getHotelWebhook(hotelId);
+  }
+
+  @Post("hotels/:hotelId/webhook-config")
+  @ApiOperation({
+    summary: "Update hotel webhook configuration",
+    description:
+      "Updates or creates the global webhook settings for a specific hotel.",
+  })
+  @ApiParam({ name: "hotelId", type: Number })
+  async updateHotelWebhook(
+    @Param("hotelId") hotelId: number,
+    @Body() updates: any,
+  ) {
+    return await this.channelManagerService.updateHotelWebhook(
+      hotelId,
+      updates,
+    );
+  }
+
+  @Post("hotels/:hotelId/webhook-test")
+  @ApiOperation({
+    summary: "Trigger test webhook",
+    description:
+      "Sends a test notification to the configured hotel webhook URL to verify the connection.",
+  })
+  @ApiParam({ name: "hotelId", type: Number })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        eventType: {
+          type: "string",
+          enum: Object.values(WebhookEventType),
+          example: "BOOKING_NEW",
+        },
+      },
+    },
+  })
+  async triggerWebhookTest(
+    @Param("hotelId") hotelId: number,
+    @Body("eventType") eventType: WebhookEventType = WebhookEventType.TEST,
+  ) {
+    return await this.channelManagerService.triggerWebhookTest(
+      hotelId,
+      eventType,
+    );
   }
 
   @Get("dashboard/performance")

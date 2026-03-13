@@ -14,14 +14,14 @@ export class HotelbedsApiService implements ChannelApiInterface {
   private readonly baseUrl = "https://api.hotelbeds.com";
 
   async testConnection(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       this.logger.log("Testing Hotelbeds connection...");
 
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "8dce1a2dbe"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       const response = await this.httpService.axiosRef.get(
@@ -38,7 +38,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             from: 1,
             to: 1,
           },
-        }
+        },
       );
 
       this.logger.log("Hotelbeds connection test successful");
@@ -53,7 +53,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
     try {
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       const response = await this.httpService.axiosRef.get(
@@ -70,7 +70,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             from: 1,
             to: 10,
           },
-        }
+        },
       );
 
       return {
@@ -82,7 +82,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to get Hotelbeds channel info: ${error.message}`
+        `Failed to get Hotelbeds channel info: ${error.message}`,
       );
       throw error;
     }
@@ -90,14 +90,14 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
   async updateInventory(
     integration: ChannelIntegration,
-    mapping: ChannelMapping
+    mapping: ChannelMapping,
   ): Promise<void> {
     try {
       this.logger.log("Updating inventory on Hotelbeds...");
 
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       // Hotelbeds inventory update endpoint
@@ -115,7 +115,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             "X-Timestamp": timestamp.toString(),
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       this.logger.log("Inventory update successful");
@@ -127,14 +127,14 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
   async updateRates(
     integration: ChannelIntegration,
-    ratePlan: ChannelRatePlan
+    ratePlan: ChannelRatePlan,
   ): Promise<void> {
     try {
       this.logger.log("Updating rates on Hotelbeds...");
 
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       // Hotelbeds rate update endpoint
@@ -156,7 +156,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             "X-Timestamp": timestamp.toString(),
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       this.logger.log("Rate update successful");
@@ -168,14 +168,14 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
   async updateAvailability(
     integration: ChannelIntegration,
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): Promise<void> {
     try {
       this.logger.log("Updating availability on Hotelbeds...");
 
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       // Hotelbeds availability update endpoint
@@ -195,7 +195,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             "X-Timestamp": timestamp.toString(),
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       this.logger.log("Availability update successful");
@@ -208,12 +208,12 @@ export class HotelbedsApiService implements ChannelApiInterface {
   async getBookings(
     integration: ChannelIntegration,
     dateFrom?: Date,
-    dateTo?: Date
+    dateTo?: Date,
   ): Promise<any[]> {
     try {
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       const response = await this.httpService.axiosRef.get(
@@ -229,7 +229,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             from: dateFrom?.toISOString().split("T")[0],
             to: dateTo?.toISOString().split("T")[0],
           },
-        }
+        },
       );
 
       return response.data.bookings || [];
@@ -242,12 +242,12 @@ export class HotelbedsApiService implements ChannelApiInterface {
   async updateBooking(
     integration: ChannelIntegration,
     bookingId: string,
-    updates: any
+    updates: any,
   ): Promise<boolean> {
     try {
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       const response = await this.httpService.axiosRef.put(
@@ -260,7 +260,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             "X-Timestamp": timestamp.toString(),
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       return response.status === 200;
@@ -272,7 +272,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
   async processWebhook(
     integration: ChannelIntegration,
-    webhookData: any
+    webhookData: any,
   ): Promise<any> {
     try {
       this.logger.log("Processing Hotelbeds webhook...");
@@ -286,14 +286,14 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
   async createGuestReservation(
     integration: ChannelIntegration,
-    guestData: any
+    guestData: any,
   ): Promise<any> {
     try {
       this.logger.log("Creating guest reservation on Hotelbeds...");
 
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       const response = await this.httpService.axiosRef.post(
@@ -306,7 +306,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             "X-Timestamp": timestamp.toString(),
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       return response.data;
@@ -319,14 +319,14 @@ export class HotelbedsApiService implements ChannelApiInterface {
   async updateGuestReservation(
     integration: ChannelIntegration,
     guestId: string,
-    updates: any
+    updates: any,
   ): Promise<any> {
     try {
       this.logger.log("Updating guest reservation on Hotelbeds...");
 
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       const response = await this.httpService.axiosRef.put(
@@ -339,7 +339,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
             "X-Timestamp": timestamp.toString(),
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       return response.data;
@@ -351,14 +351,14 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
   async cancelGuestReservation(
     integration: ChannelIntegration,
-    guestId: string
+    guestId: string,
   ): Promise<any> {
     try {
       this.logger.log("Cancelling guest reservation on Hotelbeds...");
 
       const { signature, timestamp } = this.generateSignature(
         integration.apiKey || "6d6c41d2164b4516d6495374398421e6",
-        integration.apiSecret || "your-hotelbeds-api-secret"
+        integration.apiSecret || "8dce1a2dbe",
       );
 
       const response = await this.httpService.axiosRef.delete(
@@ -369,20 +369,20 @@ export class HotelbedsApiService implements ChannelApiInterface {
             "X-Signature": signature,
             "X-Timestamp": timestamp.toString(),
           },
-        }
+        },
       );
 
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Guest reservation cancellation failed: ${error.message}`
+        `Guest reservation cancellation failed: ${error.message}`,
       );
       throw error;
     }
   }
 
   async validateCredentials(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<boolean> {
     try {
       const result = await this.testConnection(integration);
@@ -404,7 +404,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
   private generateSignature(
     apiKey: string,
-    apiSecret: string
+    apiSecret: string,
   ): { signature: string; timestamp: number } {
     const timestamp = Math.floor(Date.now() / 1000);
     const message = `${apiKey}${apiSecret}${timestamp}`;

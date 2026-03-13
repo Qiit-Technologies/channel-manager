@@ -18,6 +18,7 @@ import {
   ChannelAvailability,
   AvailabilityStatus,
 } from "./entities/channel-availability.entity";
+import { HotelWebhook } from "./entities/hotel-webhook.entity";
 import {
   ChannelSyncLog,
   SyncOperationType,
@@ -252,11 +253,74 @@ export class ChannelManagerService {
     );
     return updatedIntegration;
   }
-
   async deleteChannelIntegration(id: number): Promise<void> {
     const integration = await this.getChannelIntegration(id);
     await this.channelManagerRepository.deleteIntegration(id);
     this.logger.log(`Deleted channel integration: ${integration.channelName}`);
+  }
+
+  // Hotel Webhook Management
+  async getHotelWebhook(hotelId: number): Promise<HotelWebhook | null> {
+    return await this.channelManagerRepository.findHotelWebhook(hotelId);
+  }
+
+  async updateHotelWebhook(
+    hotelId: number,
+    updates: Partial<HotelWebhook>,
+  ): Promise<HotelWebhook> {
+    const webhook = await this.channelManagerRepository.updateHotelWebhook(
+      hotelId,
+      updates,
+    );
+    this.logger.log(`Updated hotel webhook for hotel ID: ${hotelId}`);
+    return webhook;
+  }
+
+  async triggerWebhookTest(
+    hotelId: number,
+    eventType: WebhookEventType,
+  ): Promise<{ success: boolean; message: string }> {
+    const config = await this.getHotelWebhook(hotelId);
+    if (!config || !config.isEnabled || !config.url) {
+      throw new HttpException(
+        "Webhook not configured or disabled for this hotel",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Prepare sample data based on event type
+    let testData: any = {
+      test: true,
+      message: `This is a test notification for ${eventType}`,
+      generatedAt: new Date().toISOString(),
+    };
+
+    if (eventType.startsWith("BOOKING_")) {
+      testData = {
+        ...testData,
+        bookingCode: "TEST-BK-123456",
+        otaBookingCode: "OTA-TEST-999",
+        guestName: "Test Guest",
+        amount: 15000.0,
+        currency: "NGN",
+        startDate: "2026-06-01",
+        endDate: "2026-06-05",
+      };
+    } else if (eventType.includes("AVAILABILITY")) {
+      testData = {
+        ...testData,
+        roomTypeId: 10,
+        date: "2026-06-10",
+        availableRooms: 5,
+        status: "AVAILABLE",
+      };
+    }
+
+    await this.webhookService.notifyHotel(config, eventType, testData);
+    return {
+      success: true,
+      message: `Test webhook for ${eventType} sent to ${config.url}`,
+    };
   }
 
   // Channel Mapping Management
@@ -402,6 +466,26 @@ export class ChannelManagerService {
               `Real-time sync failed for integration ${dto.integrationId}: ${syncError.message}`,
             );
           }
+        }
+
+        // Notify global webhooks
+        await this.webhookService.broadcast(
+          integration.hotelId,
+          WebhookEventType.AVAILABILITY_CHANGE,
+          result,
+        );
+
+        if (update.rate || dto.rate) {
+          await this.webhookService.broadcast(
+            integration.hotelId,
+            WebhookEventType.RATE_CHANGE,
+            {
+              roomtypeId,
+              date: dateString,
+              rate: update.rate || dto.rate,
+              currency: update.currency || dto.currency,
+            },
+          );
         }
 
         results.push(result);
@@ -1089,9 +1173,33 @@ export class ChannelManagerService {
       delete mappedData.canceledAt;
       delete mappedData.guest;
 
-      // 1. Save to channel manager DB
-      const saved =
-        await this.channelManagerRepository.createBooking(mappedData);
+      // 1. Save to channel manager DB (Idempotent: check for existing)
+      let saved: any;
+      const existingByCode = mappedData.bookingCode
+        ? await this.channelManagerRepository.findBookingByCode(
+            mappedData.bookingCode,
+          )
+        : null;
+      const existingByOta =
+        !existingByCode && mappedData.otaBookingCode
+          ? await this.channelManagerRepository.findBookingByOtaCode(
+              mappedData.otaBookingCode,
+            )
+          : null;
+
+      const existing = existingByCode || existingByOta;
+
+      if (existing) {
+        this.logger.log(
+          `[createBooking] Updating existing booking: ${existing.bookingCode}`,
+        );
+        saved = await this.channelManagerRepository.updateBooking(
+          existing.bookingCode,
+          mappedData,
+        );
+      } else {
+        saved = await this.channelManagerRepository.createBooking(mappedData);
+      }
 
       // 2. Forward to Oreon PMS
       const oreonPayload = {
@@ -1143,19 +1251,13 @@ export class ChannelManagerService {
       };
 
       // Notify via webhook if enabled
-      const integrations =
-        await this.channelManagerRepository.findIntegrationsByHotel(
-          saved.hotelId,
-        );
-      for (const integration of integrations) {
-        if (integration.status === IntegrationStatus.ACTIVE) {
-          await this.webhookService.notify(
-            integration,
-            WebhookEventType.BOOKING_NEW,
-            { booking: resultPayload },
-          );
-        }
-      }
+      await this.webhookService.broadcast(
+        saved.hotelId,
+        WebhookEventType.BOOKING_NEW,
+        {
+          booking: resultPayload,
+        },
+      );
 
       return resultPayload;
     } catch (error) {
@@ -1217,43 +1319,37 @@ export class ChannelManagerService {
         mappedUpdates,
       );
 
-      // Notify via webhook if status changed to NO_SHOW
+      // Notify via webhook if status changed
       if (mappedUpdates.bookingStatus === BookingStatus.NO_SHOW) {
-        const integrations =
-          await this.channelManagerRepository.findIntegrationsByHotel(
-            updatedBooking.hotelId,
-          );
-        for (const integration of integrations) {
-          if (integration.status === IntegrationStatus.ACTIVE) {
-            await this.webhookService.notify(
-              integration,
-              WebhookEventType.BOOKING_NO_SHOW,
-              {
-                bookingCode,
-                hotelId: updatedBooking.hotelId,
-                status: BookingStatus.NO_SHOW,
-              },
-            );
-          }
-        }
+        await this.webhookService.broadcast(
+          updatedBooking.hotelId,
+          WebhookEventType.BOOKING_NO_SHOW,
+          {
+            bookingCode,
+            hotelId: updatedBooking.hotelId,
+            status: BookingStatus.NO_SHOW,
+          },
+        );
       } else if (mappedUpdates.bookingStatus === BookingStatus.CANCELLED) {
-        const integrations =
-          await this.channelManagerRepository.findIntegrationsByHotel(
-            updatedBooking.hotelId,
-          );
-        for (const integration of integrations) {
-          if (integration.status === IntegrationStatus.ACTIVE) {
-            await this.webhookService.notify(
-              integration,
-              WebhookEventType.BOOKING_CANCEL,
-              {
-                bookingCode,
-                hotelId: updatedBooking.hotelId,
-                status: BookingStatus.CANCELLED,
-              },
-            );
-          }
-        }
+        await this.webhookService.broadcast(
+          updatedBooking.hotelId,
+          WebhookEventType.BOOKING_CANCEL,
+          {
+            bookingCode,
+            hotelId: updatedBooking.hotelId,
+            status: BookingStatus.CANCELLED,
+          },
+        );
+      } else {
+        await this.webhookService.broadcast(
+          updatedBooking.hotelId,
+          WebhookEventType.BOOKING_MODIFY,
+          {
+            bookingCode,
+            hotelId: updatedBooking.hotelId,
+            updates: mappedUpdates,
+          },
+        );
       }
 
       return updatedBooking;

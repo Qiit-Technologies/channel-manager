@@ -14,6 +14,7 @@ import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 import { ChannelAvailability } from "./entities/channel-availability.entity";
 import { Guest, BookingStatus } from "./entities/guest.entity";
 import { IntegrationStatus } from "./entities/channel-integration.entity";
+import { HotelWebhook } from "./entities/hotel-webhook.entity";
 import { SyncStatus } from "./entities/channel-sync-log.entity";
 import { GetBookingsDto } from "./dto/get-bookings.dto";
 import axios from "axios";
@@ -33,6 +34,8 @@ export class ChannelManagerRepository {
     private channelAvailabilityRepo: Repository<ChannelAvailability>,
     @InjectRepository(Guest)
     private guestRepo: Repository<Guest>,
+    @InjectRepository(HotelWebhook)
+    private hotelWebhookRepo: Repository<HotelWebhook>,
   ) {}
 
   // Channel Integration Methods
@@ -80,18 +83,6 @@ export class ChannelManagerRepository {
   async findIntegrationsByHotel(
     hotelId: number,
   ): Promise<ChannelIntegration[]> {
-    const response = await axios.get(
-      "https://api.test.hotelbeds.com/hotel-api/1.0/hotels",
-      {
-        headers: {
-          "Api-Key": "618ac6b2dcd3aadaf8da4d6ab461cfc2",
-          "X-Signature": "908ebfa5de",
-          Accept: "application/json",
-        },
-      },
-    );
-
-    console.log(response.data);
     return await this.channelIntegrationRepo.find({
       where: { hotelId },
       select: {
@@ -100,6 +91,8 @@ export class ChannelManagerRepository {
         channelType: true,
         channelName: true,
         status: true,
+        apiKey: true,
+        apiSecret: true,
         channelPropertyId: true,
         isWebhookEnabled: true,
         syncIntervalMinutes: true,
@@ -127,6 +120,8 @@ export class ChannelManagerRepository {
           channelType: true,
           channelName: true,
           status: true,
+          apiKey: true,
+          apiSecret: true,
           channelPropertyId: true,
           isWebhookEnabled: true,
           syncIntervalMinutes: true,
@@ -459,6 +454,12 @@ export class ChannelManagerRepository {
     });
   }
 
+  async findBookingByOtaCode(otaBookingCode: string): Promise<Guest | null> {
+    return await this.guestRepo.findOne({
+      where: { otaBookingCode },
+    });
+  }
+
   async createBooking(booking: Partial<Guest>): Promise<Guest> {
     const newBooking = this.guestRepo.create(booking);
     return await this.guestRepo.save(newBooking);
@@ -470,5 +471,29 @@ export class ChannelManagerRepository {
   ): Promise<Guest> {
     await this.guestRepo.update({ bookingCode }, updates);
     return await this.findBookingByCode(bookingCode);
+  }
+
+  // Hotel Webhook Methods
+  async findHotelWebhook(hotelId: number): Promise<HotelWebhook | null> {
+    return await this.hotelWebhookRepo.findOne({
+      where: { hotelId },
+    });
+  }
+
+  async updateHotelWebhook(
+    hotelId: number,
+    updates: Partial<HotelWebhook>,
+  ): Promise<HotelWebhook> {
+    const existing = await this.findHotelWebhook(hotelId);
+    if (existing) {
+      await this.hotelWebhookRepo.update({ hotelId }, updates);
+      return await this.findHotelWebhook(hotelId);
+    } else {
+      const newWebhook = this.hotelWebhookRepo.create({
+        ...updates,
+        hotelId,
+      });
+      return await this.hotelWebhookRepo.save(newWebhook);
+    }
   }
 }

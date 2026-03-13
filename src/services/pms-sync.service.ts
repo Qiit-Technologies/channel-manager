@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ChannelManagerRepository } from "../channel-manager.repository";
+import { WebhookService, WebhookEventType } from "./webhook.service";
 import {
   ChannelIntegration,
   IntegrationStatus,
@@ -12,6 +13,7 @@ export class PmsSyncService {
 
   constructor(
     private readonly channelManagerRepository: ChannelManagerRepository,
+    private readonly webhookService: WebhookService,
   ) {}
 
   // Sync room types from PMS to channel manager
@@ -195,8 +197,23 @@ export class PmsSyncService {
       // TODO: Update availability records based on guest event
       // This will be implemented when Oreon integration is complete
 
+      // Notify webhooks
+      const webhookEvent =
+        eventType === "CHECK_IN"
+          ? WebhookEventType.CHECK_IN
+          : eventType === "CHECK_OUT"
+            ? WebhookEventType.CHECK_OUT
+            : WebhookEventType.BOOKING_NO_SHOW;
+
+      await this.webhookService.broadcast(hotelId, webhookEvent, {
+        guestId,
+        hotelId,
+        eventType,
+        timestamp: new Date().toISOString(),
+      });
+
       this.logger.log(
-        `Availability updated for guest ${guestId} event: ${eventType}`,
+        `Availability updated and webhook broadcasted for guest ${guestId} event: ${eventType}`,
       );
     } catch (error) {
       this.logger.error(

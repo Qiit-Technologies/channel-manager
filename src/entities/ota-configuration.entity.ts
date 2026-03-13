@@ -15,7 +15,7 @@ export class OtaConfiguration {
   @Column({
     type: "enum",
     enum: ChannelType,
-    nullable: false,
+    nullable: true,
     unique: true,
   })
   channelType: ChannelType;

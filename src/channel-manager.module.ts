@@ -11,6 +11,7 @@ import { ChannelAvailability } from "./entities/channel-availability.entity";
 import { Guest } from "./entities/guest.entity";
 import { ApiKey } from "./entities/api-key.entity";
 import { OtaConfiguration } from "./entities/ota-configuration.entity";
+import { HotelWebhook } from "./entities/hotel-webhook.entity";
 import { HttpModule } from "@nestjs/axios";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ChannelManagerRepository } from "./channel-manager.repository";
@@ -51,12 +52,13 @@ import { WebhookService } from "./services/webhook.service";
               Guest,
               ApiKey,
               OtaConfiguration,
+              HotelWebhook,
             ],
             migrations: [__dirname + "/migrations/*{.ts,.js}"],
             // Only run migrations when explicitly requested
             migrationsRun: process.env.MIGRATIONS_RUN === "true",
-            // Disable synchronize in development to avoid altering existing tables
-            synchronize: false,
+            // Enable synchronize in development to ensure new tables are created
+            synchronize: true,
             logging: process.env.NODE_ENV === "development",
             retryAttempts: 3,
             retryDelay: 3000,
@@ -77,6 +79,7 @@ import { WebhookService } from "./services/webhook.service";
             Guest,
             ApiKey,
             OtaConfiguration,
+            HotelWebhook,
           ]),
         ]
       : []),
@@ -94,7 +97,6 @@ import { WebhookService } from "./services/webhook.service";
     ApiKeyGuard,
     ...(process.env.TEST_MODE !== "true"
       ? [
-          ChannelManagerRepository,
           ChannelManagerRepository,
           ChannelSyncEngine,
           ChannelApiFactory,

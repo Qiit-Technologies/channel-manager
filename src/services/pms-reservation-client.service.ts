@@ -56,7 +56,7 @@ export class PmsReservationClient {
         "Content-Type": "application/json",
       };
       if (this.apiKey) {
-        headers["X-API-Key"] = this.apiKey;
+        headers["x-api-key"] = this.apiKey;
       }
 
       // Log a compact summary of the payload
