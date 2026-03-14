@@ -57,8 +57,8 @@ import { WebhookService } from "./services/webhook.service";
             migrations: [__dirname + "/migrations/*{.ts,.js}"],
             // Only run migrations when explicitly requested
             migrationsRun: process.env.MIGRATIONS_RUN === "true",
-            // Enable synchronize in development to ensure new tables are created
-            synchronize: true,
+            // Disable synchronize to prevent accidental schema changes to shared tables like "guest"
+            synchronize: false,
             logging: process.env.NODE_ENV === "development",
             retryAttempts: 3,
             retryDelay: 3000,

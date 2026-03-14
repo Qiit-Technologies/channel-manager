@@ -14,7 +14,7 @@ import { createHash } from "crypto";
 export class ApiKeyGuard implements CanActivate {
   constructor(
     @InjectRepository(ApiKey)
-    private readonly apiKeyRepository?: Repository<ApiKey>
+    private readonly apiKeyRepository?: Repository<ApiKey>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -92,7 +92,8 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     // Fallback to environment variable validation
-    const validApiKey = process.env.CHANNEL_MANAGER_API_KEY;
+    const validApiKey =
+      process.env.CHANNEL_MANAGER_API_KEY || process.env.CM_FORWARD_API_KEY;
 
     if (!validApiKey) {
       // If no API key is set in environment, allow all requests (development mode)

@@ -241,6 +241,7 @@ export class ChannelManagerController {
 
   // Channel Integration Endpoints
   @Post("integrations")
+  @UseGuards(ApiKeyGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: "Create channel integration",
@@ -297,6 +298,7 @@ export class ChannelManagerController {
   }
 
   @Get("integrations")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "List channel integrations",
     description:
@@ -367,6 +369,7 @@ export class ChannelManagerController {
   }
 
   @Put("integrations/:id")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "Update channel integration",
     description:
@@ -430,6 +433,7 @@ export class ChannelManagerController {
   }
 
   @Delete("integrations/:id")
+  @UseGuards(ApiKeyGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: "Delete channel integration",
@@ -493,6 +497,7 @@ export class ChannelManagerController {
 
   // Channel Mapping Endpoints
   @Post("mappings")
+  @UseGuards(ApiKeyGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: "Create channel mapping",
@@ -561,6 +566,7 @@ export class ChannelManagerController {
   }
 
   @Put("mappings/:id")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "Update channel mapping",
     description:
@@ -625,6 +631,7 @@ export class ChannelManagerController {
 
   // Availability Management Endpoints
   @Post("availability/sync")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "Sync availability",
     description:
@@ -979,6 +986,7 @@ export class ChannelManagerController {
   }
 
   @Post("bookings")
+  @UseGuards(ApiKeyGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: "Create booking",
@@ -1064,6 +1072,10 @@ export class ChannelManagerController {
         example: createSwaggerExample(sampleBookings.single),
       },
     },
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request - invalid data or PMS forward failed",
   })
   async createBooking(@Body() bookingData: any): Promise<any> {
     return await this.channelManagerService.createBooking(bookingData);

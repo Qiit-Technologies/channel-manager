@@ -1246,9 +1246,16 @@ export class ChannelManagerService {
           `[createBooking] Forwarded to Oreon: bookingCode=${pmsResult.data?.bookingCode || "n/a"}`,
         );
       } else {
-        this.logger.warn(
-          `[createBooking] Oreon forward failed: ${pmsResult.error} — CM record still saved`,
+        this.logger.error(
+          `[createBooking] Oreon forward failed: ${pmsResult.error}`,
         );
+        // If it's a real HTTP error from PMS, propagate it to the user
+        if (pmsResult.status) {
+          throw new HttpException(
+            pmsResult.data?.message || pmsResult.error || "PMS Forward Failed",
+            pmsResult.status,
+          );
+        }
       }
 
       const resultPayload = {
@@ -1412,11 +1419,12 @@ export class ChannelManagerService {
           HttpStatus.BAD_REQUEST,
         );
       }
-
+      console.log(roomtypeId);
+      console.log(roomTypesData);
       const roomType = roomTypesData.roomTypes.find(
         (rt) => Number(rt.id) === Number(roomtypeId),
       );
-
+      console.log(roomType);
       if (!roomType) {
         throw new HttpException(
           `Room type ID ${roomtypeId} not found for hotel ${hotelId}`,
