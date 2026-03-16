@@ -639,57 +639,26 @@ export class ChannelManagerService {
       `Creating external booking from ${dto.source}: ${dto.externalConfirmId}`,
     );
 
-    // 1. Save to local Channel Manager database first (idempotent)
-    // This will also trigger roomId resolution via createBooking -> resolveRoomId
-    const localBooking = await this.createBooking(dto);
-
-    // 2. Map to Oreon PartnerCreateBookingDto structure
-    const guestReservationDto = {
-      propertyReference: `REF-${dto.hotelId}`,
-      fullName: localBooking.fullName,
-      email: localBooking.email,
-      phoneNumber: localBooking.phoneNumber,
-      roomTypeId: localBooking.roomtypeId,
-      roomNumber: localBooking.roomNumber,
-      roomId: localBooking.roomId, // Include resolved roomId
-      checkInDate: dto.checkInDate,
-      checkOutDate: dto.checkOutDate,
-      numberOfGuests: dto.numberOfGuests || 1,
-      amount: dto.totalPrice,
-      amountPaid: dto.totalPrice, // External bookings are treated as prepaid
-      bookingSource: dto.source,
-      otaBookingCode: dto.externalConfirmId,
-      sourceReservationId: dto.externalConfirmId,
-      bookingStatus: dto.status || "CONFIRMED",
+    // 1. Prepare data for createBooking
+    // Ensure otaBookingCode is explicitly set if provided in the DTO
+    const bookingData = {
+      ...dto,
+      otaBookingCode: dto.otaBookingCode || dto.externalConfirmId,
     };
 
-    try {
-      const result = await this.pmsReservationClient.createGuestReservation(
-        dto.hotelId,
-        guestReservationDto,
-      );
+    // 2. Call the main createBooking which handles local save AND PMS forward (idempotently)
+    const result = await this.createBooking(bookingData);
 
-      if (!result.success) {
-        throw new HttpException(
-          `PMS Booking failed: ${result.error}`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const bookingId =
-        result.data?.bookingCode || result.data?.id || "UNKNOWN";
-      this.logger.log(`External booking created successfully: ${bookingId}`);
-
-      return {
-        success: true,
-        bookingReference: bookingId,
-        sourceReference: dto.externalConfirmId,
-        status: "CONFIRMED",
-      };
-    } catch (error) {
-      this.logger.error(`Booking creation failed: ${error.message}`);
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    // 3. Return the consolidated result
+    // Note: createBooking already throws if PMS forward fails (HttpException)
+    return {
+      success: true,
+      bookingReference:
+        result.oreonBookingCode || result.bookingCode || "UNKNOWN",
+      sourceReference: dto.externalConfirmId,
+      status: result.status || "CONFIRMED",
+      oreonForwarded: result.oreonForwarded,
+    };
   }
 
   async testChannelIntegration(
