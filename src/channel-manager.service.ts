@@ -1149,8 +1149,8 @@ export class ChannelManagerService {
       delete mappedData.lastName;
       delete mappedData.numberOfRooms;
 
-      // 1. Save to channel manager DB (Idempotent: check for existing)
-      let saved: any;
+      // 1. Idempotency Check: Since we share the database with Oreon,
+      // we first check if the booking already exists.
       const existingByCode = mappedData.bookingCode
         ? await this.channelManagerRepository.findBookingByCode(
             mappedData.bookingCode,
@@ -1167,82 +1167,124 @@ export class ChannelManagerService {
 
       if (existing) {
         this.logger.log(
-          `[createBooking] Updating existing booking: ${existing.bookingCode}`,
+          `[createBooking] Idempotent match: ${existing.bookingCode}. Returning existing record.`,
         );
-        saved = await this.channelManagerRepository.updateBooking(
-          existing.bookingCode,
-          mappedData,
-        );
-      } else {
-        saved = await this.channelManagerRepository.createBooking(mappedData);
+        return {
+          ...existing,
+          oreonBookingCode: existing.bookingCode,
+          oreonForwarded: true,
+        };
       }
 
-      // 2. Forward to Oreon PMS
-      const oreonPayload = {
-        propertyReference: mappedData.propertyReference,
-        fullName: mappedData.fullName,
-        email: mappedData.email,
-        phoneNumber: mappedData.phoneNumber,
-        roomTypeId: mappedData.roomtypeId
-          ? Number(mappedData.roomtypeId)
-          : undefined,
-        roomNumber: mappedData.roomNumber,
-        checkInDate:
-          bookingData.checkInDate ||
-          bookingData.checkIn ||
-          bookingData.startDate,
-        checkOutDate:
-          bookingData.checkOutDate ||
-          bookingData.checkOut ||
-          bookingData.endDate,
-        bookingCode: mappedData.bookingCode,
-        otaBookingCode: mappedData.otaBookingCode,
-        bookingStatus: mappedData.bookingStatus,
-        bookingSource: mappedData.bookingSource,
-        amount: mappedData.bookingAmount,
-        amountPaid: mappedData.bookingAmount, // treat as prepaid
-        numberOfGuests: mappedData.numberOfGuests,
-        sourceReservationId: mappedData.otaBookingCode,
-      };
+      // 2. Decide: Delegate to PMS or save locally
+      const pmsForwardEnabled =
+        (process.env.PMS_RESERVATION_FORWARD || "false").toLowerCase() ===
+        "true";
 
-      const pmsResult = await this.pmsReservationClient.createGuestReservation(
-        mappedData.hotelId,
-        oreonPayload,
-      );
-
-      if (pmsResult.success) {
+      if (pmsForwardEnabled) {
         this.logger.log(
-          `[createBooking] Forwarded to Oreon: bookingCode=${pmsResult.data?.bookingCode || "n/a"}`,
+          `[createBooking] Delegating to Oreon PMS for property=${mappedData.propertyReference}`,
         );
-      } else {
-        this.logger.error(
-          `[createBooking] Oreon forward failed: ${pmsResult.error}`,
-        );
-        // If it's a real HTTP error from PMS, propagate it to the user
-        if (pmsResult.status) {
+
+        const oreonPayload = {
+          propertyReference: mappedData.propertyReference,
+          fullName: mappedData.fullName,
+          email: mappedData.email,
+          phoneNumber: mappedData.phoneNumber,
+          roomTypeId: mappedData.roomtypeId
+            ? Number(mappedData.roomtypeId)
+            : undefined,
+          roomNumber: mappedData.roomNumber,
+          checkInDate:
+            bookingData.checkInDate ||
+            bookingData.checkIn ||
+            bookingData.startDate,
+          checkOutDate:
+            bookingData.checkOutDate ||
+            bookingData.checkOut ||
+            bookingData.endDate,
+          bookingCode: mappedData.bookingCode,
+          otaBookingCode: mappedData.otaBookingCode,
+          bookingStatus: mappedData.bookingStatus,
+          bookingSource: mappedData.bookingSource,
+          amount: mappedData.bookingAmount,
+          amountPaid: mappedData.bookingAmount, // treat as prepaid
+          numberOfGuests: mappedData.numberOfGuests || 1,
+          sourceReservationId: mappedData.otaBookingCode,
+        };
+
+        const pmsResult =
+          await this.pmsReservationClient.createGuestReservation(
+            mappedData.hotelId,
+            oreonPayload,
+          );
+
+        if (pmsResult.success) {
+          this.logger.log(
+            `[createBooking] PMS creation successful: ${pmsResult.data?.bookingCode || "n/a"}`,
+          );
+
+          // Fetch the record that the PMS just created in our shared database
+          const saved =
+            (await this.channelManagerRepository.findBookingByCode(
+              mappedData.bookingCode,
+            )) ||
+            (await this.channelManagerRepository.findBookingByOtaCode(
+              mappedData.otaBookingCode,
+            ));
+
+          const resultPayload = {
+            ...(saved || pmsResult.data),
+            oreonBookingCode: pmsResult.data?.bookingCode || null,
+            oreonForwarded: true,
+          };
+
+          // Notify via webhook
+          await this.webhookService.broadcast(
+            mappedData.hotelId,
+            WebhookEventType.BOOKING_NEW,
+            { booking: resultPayload },
+          );
+
+          return resultPayload;
+        } else {
+          this.logger.error(
+            `[createBooking] PMS Delegation failed: ${pmsResult.error}`,
+          );
+          if (pmsResult.status) {
+            throw new HttpException(
+              pmsResult.data?.message ||
+                pmsResult.error ||
+                "PMS Forward Failed",
+              pmsResult.status,
+            );
+          }
           throw new HttpException(
-            pmsResult.data?.message || pmsResult.error || "PMS Forward Failed",
-            pmsResult.status,
+            pmsResult.error || "PMS Forward Failed",
+            HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
+      } else {
+        // Fallback: PMS Forwarding is disabled, save locally in Channel Manager DB
+        this.logger.log(
+          `[createBooking] PMS Forwarding disabled. Saving locally.`,
+        );
+        const saved =
+          await this.channelManagerRepository.createBooking(mappedData);
+        const resultPayload = {
+          ...saved,
+          oreonBookingCode: null,
+          oreonForwarded: false,
+        };
+
+        await this.webhookService.broadcast(
+          saved.hotelId,
+          WebhookEventType.BOOKING_NEW,
+          { booking: resultPayload },
+        );
+
+        return resultPayload;
       }
-
-      const resultPayload = {
-        ...saved,
-        oreonBookingCode: pmsResult.data?.bookingCode || null,
-        oreonForwarded: pmsResult.success,
-      };
-
-      // Notify via webhook if enabled
-      await this.webhookService.broadcast(
-        saved.hotelId,
-        WebhookEventType.BOOKING_NEW,
-        {
-          booking: resultPayload,
-        },
-      );
-
-      return resultPayload;
     } catch (error) {
       this.logger.error(`Failed to create booking: ${error.message}`);
       throw new HttpException(
