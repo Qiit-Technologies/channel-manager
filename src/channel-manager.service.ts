@@ -1060,235 +1060,65 @@ export class ChannelManagerService {
 
   async createBooking(bookingData: any): Promise<any> {
     try {
-      // Map incoming fields to database schema names strictly matching Guest entity
-      const mappedData = {
-        ...bookingData,
-        fullName:
-          bookingData.fullName ||
-          bookingData.name ||
-          bookingData.guestName ||
-          (bookingData.guest && bookingData.guest.fullName) ||
-          undefined,
-        email:
-          bookingData.email || (bookingData.guest && bookingData.guest.email),
-        phoneNumber:
-          bookingData.phoneNumber ||
-          bookingData.phone ||
-          (bookingData.guest && bookingData.guest.phoneNumber),
-        startDate:
-          bookingData.startDate ||
-          bookingData.checkInDate ||
-          bookingData.checkIn,
-        endDate:
-          bookingData.endDate ||
-          bookingData.checkOutDate ||
-          bookingData.checkOut,
-        roomtypeId:
-          bookingData.roomtypeId ||
-          bookingData.roomTypeId ||
-          bookingData.roomType,
-        bookingAmount:
-          bookingData.bookingAmount ||
-          bookingData.amount ||
-          bookingData.totalPrice,
-        amountPaid:
-          bookingData.amountPaid ||
-          bookingData.bookingAmount ||
-          bookingData.amount ||
-          bookingData.totalPrice,
-        outstanding: 0,
-        bookingSource: bookingData.bookingSource || bookingData.source,
-        bookingStatus: bookingData.bookingStatus || bookingData.status,
-        property: bookingData.property || bookingData.propertyName,
-        propertyReference:
-          bookingData.propertyReference ||
-          bookingData.propertyRef ||
-          `REF-${bookingData.hotelId}`,
-        otaBookingCode:
-          bookingData.otaBookingCode || bookingData.externalConfirmId,
-        roomNumber:
-          bookingData.roomNumber ||
-          (bookingData.guest && bookingData.guest.roomNumber),
+      this.logger.log(
+        `[createBooking] processing for code=${bookingData.bookingCode || bookingData.otaBookingCode || "new"}`,
+      );
+
+      // 1. Map incoming fields to a standard internal structure
+      const mappedData = this.mapBookingFields(bookingData);
+
+      // 2. Delegate to PMS (Authoritative Source)
+      this.logger.log(
+        `[createBooking] Delegating to Oreon PMS for property=${mappedData.propertyReference}`,
+      );
+
+      const oreonPayload = {
+        ...mappedData,
+        checkInDate: mappedData.startDate,
+        checkOutDate: mappedData.endDate,
+        amount: mappedData.bookingAmount,
+        sourceReservationId: mappedData.otaBookingCode,
       };
 
-      // 0. Validate references (hotel, roomtype, room) against PMS
-      // This will throw if any reference is invalid, preventing "orphaned" records
-      if (mappedData.hotelId && mappedData.roomtypeId) {
-        const roomId = await this.validateAndResolveRoomId(
-          mappedData.hotelId,
-          Number(mappedData.roomtypeId),
-          mappedData.roomNumber,
-        );
-        if (roomId) {
-          (mappedData as any).roomId = roomId;
-        }
-      }
+      const pmsResult = await this.pmsReservationClient.createGuestReservation(
+        mappedData.hotelId,
+        oreonPayload,
+      );
 
-      // Remove non-existent field names to avoid TypeORM database errors
-      delete mappedData.amount;
-      delete mappedData.source;
-      delete mappedData.status;
-      delete mappedData.phone;
-      delete mappedData.roomTypeId;
-      delete mappedData.roomType;
-      delete mappedData.checkInDate;
-      delete mappedData.checkOutDate;
-      delete mappedData.checkIn;
-      delete mappedData.checkOut;
-      delete mappedData.totalPrice;
-      delete mappedData.externalConfirmId;
-      delete mappedData.currency;
-      delete mappedData.integrationId;
-      delete mappedData.guestDetails;
-      delete mappedData.channelData;
-      delete mappedData.cancelReason;
-      delete mappedData.canceledAt;
-      delete mappedData.guest;
-      delete mappedData.quantity;
-      delete mappedData.firstName;
-      delete mappedData.lastName;
-      delete mappedData.numberOfRooms;
-
-      // 1. Idempotency Check: Since we share the database with Oreon,
-      // we first check if the booking already exists.
-      const existingByCode = mappedData.bookingCode
-        ? await this.channelManagerRepository.findBookingByCode(
-            mappedData.bookingCode,
-          )
-        : null;
-      const existingByOta =
-        !existingByCode && mappedData.otaBookingCode
-          ? await this.channelManagerRepository.findBookingByOtaCode(
-              mappedData.otaBookingCode,
-            )
-          : null;
-
-      const existing = existingByCode || existingByOta;
-
-      if (existing) {
+      if (pmsResult.success) {
         this.logger.log(
-          `[createBooking] Idempotent match: ${existing.bookingCode}. Returning existing record.`,
-        );
-        return {
-          ...existing,
-          oreonBookingCode: existing.bookingCode,
-          oreonForwarded: true,
-        };
-      }
-
-      // 2. Decide: Delegate to PMS or save locally
-      const pmsForwardEnabled =
-        (process.env.PMS_RESERVATION_FORWARD || "false").toLowerCase() ===
-        "true";
-
-      if (pmsForwardEnabled) {
-        this.logger.log(
-          `[createBooking] Delegating to Oreon PMS for property=${mappedData.propertyReference}`,
+          `[createBooking] PMS creation successful: ${pmsResult.data?.bookingCode}`,
         );
 
-        const oreonPayload = {
-          propertyReference: mappedData.propertyReference,
-          fullName: mappedData.fullName,
-          email: mappedData.email,
-          phoneNumber: mappedData.phoneNumber,
-          roomTypeId: mappedData.roomtypeId
-            ? Number(mappedData.roomtypeId)
-            : undefined,
-          roomNumber: mappedData.roomNumber,
-          checkInDate:
-            bookingData.checkInDate ||
-            bookingData.checkIn ||
-            bookingData.startDate,
-          checkOutDate:
-            bookingData.checkOutDate ||
-            bookingData.checkOut ||
-            bookingData.endDate,
-          bookingCode: mappedData.bookingCode,
-          otaBookingCode: mappedData.otaBookingCode,
-          bookingStatus: mappedData.bookingStatus,
-          bookingSource: mappedData.bookingSource,
-          amount: mappedData.bookingAmount,
-          amountPaid: mappedData.bookingAmount, // treat as prepaid
-          numberOfGuests: mappedData.numberOfGuests || 1,
-          sourceReservationId: mappedData.otaBookingCode,
-        };
-
-        const pmsResult =
-          await this.pmsReservationClient.createGuestReservation(
-            mappedData.hotelId,
-            oreonPayload,
-          );
-
-        if (pmsResult.success) {
-          this.logger.log(
-            `[createBooking] PMS creation successful: ${pmsResult.data?.bookingCode || "n/a"}`,
-          );
-
-          // Fetch the record that the PMS just created in our shared database
-          const saved =
-            (await this.channelManagerRepository.findBookingByCode(
-              mappedData.bookingCode,
-            )) ||
-            (await this.channelManagerRepository.findBookingByOtaCode(
-              mappedData.otaBookingCode,
-            ));
-
-          const resultPayload = {
-            ...(saved || pmsResult.data),
-            oreonBookingCode: pmsResult.data?.bookingCode || null,
-            oreonForwarded: true,
-          };
-
-          // Notify via webhook
-          await this.webhookService.broadcast(
-            mappedData.hotelId,
-            WebhookEventType.BOOKING_NEW,
-            { booking: resultPayload },
-          );
-
-          return resultPayload;
-        } else {
-          this.logger.error(
-            `[createBooking] PMS Delegation failed: ${pmsResult.error}`,
-          );
-          if (pmsResult.status) {
-            throw new HttpException(
-              pmsResult.data?.message ||
-                pmsResult.error ||
-                "PMS Forward Failed",
-              pmsResult.status,
-            );
-          }
-          throw new HttpException(
-            pmsResult.error || "PMS Forward Failed",
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
-      } else {
-        // Fallback: PMS Forwarding is disabled, save locally in Channel Manager DB
-        this.logger.log(
-          `[createBooking] PMS Forwarding disabled. Saving locally.`,
-        );
-        const saved =
-          await this.channelManagerRepository.createBooking(mappedData);
+        // Since we share the database, return a merged view of the authoritative data
         const resultPayload = {
-          ...saved,
-          oreonBookingCode: null,
-          oreonForwarded: false,
+          ...mappedData,
+          ...pmsResult.data,
+          oreonBookingCode: pmsResult.data?.bookingCode || null,
+          oreonForwarded: true,
         };
 
         await this.webhookService.broadcast(
-          saved.hotelId,
+          mappedData.hotelId,
           WebhookEventType.BOOKING_NEW,
           { booking: resultPayload },
         );
 
         return resultPayload;
+      } else {
+        this.logger.error(
+          `[createBooking] PMS rejected booking: ${pmsResult.error}`,
+        );
+        throw new HttpException(
+          pmsResult.data?.message || pmsResult.error || "PMS Operation Failed",
+          pmsResult.status || HttpStatus.BAD_REQUEST,
+        );
       }
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(`Failed to create booking: ${error.message}`);
       throw new HttpException(
-        `Failed to create booking: ${error.message}`,
+        `Booking creation error: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -1296,121 +1126,101 @@ export class ChannelManagerService {
 
   async updateBooking(bookingCode: string, updates: any): Promise<any> {
     try {
+      this.logger.log(`[updateBooking] processing for code=${bookingCode}`);
+
+      // Find the existing booking to get context (like hotelId)
       const booking =
         await this.channelManagerRepository.findBookingByCode(bookingCode);
       if (!booking) {
         throw new HttpException(
           `Booking with code ${bookingCode} not found`,
-          HttpStatus.NOT_FOUND,
+          404,
         );
       }
-      const mappedUpdates = {
-        ...updates,
-        fullName:
-          updates.fullName ||
-          updates.name ||
-          updates.guestName ||
-          (updates.guest && updates.guest.fullName),
-        email: updates.email,
-        phoneNumber: updates.phoneNumber || updates.phone,
-        startDate: updates.startDate || updates.checkInDate || updates.checkIn,
-        endDate: updates.endDate || updates.checkOutDate || updates.checkOut,
-        roomtypeId:
-          updates.roomtypeId || updates.roomTypeId || updates.roomType,
-        bookingAmount:
-          updates.bookingAmount || updates.amount || updates.totalPrice,
-        bookingSource: updates.bookingSource || updates.source,
-        bookingStatus: updates.bookingStatus || updates.status,
-        otaBookingCode: updates.otaBookingCode || updates.externalConfirmId,
-        roomNumber:
-          updates.roomNumber || (updates.guest && updates.guest.roomNumber),
+
+      // 2. Delegate Update to PMS
+      this.logger.log(`[updateBooking] Delegating update to Oreon PMS`);
+
+      const mappedUpdates = this.mapBookingFields(updates);
+      const oreonPayload = {
+        ...mappedUpdates,
+        bookingCode: bookingCode, // Lockdown the reference
+        checkInDate: mappedUpdates.startDate || (booking as any).startDate,
+        checkOutDate: mappedUpdates.endDate || (booking as any).endDate,
       };
 
-      // 0. Validate references (hotel, roomtype, room) against PMS
-      if (booking.hotelId && (mappedUpdates.roomtypeId || booking.roomtypeId)) {
-        const roomId = await this.validateAndResolveRoomId(
-          booking.hotelId,
-          Number(mappedUpdates.roomtypeId || booking.roomtypeId),
-          mappedUpdates.roomNumber || (booking as any).roomNumber,
-        );
-        if (roomId) {
-          (mappedUpdates as any).roomId = roomId;
-        }
-      }
-
-      delete mappedUpdates.amount;
-      delete mappedUpdates.source;
-      delete mappedUpdates.status;
-      delete mappedUpdates.phone;
-      delete mappedUpdates.roomTypeId;
-      delete mappedUpdates.roomType;
-      delete mappedUpdates.checkInDate;
-      delete mappedUpdates.checkOutDate;
-      delete mappedUpdates.checkIn;
-      delete mappedUpdates.checkOut;
-      delete mappedUpdates.totalPrice;
-      delete mappedUpdates.externalConfirmId;
-      delete mappedUpdates.currency;
-      delete mappedUpdates.integrationId;
-      delete mappedUpdates.guestDetails;
-      delete mappedUpdates.channelData;
-      delete mappedUpdates.cancelReason;
-      delete mappedUpdates.canceledAt;
-      delete mappedUpdates.quantity;
-      delete mappedUpdates.firstName;
-      delete mappedUpdates.lastName;
-      delete mappedUpdates.numberOfRooms;
-      delete mappedUpdates.guest;
-
-      const updatedBooking = await this.channelManagerRepository.updateBooking(
-        bookingCode,
-        mappedUpdates,
+      // Forwarding to the PMS ensures overlap checks and room logs are triggered
+      const pmsResult = await this.pmsReservationClient.createGuestReservation(
+        booking.hotelId,
+        oreonPayload,
       );
 
-      // Notify via webhook if status changed
-      if (mappedUpdates.bookingStatus === BookingStatus.NO_SHOW) {
-        await this.webhookService.broadcast(
-          updatedBooking.hotelId,
-          WebhookEventType.BOOKING_NO_SHOW,
-          {
-            bookingCode,
-            hotelId: updatedBooking.hotelId,
-            status: BookingStatus.NO_SHOW,
-          },
-        );
-      } else if (mappedUpdates.bookingStatus === BookingStatus.CANCELLED) {
-        await this.webhookService.broadcast(
-          updatedBooking.hotelId,
-          WebhookEventType.BOOKING_CANCEL,
-          {
-            bookingCode,
-            hotelId: updatedBooking.hotelId,
-            status: BookingStatus.CANCELLED,
-          },
-        );
-      } else {
-        await this.webhookService.broadcast(
-          updatedBooking.hotelId,
-          WebhookEventType.BOOKING_MODIFY,
-          {
-            bookingCode,
-            hotelId: updatedBooking.hotelId,
-            updates: mappedUpdates,
-          },
-        );
-      }
+      if (pmsResult.success) {
+        const resultPayload = {
+          ...booking,
+          ...mappedUpdates,
+          status: mappedUpdates.bookingStatus || booking.bookingStatus,
+        };
 
-      return updatedBooking;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+        await this.webhookService.broadcast(
+          booking.hotelId,
+          WebhookEventType.BOOKING_MODIFY,
+          { booking: resultPayload },
+        );
+
+        return resultPayload;
+      } else {
+        throw new HttpException(
+          pmsResult.data?.message || pmsResult.error || "PMS Update Failed",
+          pmsResult.status || HttpStatus.BAD_REQUEST,
+        );
       }
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(`Failed to update booking: ${error.message}`);
       throw new HttpException(
-        `Failed to update booking: ${error.message}`,
+        `Update failed: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  /**
+   * Internal mapper to standardize different incoming field patterns
+   */
+  private mapBookingFields(data: any): any {
+    return {
+      hotelId: data.hotelId,
+      fullName:
+        data.fullName ||
+        data.name ||
+        data.guestName ||
+        (data.guest && data.guest.fullName),
+      email: data.email || (data.guest && data.guest.email),
+      phoneNumber:
+        data.phoneNumber ||
+        data.phone ||
+        (data.guest && data.guest.phoneNumber),
+      startDate: data.startDate || data.checkInDate || data.checkIn,
+      endDate: data.endDate || data.checkOutDate || data.checkOut,
+      roomtypeId: data.roomtypeId || data.roomTypeId || data.roomType,
+      bookingAmount: data.bookingAmount || data.amount || data.totalPrice,
+      amountPaid:
+        data.amountPaid ||
+        data.bookingAmount ||
+        data.amount ||
+        data.totalPrice ||
+        0,
+      bookingSource: data.bookingSource || data.source,
+      bookingStatus: data.bookingStatus || data.status,
+      propertyReference:
+        data.propertyReference || data.propertyRef || `REF-${data.hotelId}`,
+      otaBookingCode: data.otaBookingCode || data.externalConfirmId,
+      bookingCode: data.bookingCode,
+      roomNumber: data.roomNumber || (data.guest && data.guest.roomNumber),
+      property: data.property || data.propertyName,
+      numberOfGuests: data.numberOfGuests || 1,
+    };
   }
 
   private async validateAndResolveRoomId(
