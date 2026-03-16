@@ -35,6 +35,7 @@ import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
 import { CreateRoomTypeDto } from "./dto/create-roomtype.dto";
 import { CreateRoomDto } from "./dto/create-room.dto";
 import { GetBookingsDto } from "./dto/get-bookings.dto";
+import { UpdateHotelWebhookDto } from "./dto/update-hotel-webhook.dto";
 import {
   ChannelIntegration,
   ChannelType,
@@ -1717,9 +1718,24 @@ export class ChannelManagerController {
       "Updates or creates the global webhook settings for a specific hotel.",
   })
   @ApiParam({ name: "hotelId", type: Number })
+  @ApiBody({
+    type: UpdateHotelWebhookDto,
+    examples: {
+      defaultConfig: {
+        summary: "Default Webhook Configuration",
+        value: {
+          url: "https://api.yourhotel.com/webhooks",
+          secret: "whsec_123456789",
+          verb: "POST",
+          isEnabled: true,
+          events: ["BOOKING_NEW", "BOOKING_CANCEL", "CHECK_IN"],
+        },
+      },
+    },
+  })
   async updateHotelWebhook(
     @Param("hotelId") hotelId: number,
-    @Body() updates: any,
+    @Body() updates: UpdateHotelWebhookDto,
   ) {
     return await this.channelManagerService.updateHotelWebhook(
       hotelId,
