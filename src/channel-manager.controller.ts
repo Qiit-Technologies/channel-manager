@@ -1621,7 +1621,24 @@ export class ChannelManagerController {
       },
     },
   })
-  @ApiResponse({ status: 202, description: "Webhook accepted for processing" })
+  @ApiResponse({
+    status: 202,
+    description: "Webhook accepted for processing",
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties: {
+            status: { type: "string", example: "accepted" },
+            message: {
+              type: "string",
+              example: "Webhook processed successfully",
+            },
+          },
+        },
+      },
+    },
+  })
   async handleChannelWebhook(
     @Param("type") type: ChannelType,
     @Body() body: WebhookPayloadDto,
@@ -1758,6 +1775,46 @@ export class ChannelManagerController {
           type: "string",
           enum: Object.values(WebhookEventType),
           example: "BOOKING_NEW",
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Test webhook triggered successfully",
+    content: {
+      "application/json": {
+        schema: {
+          type: "object",
+          properties: {
+            hotelId: { type: "number", example: 1 },
+            eventType: { type: "string", example: "BOOKING_NEW" },
+            timestamp: {
+              type: "string",
+              example: "2026-03-16T15:24:17Z",
+            },
+            data: {
+              type: "object",
+              properties: {
+                bookingCode: {
+                  type: "string",
+                  example: "REF1-20260316-XYZ",
+                },
+                otaBookingCode: {
+                  type: "string",
+                  example: "EXP-998877",
+                },
+                fullName: { type: "string", example: "John Doe" },
+                roomTypeId: { type: "number", example: 10 },
+                email: { type: "string", example: "john@example.com" },
+                startDate: { type: "string", example: "2026-04-01" },
+                endDate: { type: "string", example: "2026-04-05" },
+                amount: { type: "number", example: 50000.0 },
+                status: { type: "string", example: "CONFIRMED" },
+                roomNumber: { type: "string", example: "101" },
+              },
+            },
+          },
         },
       },
     },

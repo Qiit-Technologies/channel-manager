@@ -279,7 +279,7 @@ export class ChannelManagerService {
   async triggerWebhookTest(
     hotelId: number,
     eventType: WebhookEventType,
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<any> {
     const config = await this.getHotelWebhook(hotelId);
     if (!config || !config.isEnabled || !config.url) {
       throw new HttpException(
@@ -300,11 +300,14 @@ export class ChannelManagerService {
         ...testData,
         bookingCode: "TEST-BK-123456",
         otaBookingCode: "OTA-TEST-999",
-        guestName: "Test Guest",
-        amount: 15000.0,
+        fullName: "John Doe",
+        roomTypeId: 10,
+        amount: 50000.0,
         currency: "NGN",
         startDate: "2026-06-01",
         endDate: "2026-06-05",
+        status: "CONFIRMED",
+        roomNumber: "101",
       };
     } else if (eventType.includes("AVAILABILITY")) {
       testData = {
@@ -317,9 +320,12 @@ export class ChannelManagerService {
     }
 
     await this.webhookService.notifyHotel(config, eventType, testData);
+
     return {
-      success: true,
-      message: `Test webhook for ${eventType} sent to ${config.url}`,
+      hotelId: config.hotelId,
+      eventType,
+      timestamp: new Date().toISOString(),
+      data: testData,
     };
   }
 
@@ -1101,7 +1107,7 @@ export class ChannelManagerService {
         await this.webhookService.broadcast(
           mappedData.hotelId,
           WebhookEventType.BOOKING_NEW,
-          { booking: resultPayload },
+          resultPayload,
         );
 
         return resultPayload;
@@ -1165,7 +1171,7 @@ export class ChannelManagerService {
         await this.webhookService.broadcast(
           booking.hotelId,
           WebhookEventType.BOOKING_MODIFY,
-          { booking: resultPayload },
+          resultPayload,
         );
 
         return resultPayload;
