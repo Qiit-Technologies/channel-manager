@@ -295,28 +295,63 @@ export class ChannelManagerService {
       generatedAt: new Date().toISOString(),
     };
 
-    if (eventType.startsWith("BOOKING_")) {
+    if (
+      eventType === WebhookEventType.BOOKING_NEW ||
+      eventType === WebhookEventType.BOOKING_MODIFY ||
+      eventType === WebhookEventType.BOOKING_CANCEL
+    ) {
       testData = {
         ...testData,
+        hotelId,
         bookingCode: "TEST-BK-123456",
         otaBookingCode: "OTA-TEST-999",
         fullName: "John Doe",
+        email: "john.doe@example.com",
+        phoneNumber: "+1234567890",
         roomTypeId: 10,
-        amount: 50000.0,
+        bookingAmount: 50000.0,
         currency: "NGN",
         startDate: "2026-06-01",
         endDate: "2026-06-05",
-        status: "CONFIRMED",
+        bookingStatus:
+          eventType === WebhookEventType.BOOKING_CANCEL
+            ? BookingStatus.CANCELLED
+            : BookingStatus.CONFIRMED,
         roomNumber: "101",
+        oreonBookingCode: "OR-15243",
+        oreonForwarded: true,
       };
-    } else if (eventType.includes("AVAILABILITY")) {
+    } else if (
+      eventType === WebhookEventType.CHECK_IN ||
+      eventType === WebhookEventType.CHECK_OUT ||
+      eventType === WebhookEventType.BOOKING_NO_SHOW
+    ) {
       testData = {
-        ...testData,
-        roomTypeId: 10,
-        date: "2026-06-10",
-        availableRooms: 5,
-        status: "AVAILABLE",
+        guestId: 555,
+        hotelId,
+        eventType,
+        timestamp: new Date().toISOString(),
       };
+    } else if (eventType === WebhookEventType.AVAILABILITY_CHANGE) {
+      testData = [
+        {
+          hotelId,
+          roomTypeId: 10,
+          date: "2026-06-10",
+          availableRooms: 5,
+          status: "AVAILABLE",
+        },
+      ];
+    } else if (eventType === WebhookEventType.RATE_CHANGE) {
+      testData = [
+        {
+          hotelId,
+          roomTypeId: 10,
+          date: "2026-06-10",
+          rate: 45000.0,
+          currency: "NGN",
+        },
+      ];
     }
 
     await this.webhookService.notifyHotel(config, eventType, testData);
@@ -418,17 +453,20 @@ export class ChannelManagerService {
             ];
 
       const results = [];
+      const availabilityUpdates = [];
+      const rateUpdates = [];
+
       for (const update of updates) {
-        const roomtypeId =
-          update.roomtypeId ||
+        const roomTypeId =
           update.roomTypeId ||
-          dto.roomtypeId ||
-          dto.roomTypeId;
+          update.roomtypeId ||
+          dto.roomTypeId ||
+          dto.roomtypeId;
         const dateString = update.date || dto.date;
 
-        if (!roomtypeId || !dateString) {
+        if (!roomTypeId || !dateString) {
           this.logger.warn(
-            `Skipping availability update: missing roomtypeId or date`,
+            `Skipping availability update: missing roomTypeId or date`,
           );
           continue;
         }
@@ -437,7 +475,7 @@ export class ChannelManagerService {
         const availability =
           await this.channelManagerRepository.findAvailabilityByDateRange(
             dto.integrationId,
-            roomtypeId,
+            roomTypeId,
             new Date(dateString),
             new Date(dateString),
           );
@@ -445,7 +483,7 @@ export class ChannelManagerService {
         let result;
         const recordData = {
           ...update,
-          roomtypeId,
+          roomtypeId: roomTypeId, // Database uses roomtypeId
           integrationId: dto.integrationId,
           date: new Date(dateString),
         };
@@ -474,27 +512,48 @@ export class ChannelManagerService {
           }
         }
 
-        // Notify global webhooks
-        await this.webhookService.broadcast(
-          integration.hotelId,
-          WebhookEventType.AVAILABILITY_CHANGE,
-          result,
-        );
+        // Collect standardized data for batch webhooks
+        const dateOnly = new Date(dateString).toISOString().split("T")[0];
+
+        availabilityUpdates.push({
+          hotelId: integration.hotelId,
+          roomTypeId: roomTypeId,
+          date: dateOnly,
+          availableRooms: result.availableRooms,
+          status: result.status,
+          totalRooms: result.totalRooms,
+          isClosed: result.isClosed,
+          closeReason: result.closeReason,
+        });
 
         if (update.rate || dto.rate) {
-          await this.webhookService.broadcast(
-            integration.hotelId,
-            WebhookEventType.RATE_CHANGE,
-            {
-              roomtypeId,
-              date: dateString,
-              rate: update.rate || dto.rate,
-              currency: update.currency || dto.currency,
-            },
-          );
+          rateUpdates.push({
+            hotelId: integration.hotelId,
+            roomTypeId: roomTypeId,
+            date: dateOnly,
+            rate: update.rate || dto.rate,
+            currency: update.currency || dto.currency,
+          });
         }
 
         results.push(result);
+      }
+
+      // Broadcast batched updates (always as an array)
+      if (availabilityUpdates.length > 0) {
+        await this.webhookService.broadcast(
+          integration.hotelId,
+          WebhookEventType.AVAILABILITY_CHANGE,
+          availabilityUpdates,
+        );
+      }
+
+      if (rateUpdates.length > 0) {
+        await this.webhookService.broadcast(
+          integration.hotelId,
+          WebhookEventType.RATE_CHANGE,
+          rateUpdates,
+        );
       }
 
       return results.length === 1 && !dto.updates ? results[0] : results;
@@ -1166,11 +1225,18 @@ export class ChannelManagerService {
           ...booking,
           ...mappedUpdates,
           status: mappedUpdates.bookingStatus || booking.bookingStatus,
+          oreonBookingCode: pmsResult.data?.bookingCode || null,
+          oreonForwarded: true,
         };
+
+        const webhookEvent =
+          resultPayload.status === BookingStatus.CANCELLED
+            ? WebhookEventType.BOOKING_CANCEL
+            : WebhookEventType.BOOKING_MODIFY;
 
         await this.webhookService.broadcast(
           booking.hotelId,
-          WebhookEventType.BOOKING_MODIFY,
+          webhookEvent,
           resultPayload,
         );
 
