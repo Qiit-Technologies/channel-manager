@@ -48,6 +48,8 @@ export class WebhookService {
     data: any,
   ): Promise<void> {
     try {
+      const notifications: Promise<void>[] = [];
+
       // 1. Notify Integration-level webhooks (legacy/per-channel)
       const integrations =
         await this.channelManagerRepository.findIntegrationsByHotel(hotelId);
@@ -57,7 +59,7 @@ export class WebhookService {
           integration.isWebhookEnabled &&
           integration.webhookUrl
         ) {
-          await this.notify(integration, eventType, data);
+          notifications.push(this.notify(integration, eventType, data));
         }
       }
 
@@ -65,10 +67,17 @@ export class WebhookService {
       const hotelWebhook =
         await this.channelManagerRepository.findHotelWebhook(hotelId);
       if (hotelWebhook && hotelWebhook.isEnabled && hotelWebhook.url) {
-        await this.notifyHotel(hotelWebhook, eventType, data);
+        notifications.push(this.notifyHotel(hotelWebhook, eventType, data));
       }
+
+      // Fire and forget notifications concurrently so we don't block main thread
+      Promise.allSettled(notifications).catch((error) => {
+        this.logger.error(
+          `Webhook broadcast background task failed: ${error.message}`,
+        );
+      });
     } catch (error) {
-      this.logger.error(`Webhook broadcast failed: ${error.message}`);
+      this.logger.error(`Webhook broadcast setup failed: ${error.message}`);
     }
   }
 
@@ -116,7 +125,7 @@ export class WebhookService {
       await firstValueFrom(
         this.httpService.post(integration.webhookUrl, payload, {
           headers,
-          timeout: 5000, // 5 second timeout
+          timeout: 60000, // 5 second timeout
         }),
       );
     } catch (error) {
@@ -171,7 +180,7 @@ export class WebhookService {
 
       const requestConfig = {
         headers,
-        timeout: 5000,
+        timeout: 60000, // Reduced from 60s to 10s to prevent hanging requests
       };
 
       if (verb === "GET") {
