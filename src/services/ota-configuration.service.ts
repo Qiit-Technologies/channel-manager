@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { OtaConfiguration } from "../entities/ota-configuration.entity";
 import { ChannelType } from "../entities/channel-integration.entity";
+import { ChannelApiFactory } from "../api/channel-api-factory.service";
 
 @Injectable()
 export class OtaConfigurationService {
@@ -10,7 +11,8 @@ export class OtaConfigurationService {
 
   constructor(
     @InjectRepository(OtaConfiguration)
-    private readonly otaConfigRepository: Repository<OtaConfiguration>
+    private readonly otaConfigRepository: Repository<OtaConfiguration>,
+    private readonly channelApiFactory: ChannelApiFactory,
   ) {}
 
   async getConfiguration(channelType: ChannelType): Promise<OtaConfiguration> {
@@ -21,7 +23,7 @@ export class OtaConfigurationService {
     if (!config) {
       throw new HttpException(
         `No active configuration found for ${channelType}`,
-        HttpStatus.NOT_FOUND
+        HttpStatus.NOT_FOUND,
       );
     }
 
@@ -36,7 +38,7 @@ export class OtaConfigurationService {
   }
 
   async createConfiguration(
-    config: Partial<OtaConfiguration>
+    config: Partial<OtaConfiguration>,
   ): Promise<OtaConfiguration> {
     const existingConfig = await this.otaConfigRepository.findOne({
       where: { channelType: config.channelType },
@@ -45,7 +47,7 @@ export class OtaConfigurationService {
     if (existingConfig) {
       throw new HttpException(
         `Configuration already exists for ${config.channelType}`,
-        HttpStatus.CONFLICT
+        HttpStatus.CONFLICT,
       );
     }
 
@@ -55,7 +57,7 @@ export class OtaConfigurationService {
 
   async updateConfiguration(
     channelType: ChannelType,
-    updates: Partial<OtaConfiguration>
+    updates: Partial<OtaConfiguration>,
   ): Promise<OtaConfiguration> {
     const config = await this.getConfiguration(channelType);
 
@@ -64,27 +66,37 @@ export class OtaConfigurationService {
   }
 
   async testConfiguration(
-    channelType: ChannelType
+    channelType: ChannelType,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const config = await this.getConfiguration(channelType);
 
-      // TODO: Implement actual API test using the configuration
-      // For now, just mark as tested
-      await this.otaConfigRepository.update(channelType, {
-        lastTested: new Date(),
-        testStatus: "SUCCESS",
-        errorMessage: null,
-      });
+      // Implement actual API test using the configuration
+      let result: { success: boolean; error?: string };
+      try {
+        const api = this.channelApiFactory.createChannelApi(channelType);
+        result = await api.testConnection(config as any);
+      } catch (apiError) {
+        result = {
+          success: false,
+          error: `API initialization failed: ${apiError.message}`,
+        };
+      }
 
-      return { success: true };
+      await this.otaConfigRepository.update(
+        { channelType },
+        {
+          lastTested: new Date(),
+          testStatus: result.success ? "SUCCESS" : "FAILED",
+          errorMessage: result.error || null,
+        },
+      );
+
+      return result;
     } catch (error) {
-      await this.otaConfigRepository.update(channelType, {
-        lastTested: new Date(),
-        testStatus: "FAILED",
-        errorMessage: error.message,
-      });
-
+      this.logger.error(
+        `Configuration test failed for ${channelType}: ${error.message}`,
+      );
       return { success: false, error: error.message };
     }
   }

@@ -1,7 +1,7 @@
-import { ChannelIntegration } from '../entities/channel-integration.entity';
-import { ChannelMapping } from '../entities/channel-mapping.entity';
-import { ChannelAvailability } from '../entities/channel-availability.entity';
-import { ChannelRatePlan } from '../entities/channel-rate-plan.entity';
+import { ChannelIntegration } from "../entities/channel-integration.entity";
+import { ChannelMapping } from "../entities/channel-mapping.entity";
+import { ChannelAvailability } from "../entities/channel-availability.entity";
+import { ChannelRatePlan } from "../entities/channel-rate-plan.entity";
 
 export interface ChannelApiInterface {
   // Connection testing
@@ -53,4 +53,5 @@ export interface ChannelApiInterface {
   validateCredentials(
     integration: Partial<ChannelIntegration>,
   ): Promise<boolean>;
+  isHotelSupported(hotelId: number): boolean;
 }

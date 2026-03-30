@@ -381,6 +381,10 @@ export class HotelbedsApiService implements ChannelApiInterface {
     }
   }
 
+  public isHotelSupported(hotelId: number): boolean {
+    return true;
+  }
+
   async validateCredentials(
     integration: Partial<ChannelIntegration>,
   ): Promise<boolean> {

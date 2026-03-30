@@ -13,6 +13,7 @@ import {
   IntegrationStatus,
   ChannelType,
 } from "./entities/channel-integration.entity";
+import { OtaConfiguration } from "./entities/ota-configuration.entity";
 import { ChannelMapping } from "./entities/channel-mapping.entity";
 import {
   ChannelAvailability,
@@ -329,6 +330,8 @@ export class ChannelManagerService {
       testData = {
         guestId: 555,
         hotelId,
+        bookingCode: "TEST-BK-123456",
+        otaBookingCode: "OTA-TEST-999",
         eventType,
         timestamp: new Date().toISOString(),
       };
@@ -731,15 +734,24 @@ export class ChannelManagerService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       console.log("integration", integration);
-      // Get the OTA configuration for this channel type
-      const otaConfig = await this.otaConfigurationService.getConfiguration(
-        integration.channelType,
-      );
-      console.log("otaConfig", otaConfig);
-      if (!otaConfig || !otaConfig.apiKey) {
+      // Get the OTA configuration for this channel type (optional)
+      let otaConfig: Partial<OtaConfiguration> = {};
+      try {
+        otaConfig = await this.otaConfigurationService.getConfiguration(
+          integration.channelType,
+        );
+      } catch (error) {
+        // For hotel-specific channels like CORNICHE, a global OTA config might not exist
+        this.logger.debug(
+          `No global configuration found for ${integration.channelType}: ${error.message}`,
+        );
+      }
+
+      // Check if we have at least user-provided credentials or a global config
+      if (!integration.apiKey && (!otaConfig || !otaConfig.apiKey)) {
         return {
           success: false,
-          error: `No API key configured for ${integration.channelType}. Please configure the OTA credentials first.`,
+          error: `No API key configured for ${integration.channelType} in either integration or global configuration.`,
         };
       }
 
@@ -899,28 +911,39 @@ export class ChannelManagerService {
     integration: ChannelIntegration,
   ): Promise<void> {
     try {
-      // TODO: Read room types from PMS database
-      // For now, we'll create placeholder mappings
-      // This will be implemented when PMS integration is complete
-
       this.logger.log(
         `Auto-creating room type mappings for integration: ${integration.id}`,
       );
 
-      // Placeholder: Create default room type mapping
-      const defaultMapping = {
-        integrationId: integration.id,
-        roomtypeId: 1, // TODO: Get from PMS
-        channelRoomTypeId: `${integration.channelPropertyId}_ROOM1`,
-        channelRoomTypeName: "Standard Room", // TODO: Get from PMS
-        channelAmenities: ["WiFi", "AC", "TV"], // TODO: Get from PMS
-        channelDescription: "Comfortable standard room", // TODO: Get from PMS
-        isActive: true,
-      };
+      // 1. Fetch room types from PMS
+      const pmsData = await this.oreonHotelClient.getHotelRoomTypes(
+        integration.hotelId,
+      );
 
-      await this.channelManagerRepository.createMapping(defaultMapping);
+      if (!pmsData || !pmsData.roomTypes || pmsData.roomTypes.length === 0) {
+        this.logger.warn(
+          `No room types found for hotel ${integration.hotelId} during auto-setup`,
+        );
+        return;
+      }
+
+      // 2. Create a mapping for each room type
+      for (const roomType of pmsData.roomTypes) {
+        const mapping = {
+          integrationId: integration.id,
+          roomtypeId: roomType.id,
+          channelRoomTypeId: `${integration.channelPropertyId}_RT_${roomType.id}`,
+          channelRoomTypeName: roomType.name,
+          channelAmenities: [],
+          channelDescription: roomType.description,
+          isActive: true,
+        };
+
+        await this.channelManagerRepository.createMapping(mapping);
+      }
+
       this.logger.log(
-        `Created default room type mapping for integration: ${integration.id}`,
+        `Created ${pmsData.roomTypes.length} room type mappings for integration: ${integration.id}`,
       );
     } catch (error) {
       this.logger.error(
@@ -939,30 +962,38 @@ export class ChannelManagerService {
         `Setting up availability sync for integration: ${integration.id}`,
       );
 
-      // TODO: Read room inventory from PMS and create availability records
-      // For now, create placeholder availability
+      // 1. Fetch room inventory from PMS
+      const pmsData = await this.oreonHotelClient.getHotelRoomTypes(
+        integration.hotelId,
+      );
+      if (!pmsData || !pmsData.roomTypes) return;
 
       const today = new Date();
-      const nextMonth = new Date();
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      today.setHours(0, 0, 0, 0);
 
-      // Create availability for next 30 days
-      for (
-        let d = new Date(today);
-        d <= nextMonth;
-        d.setDate(d.getDate() + 1)
-      ) {
-        const availability = {
-          integrationId: integration.id,
-          roomtypeId: 1, // TODO: Get from PMS
-          date: new Date(d),
-          availableRooms: 10, // TODO: Get from PMS
-          totalRooms: 10, // TODO: Get from PMS
-          rate: 100.0, // TODO: Get from PMS
-          currency: "USD", // TODO: Get from PMS
-        };
+      // Create availability for next 30 days for each room type
+      for (const roomType of pmsData.roomTypes) {
+        const totalRooms = roomType.rooms?.length || 0;
+        const availableNow =
+          roomType.rooms?.filter((r) => r.status === "AVAILABLE").length || 0;
+        const defaultPrice = roomType.rooms?.[0]?.price || 100.0;
 
-        await this.channelManagerRepository.createAvailability(availability);
+        for (let i = 0; i < 30; i++) {
+          const date = new Date(today);
+          date.setDate(date.getDate() + i);
+
+          const availability = {
+            integrationId: integration.id,
+            roomtypeId: roomType.id,
+            date: date,
+            availableRooms: i === 0 ? availableNow : totalRooms,
+            totalRooms: totalRooms,
+            rate: defaultPrice,
+            currency: "NGN", // Default to Nigerian Naira
+          };
+
+          await this.channelManagerRepository.createAvailability(availability);
+        }
       }
 
       this.logger.log(
@@ -983,20 +1014,28 @@ export class ChannelManagerService {
         `Setting up rate sync for integration: ${integration.id}`,
       );
 
-      // TODO: Read rate plans from PMS and create channel rate plans
-      // For now, create placeholder rate plan
+      // 1. Fetch room types to use as base for rate plans
+      const pmsData = await this.oreonHotelClient.getHotelRoomTypes(
+        integration.hotelId,
+      );
+      if (!pmsData || !pmsData.roomTypes) return;
 
-      const defaultRatePlan = {
-        integrationId: integration.id,
-        roomtypeId: 1, // TODO: Get from PMS
-        channelRatePlanId: `${integration.channelPropertyId}_RATE1`,
-        channelRatePlanName: "Standard Rate", // TODO: Get from PMS
-        baseRate: 100.0, // TODO: Get from PMS
-        currency: "USD", // TODO: Get from PMS
-        isActive: true,
-      };
+      for (const roomType of pmsData.roomTypes) {
+        const defaultPrice = roomType.rooms?.[0]?.price || 100.0;
 
-      await this.channelManagerRepository.createRatePlan(defaultRatePlan);
+        const ratePlan = {
+          integrationId: integration.id,
+          roomtypeId: roomType.id,
+          channelRatePlanId: `${integration.channelPropertyId}_RP_${roomType.id}`,
+          channelRatePlanName: `${roomType.name} Standard Rate`,
+          baseRate: defaultPrice,
+          currency: "NGN",
+          isActive: true,
+        };
+
+        await this.channelManagerRepository.createRatePlan(ratePlan);
+      }
+
       this.logger.log(
         `Rate sync setup completed for integration: ${integration.id}`,
       );
@@ -1015,9 +1054,29 @@ export class ChannelManagerService {
         (integration) => integration.channelType,
       );
 
-      // Return all channel types that the hotel doesn't have
+      // Return all channel types that are not already connected AND are supported for this hotel
       const allTypes = Object.values(ChannelType);
-      return allTypes.filter((type) => !existingTypes.includes(type));
+      return allTypes.filter((type) => {
+        // Skip already connected types
+        if (existingTypes.includes(type)) return false;
+
+        // Specialized channels with hotel-specific restrictions
+        if (type === ChannelType.CORNICHE || type === ChannelType.SEVEN) {
+          try {
+            const api = this.channelApiFactory.createChannelApi(type);
+            // This is a bit of a hack: we check if the integration would be supported
+            // using a mock object or by accessing the service internal directly
+            // For now, let's assume we can just check if hotel has access to this channel
+            // In a better design, the API service should have a 'isSupported(hotelId)' method exposed via interface
+            return (api as any).isHotelSupported?.(hotelId) ?? false;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        // Default: general channels are available to everyone
+        return true;
+      });
     } catch (error) {
       this.logger.error(
         `Failed to get available integration types: ${error.message}`,

@@ -241,6 +241,34 @@ export class ChannelManagerController {
   }
 
   // Channel Integration Endpoints
+  @Post("integrations/test-connection")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Test channel integration connectivity",
+    description:
+      "Tests the connection to a channel provider with the given credentials without creating a permanent record.",
+  })
+  @ApiBody({
+    description: "Credentials and parameters for testing",
+    type: CreateChannelIntegrationDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Connection test result",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean" },
+        error: { type: "string", nullable: true },
+      },
+    },
+  })
+  async testChannelConnectivity(
+    @Body() dto: Partial<CreateChannelIntegrationDto>,
+  ): Promise<{ success: boolean; error?: string }> {
+    return await this.channelManagerService.testChannelIntegration(dto as any);
+  }
+
   @Post("integrations")
   @UseGuards(ApiKeyGuard)
   @HttpCode(HttpStatus.CREATED)

@@ -14,7 +14,7 @@ export class CornicheApiService implements ChannelApiInterface {
   private readonly httpService = new HttpService();
 
   // Hotel-specific configuration for Corniche integration
-  private readonly SUPPORTED_HOTEL_IDS = [8]; // Add specific hotel IDs that support Corniche
+  private readonly SUPPORTED_HOTEL_IDS = [14]; // Focused supported hotel ID for Corniche (ID 14)
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
@@ -386,7 +386,7 @@ export class CornicheApiService implements ChannelApiInterface {
   }
 
   // Hotel-specific validation method
-  private isHotelSupported(hotelId: number): boolean {
+  public isHotelSupported(hotelId: number): boolean {
     return this.SUPPORTED_HOTEL_IDS.includes(hotelId);
   }
 
@@ -617,7 +617,27 @@ export class CornicheApiService implements ChannelApiInterface {
     data: any,
   ): Promise<any> {
     this.logger.log("Processing Corniche cancellation webhook");
-    return { processed: true, type: "cancellation", data };
+    const payload = data?.data ?? {};
+
+    const standardized = {
+      version: "v1",
+      channel: "corniche",
+      event: "cancellation",
+      hotel_id: integration.hotelId,
+      cancellation: {
+        source_reservation_id:
+          payload.reservation_id || payload.booking_id || payload.id,
+        reason: payload.reason || "Canceled via Corniche",
+        canceled_at: payload.canceled_at || new Date(),
+      },
+    };
+
+    return {
+      processed: true,
+      type: "cancellation",
+      data,
+      ...standardized,
+    };
   }
 
   private async processModificationWebhook(
@@ -625,6 +645,27 @@ export class CornicheApiService implements ChannelApiInterface {
     data: any,
   ): Promise<any> {
     this.logger.log("Processing Corniche modification webhook");
-    return { processed: true, type: "modification", data };
+    const payload = data?.data ?? {};
+    const oreonGuestDto = this.buildOreonCreateGuestDto(integration, payload);
+
+    const standardized = {
+      version: "v1",
+      channel: "corniche",
+      event: "modification",
+      hotel_id: integration.hotelId,
+      modification: {
+        source_reservation_id:
+          payload.reservation_id || payload.booking_id || payload.id,
+        updates: payload.updates || {},
+        oreon_guest_dto: oreonGuestDto,
+      },
+    };
+
+    return {
+      processed: true,
+      type: "modification",
+      data,
+      ...standardized,
+    };
   }
 }

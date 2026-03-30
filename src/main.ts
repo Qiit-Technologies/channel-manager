@@ -23,14 +23,14 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    })
+    }),
   );
 
   // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle("Anli Channel Manager API")
     .setDescription(
-      "API documentation for the Anli Channel Manager service, including OTA configuration and integrations."
+      "API documentation for the Anli Channel Manager service, including OTA configuration and integrations.",
     )
     .setVersion("1.0.0")
     .addApiKey(
@@ -40,7 +40,7 @@ async function bootstrap() {
         in: "header",
         description: "Provide your API key in the x-api-key header",
       },
-      "ApiKeyAuth"
+      "ApiKeyAuth",
     )
     .build();
 
@@ -54,7 +54,7 @@ async function bootstrap() {
 
   if (isTestMode) {
     console.log(
-      "🚀 Starting Channel Manager in TEST MODE (no database required)"
+      "🚀 Starting Channel Manager in TEST MODE (no database required)",
     );
     console.log("📝 API Key Authentication: DISABLED for testing");
   } else {
@@ -76,14 +76,14 @@ async function bootstrap() {
     console.log("  GET  /api/v1/channel-manager/channels/BOOKING_COM/features");
     console.log("  POST /api/v1/api-keys/validate/your-api-key");
     console.log(
-      "\n🔑 To test with API key authentication, set TEST_MODE=false"
+      "\n🔑 To test with API key authentication, set TEST_MODE=false",
     );
   } else {
     console.log("\n🔑 API KEY ENDPOINTS:");
     console.log("  POST /api/v1/api-keys/generate (requires API key)");
     console.log("  GET  /api/v1/api-keys/info (requires API key)");
     console.log(
-      "  GET  /api/v1/channel-manager/integrations (requires API key)"
+      "  GET  /api/v1/channel-manager/integrations (requires API key)",
     );
   }
 }

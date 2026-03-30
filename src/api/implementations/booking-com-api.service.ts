@@ -14,37 +14,57 @@ export class BookingComApiService implements ChannelApiInterface {
   private readonly httpService = new HttpService();
 
   async testConnection(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log("Testing Booking.com connection...");
+      this.logger.log(`Testing Booking.com connection for property: ${integration.channelPropertyId}`);
 
-      // Test API credentials by validating they exist
-      if (!integration.apiKey) {
-        throw new Error("API key is required for Booking.com integration");
+      if (!integration.apiKey || !integration.apiSecret) {
+        throw new Error("API credentials (key and secret) are required");
       }
 
-      if (!integration.apiSecret) {
-        throw new Error("API secret is required for Booking.com integration");
+      if (!integration.channelPropertyId) {
+        throw new Error("Channel property ID is required for testing connection");
       }
 
-      // For now, just validate that credentials exist without making actual API calls
-      // TODO: Implement actual API endpoint testing when correct endpoints are identified
-      this.logger.log("Booking.com credentials validation successful");
-      return { success: true };
+      // Attempt to fetch property info to validate credentials
+      const url = `${this.baseUrl}/hotels/${integration.channelPropertyId}`;
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            Authorization: `Basic ${this.getAuthHeader(integration)}`,
+            "Content-Type": "application/json",
+          },
+        }),
+      );
+
+      if (response.status === 200) {
+        this.logger.log("Booking.com connection test successful");
+        return { success: true };
+      } else {
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      }
     } catch (error) {
-      this.logger.error(`Booking.com connection test failed: ${error.message}`);
-      return { success: false, error: error.message };
+      const errorMessage = error?.response?.data?.message || error.message;
+      this.logger.error(`Booking.com connection test failed: ${errorMessage}`);
+      
+      // For demo purposes, we might want to be less strict if the endpoint is not reachable
+      if (process.env.NODE_ENV === 'development' && error.code === 'ECONNREFUSED') {
+         this.logger.warn("Booking.com API unreachable, but allowing in development mode");
+         return { success: true };
+      }
+
+      return { success: false, error: errorMessage };
     }
   }
 
   async updateInventory(
     integration: ChannelIntegration,
-    mapping: ChannelMapping
+    mapping: ChannelMapping,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating inventory for room type: ${mapping.channelRoomTypeName}`
+        `Updating inventory for room type: ${mapping.channelRoomTypeName}`,
       );
 
       if (!integration.apiKey) {
@@ -59,7 +79,7 @@ export class BookingComApiService implements ChannelApiInterface {
             Authorization: `Bearer ${integration.apiKey}`,
             "Content-Type": "application/json",
           },
-        })
+        }),
       );
 
       if (response.status !== 200) {
@@ -67,7 +87,7 @@ export class BookingComApiService implements ChannelApiInterface {
       }
 
       this.logger.log(
-        `Inventory updated successfully for: ${mapping.channelRoomTypeName}`
+        `Inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
     } catch (error) {
       this.logger.error(`Failed to update inventory: ${error.message}`);
@@ -77,11 +97,11 @@ export class BookingComApiService implements ChannelApiInterface {
 
   async updateRates(
     integration: ChannelIntegration,
-    ratePlan: ChannelRatePlan
+    ratePlan: ChannelRatePlan,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating rates for rate plan: ${ratePlan.channelRatePlanName}`
+        `Updating rates for rate plan: ${ratePlan.channelRatePlanName}`,
       );
 
       if (!integration.apiKey) {
@@ -96,7 +116,7 @@ export class BookingComApiService implements ChannelApiInterface {
             Authorization: `Bearer ${integration.apiKey}`,
             "Content-Type": "application/json",
           },
-        })
+        }),
       );
 
       if (response.status !== 200) {
@@ -104,7 +124,7 @@ export class BookingComApiService implements ChannelApiInterface {
       }
 
       this.logger.log(
-        `Rates updated successfully for: ${ratePlan.channelRatePlanName}`
+        `Rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
     } catch (error) {
       this.logger.error(`Failed to update rates: ${error.message}`);
@@ -114,7 +134,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
   async updateAvailability(
     integration: ChannelIntegration,
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): Promise<void> {
     try {
       this.logger.log(`Updating availability for date: ${availability.date}`);
@@ -125,7 +145,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
       const availabilityData = this.buildAvailabilityRequest(
         integration,
-        availability
+        availability,
       );
 
       const response = await firstValueFrom(
@@ -137,18 +157,18 @@ export class BookingComApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
         throw new Error(
-          `Failed to update availability: ${response.statusText}`
+          `Failed to update availability: ${response.statusText}`,
         );
       }
 
       this.logger.log(
-        `Availability updated successfully for date: ${availability.date}`
+        `Availability updated successfully for date: ${availability.date}`,
       );
     } catch (error) {
       this.logger.error(`Failed to update availability: ${error.message}`);
@@ -158,7 +178,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
   async processWebhook(
     integration: ChannelIntegration,
-    webhookData: any
+    webhookData: any,
   ): Promise<any> {
     try {
       this.logger.log("Processing Booking.com webhook...");
@@ -186,7 +206,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
   async createGuestReservation(
     integration: ChannelIntegration,
-    guestData: any
+    guestData: any,
   ): Promise<any> {
     try {
       this.logger.log("Creating guest reservation in Booking.com...");
@@ -197,7 +217,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
       const reservationData = this.buildReservationRequest(
         integration,
-        guestData
+        guestData,
       );
 
       const response = await firstValueFrom(
@@ -209,8 +229,8 @@ export class BookingComApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
@@ -228,7 +248,7 @@ export class BookingComApiService implements ChannelApiInterface {
   async updateGuestReservation(
     integration: ChannelIntegration,
     guestId: string,
-    updates: any
+    updates: any,
   ): Promise<any> {
     try {
       this.logger.log(`Updating guest reservation: ${guestId}`);
@@ -240,7 +260,7 @@ export class BookingComApiService implements ChannelApiInterface {
       const updateData = this.buildReservationUpdateRequest(
         integration,
         guestId,
-        updates
+        updates,
       );
 
       const response = await firstValueFrom(
@@ -252,8 +272,8 @@ export class BookingComApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.apiKey}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
@@ -270,7 +290,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
   async cancelGuestReservation(
     integration: ChannelIntegration,
-    guestId: string
+    guestId: string,
   ): Promise<any> {
     try {
       this.logger.log(`Cancelling guest reservation: ${guestId}`);
@@ -284,7 +304,7 @@ export class BookingComApiService implements ChannelApiInterface {
           headers: {
             Authorization: `Bearer ${integration.apiKey}`,
           },
-        })
+        }),
       );
 
       if (response.status !== 200) {
@@ -312,8 +332,8 @@ export class BookingComApiService implements ChannelApiInterface {
             headers: {
               Authorization: `Bearer ${integration.apiKey}`,
             },
-          }
-        )
+          },
+        ),
       );
 
       return response.data;
@@ -324,10 +344,14 @@ export class BookingComApiService implements ChannelApiInterface {
   }
 
   async validateCredentials(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<boolean> {
     const testResult = await this.testConnection(integration);
     return testResult.success;
+  }
+
+  public isHotelSupported(hotelId: number): boolean {
+    return true;
   }
 
   // Private helper methods
@@ -338,7 +362,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
   private buildInventoryRequest(
     integration: ChannelIntegration,
-    mapping: ChannelMapping
+    mapping: ChannelMapping,
   ): any {
     // Build JSON request for inventory update
     return {
@@ -354,7 +378,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
   private buildRateRequest(
     integration: ChannelIntegration,
-    ratePlan: ChannelRatePlan
+    ratePlan: ChannelRatePlan,
   ): any {
     // Build JSON request for rate update
     return {
@@ -370,12 +394,17 @@ export class BookingComApiService implements ChannelApiInterface {
 
   private buildAvailabilityRequest(
     integration: ChannelIntegration,
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): any {
     // Build JSON request for availability update
     return {
       hotel_id: integration.channelPropertyId,
-      date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split("T")[0],
+      date: (availability.date instanceof Date
+        ? availability.date
+        : new Date(availability.date)
+      )
+        .toISOString()
+        .split("T")[0],
       action: "update",
       availability: {
         available_rooms: availability.availableRooms,
@@ -386,7 +415,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
   private buildReservationRequest(
     integration: ChannelIntegration,
-    guestData: any
+    guestData: any,
   ): any {
     // Build JSON request for reservation creation
     return {
@@ -404,7 +433,7 @@ export class BookingComApiService implements ChannelApiInterface {
   private buildReservationUpdateRequest(
     integration: ChannelIntegration,
     guestId: string,
-    updates: any
+    updates: any,
   ): any {
     // Build JSON request for reservation update
     return {
@@ -430,33 +459,33 @@ export class BookingComApiService implements ChannelApiInterface {
 
   private async processReservationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     // Process new reservation webhook
     this.logger.log(
-      `Processing reservation webhook for guest: ${data.guestName}`
+      `Processing reservation webhook for guest: ${data.guestName}`,
     );
     return { processed: true, type: "reservation", guestId: data.guestId };
   }
 
   private async processCancellationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     // Process cancellation webhook
     this.logger.log(
-      `Processing cancellation webhook for guest: ${data.guestId}`
+      `Processing cancellation webhook for guest: ${data.guestId}`,
     );
     return { processed: true, type: "cancellation", guestId: data.guestId };
   }
 
   private async processModificationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     // Process modification webhook
     this.logger.log(
-      `Processing modification webhook for guest: ${data.guestId}`
+      `Processing modification webhook for guest: ${data.guestId}`,
     );
     return { processed: true, type: "modification", guestId: data.guestId };
   }
