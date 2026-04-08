@@ -116,6 +116,7 @@ export class WebhookService {
           integration.webhookSecret,
         );
         headers["X-Webhook-Signature"] = signature;
+        headers["X-Secret-Key"] = integration.webhookSecret;
       }
 
       this.logger.log(
@@ -172,6 +173,7 @@ export class WebhookService {
           webhookConfig.secret,
         );
         headers["X-Webhook-Signature"] = signature;
+        headers["X-Secret-Key"] = webhookConfig.secret;
       }
 
       this.logger.log(
