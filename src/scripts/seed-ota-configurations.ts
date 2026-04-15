@@ -83,6 +83,17 @@ export async function seedOtaConfigurations(dataSource: DataSource) {
         testMode: process.env.NODE_ENV === "development",
       },
     },
+    // {
+    //   channelType: ChannelType.AZUSA,
+    //   apiKey: process.env.AZUSA_API_KEY || "your-azusa-api-key",
+    //   apiSecret: process.env.AZUSA_API_SECRET || "your-azusa-api-secret",
+    //   baseUrl: "https://api.azusa.com/v1",
+    //   isActive: true,
+    //   additionalConfig: {
+    //     partnerId: process.env.AZUSA_PARTNER_ID || "your-partner-id",
+    //     testMode: process.env.NODE_ENV === "development",
+    //   },
+    // },
   ];
 
   for (const config of configurations) {
@@ -96,7 +107,7 @@ export async function seedOtaConfigurations(dataSource: DataSource) {
       console.log(`✅ Created OTA configuration for ${config.channelType}`);
     } else {
       console.log(
-        `⏭️  OTA configuration for ${config.channelType} already exists`
+        `⏭️  OTA configuration for ${config.channelType} already exists`,
       );
     }
   }

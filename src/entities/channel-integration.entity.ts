@@ -19,6 +19,7 @@ export enum ChannelType {
   SEVEN = "SEVEN",
   CORNICHE = "CORNICHE",
   WAKANOW = "WAKANOW",
+  // AZUSA = "AZUSA",
 }
 
 export enum IntegrationStatus {

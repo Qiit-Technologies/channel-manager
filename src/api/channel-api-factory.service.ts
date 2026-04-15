@@ -12,6 +12,7 @@ import { CustomApiService } from "./implementations/custom-api.service";
 import { SevenApiService } from "./implementations/seven-api.service";
 import { CornicheApiService } from "./implementations/corniche-api.service";
 import { WakanowApiService } from "./implementations/wakanow-api.service";
+import { AzusaApiService } from "./implementations/azusa-api.service";
 
 @Injectable()
 export class ChannelApiFactory {
@@ -54,6 +55,9 @@ export class ChannelApiFactory {
       case ChannelType.WAKANOW:
         return new WakanowApiService();
 
+      case ChannelType.AZUSA:
+        return new AzusaApiService();
+
       default:
         throw new Error(`Unsupported channel type: ${channelType}`);
     }
@@ -87,6 +91,8 @@ export class ChannelApiFactory {
         return "Corniche";
       case ChannelType.WAKANOW:
         return "Wakanow";
+      case ChannelType.AZUSA:
+        return "Azusa";
       default:
         return channelType;
     }
@@ -191,6 +197,17 @@ export class ChannelApiFactory {
           "One-way rate sync",
           "Booking notifications",
           "Currency: NGN/USD",
+        ];
+
+      case ChannelType.AZUSA:
+        return [
+          "Hotel-specific integration",
+          "Real-time availability sync",
+          "Rate management",
+          "Guest reservation management",
+          "Webhook support",
+          "Custom property mapping",
+          "Multi-language support",
         ];
 
       default:

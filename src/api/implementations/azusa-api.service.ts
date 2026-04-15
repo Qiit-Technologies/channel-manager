@@ -8,34 +8,34 @@ import { ChannelAvailability } from "../../entities/channel-availability.entity"
 import { ChannelRatePlan } from "../../entities/channel-rate-plan.entity";
 
 @Injectable()
-export class CornicheApiService implements ChannelApiInterface {
-  private readonly logger = new Logger(CornicheApiService.name);
-  private readonly baseUrl = "https://www.thecornichehotel.com/wp-json/cmw/v1";
+export class AzusaApiService implements ChannelApiInterface {
+  private readonly logger = new Logger(AzusaApiService.name);
+  private readonly baseUrl = "https://api.azusa.com/v1"; // Replace with actual Azusa API URL
   private readonly httpService = new HttpService();
 
-  // Hotel-specific configuration for Corniche integration
-  private readonly SUPPORTED_HOTEL_IDS = [14, 8]; // Focused supported hotel ID for Corniche (ID 14)
+  // Hotel-specific configuration for Azusa integration
+  private readonly SUPPORTED_HOTEL_IDS = [1, 8, 14, 26]; // Supported hotel IDs for Azusa
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log("Testing Corniche connection...");
+      this.logger.log("Testing Azusa connection...");
 
-      // Check if this hotel is supported for Corniche integration
+      // Check if this hotel is supported for Azusa integration
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
       // Test API credentials
       if (!integration.apiKey) {
-        throw new Error("API key is required for Corniche integration");
+        throw new Error("API key is required for Azusa integration");
       }
 
       if (!integration.channelPropertyId) {
-        throw new Error("Property ID is required for Corniche integration");
+        throw new Error("Property ID is required for Azusa integration");
       }
 
       // In development or explicit test mode, skip external API call
@@ -43,12 +43,12 @@ export class CornicheApiService implements ChannelApiInterface {
       const inTestMode = Boolean(integration.testMode);
       if (inDevMode || inTestMode) {
         this.logger.log(
-          "Dev/Test mode: skipping external Corniche API connectivity check",
+          "Dev/Test mode: skipping external Azusa API connectivity check",
         );
         return { success: true };
       }
 
-      // Test actual connection to Corniche API
+      // Test actual connection to Azusa API
       const response = await firstValueFrom(
         this.httpService.get(
           `${this.baseUrl}/properties/${integration.channelPropertyId}/status`,
@@ -62,7 +62,7 @@ export class CornicheApiService implements ChannelApiInterface {
       );
 
       if (response.status === 200) {
-        this.logger.log("Corniche connection test successful");
+        this.logger.log("Azusa connection test successful");
         return { success: true };
       } else {
         return {
@@ -71,7 +71,7 @@ export class CornicheApiService implements ChannelApiInterface {
         };
       }
     } catch (error) {
-      this.logger.error(`Corniche connection test failed: ${error.message}`);
+      this.logger.error(`Azusa connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
   }
@@ -82,12 +82,12 @@ export class CornicheApiService implements ChannelApiInterface {
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Corniche inventory for room type: ${mapping.channelRoomTypeName}`,
+        `Updating Azusa inventory for room type: ${mapping.channelRoomTypeName}`,
       );
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -106,9 +106,9 @@ export class CornicheApiService implements ChannelApiInterface {
         ),
       );
 
-      this.logger.log("Corniche inventory update successful");
+      this.logger.log("Azusa inventory update successful");
     } catch (error) {
-      this.logger.error(`Corniche inventory update failed: ${error.message}`);
+      this.logger.error(`Azusa inventory update failed: ${error.message}`);
       throw error;
     }
   }
@@ -119,12 +119,12 @@ export class CornicheApiService implements ChannelApiInterface {
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Corniche rates for rate plan: ${ratePlan.channelRatePlanName}`,
+        `Updating Azusa rates for rate plan: ${ratePlan.channelRatePlanName}`,
       );
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -143,9 +143,9 @@ export class CornicheApiService implements ChannelApiInterface {
         ),
       );
 
-      this.logger.log("Corniche rate update successful");
+      this.logger.log("Azusa rate update successful");
     } catch (error) {
-      this.logger.error(`Corniche rate update failed: ${error.message}`);
+      this.logger.error(`Azusa rate update failed: ${error.message}`);
       throw error;
     }
   }
@@ -156,12 +156,12 @@ export class CornicheApiService implements ChannelApiInterface {
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Corniche availability for date: ${availability.date}`,
+        `Updating Azusa availability for date: ${availability.date}`,
       );
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -183,11 +183,9 @@ export class CornicheApiService implements ChannelApiInterface {
         ),
       );
 
-      this.logger.log("Corniche availability update successful");
+      this.logger.log("Azusa availability update successful");
     } catch (error) {
-      this.logger.error(
-        `Corniche availability update failed: ${error.message}`,
-      );
+      this.logger.error(`Azusa availability update failed: ${error.message}`);
       throw error;
     }
   }
@@ -197,11 +195,11 @@ export class CornicheApiService implements ChannelApiInterface {
     webhookData: any,
   ): Promise<any> {
     try {
-      this.logger.log("Processing Corniche webhook...");
+      this.logger.log("Processing Azusa webhook...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -219,7 +217,7 @@ export class CornicheApiService implements ChannelApiInterface {
           return { processed: false, reason: "Unknown webhook type" };
       }
     } catch (error) {
-      this.logger.error(`Corniche webhook processing failed: ${error.message}`);
+      this.logger.error(`Azusa webhook processing failed: ${error.message}`);
       throw error;
     }
   }
@@ -229,11 +227,11 @@ export class CornicheApiService implements ChannelApiInterface {
     guestData: any,
   ): Promise<any> {
     try {
-      this.logger.log("Creating Corniche guest reservation...");
+      this.logger.log("Creating Azusa guest reservation...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -255,11 +253,11 @@ export class CornicheApiService implements ChannelApiInterface {
         ),
       );
 
-      this.logger.log("Corniche guest reservation created successfully");
+      this.logger.log("Azusa guest reservation created successfully");
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Corniche guest reservation creation failed: ${error.message}`,
+        `Azusa guest reservation creation failed: ${error.message}`,
       );
       throw error;
     }
@@ -271,11 +269,11 @@ export class CornicheApiService implements ChannelApiInterface {
     updates: any,
   ): Promise<any> {
     try {
-      this.logger.log(`Updating Corniche guest reservation: ${guestId}`);
+      this.logger.log(`Updating Azusa guest reservation: ${guestId}`);
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -298,11 +296,11 @@ export class CornicheApiService implements ChannelApiInterface {
         ),
       );
 
-      this.logger.log("Corniche guest reservation updated successfully");
+      this.logger.log("Azusa guest reservation updated successfully");
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Corniche guest reservation update failed: ${error.message}`,
+        `Azusa guest reservation update failed: ${error.message}`,
       );
       throw error;
     }
@@ -313,11 +311,11 @@ export class CornicheApiService implements ChannelApiInterface {
     guestId: string,
   ): Promise<any> {
     try {
-      this.logger.log(`Cancelling Corniche guest reservation: ${guestId}`);
+      this.logger.log(`Cancelling Azusa guest reservation: ${guestId}`);
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -333,11 +331,11 @@ export class CornicheApiService implements ChannelApiInterface {
         ),
       );
 
-      this.logger.log("Corniche guest reservation cancelled successfully");
+      this.logger.log("Azusa guest reservation cancelled successfully");
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Corniche guest reservation cancellation failed: ${error.message}`,
+        `Azusa guest reservation cancellation failed: ${error.message}`,
       );
       throw error;
     }
@@ -345,11 +343,11 @@ export class CornicheApiService implements ChannelApiInterface {
 
   async getChannelInfo(integration: ChannelIntegration): Promise<any> {
     try {
-      this.logger.log("Getting Corniche channel info...");
+      this.logger.log("Getting Azusa channel info...");
 
       if (!this.isHotelSupported(integration.hotelId)) {
         throw new Error(
-          `Hotel ID ${integration.hotelId} is not supported for Corniche integration`,
+          `Hotel ID ${integration.hotelId} is not supported for Azusa integration`,
         );
       }
 
@@ -365,15 +363,13 @@ export class CornicheApiService implements ChannelApiInterface {
       );
 
       return {
-        channel: "Corniche",
+        channel: "Azusa",
         status: "active",
         hotelInfo: response.data,
         supportedHotel: true,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to get Corniche channel info: ${error.message}`,
-      );
+      this.logger.error(`Failed to get Azusa channel info: ${error.message}`);
       throw error;
     }
   }
@@ -496,7 +492,8 @@ export class CornicheApiService implements ChannelApiInterface {
     integration: ChannelIntegration,
     data: any,
   ): Promise<any> {
-    this.logger.log("Processing Corniche reservation webhook");
+    this.logger.log("Processing Azusa reservation webhook");
+    // Canonical reservation summary to drive availability updates downstream
     const payload = data?.data ?? {};
     const reservationSummary = {
       channelRoomTypeId: payload.room_type_id,
@@ -505,11 +502,13 @@ export class CornicheApiService implements ChannelApiInterface {
       rooms: payload.rooms ?? 1,
     };
 
+    // Build Oreon-compatible CreateGuestDto payload (best-effort mapping)
     const oreonGuestDto = this.buildOreonCreateGuestDto(integration, payload);
 
+    // Standardized public reservation event payload for external consumers (snake_case)
     const standardized = {
       version: "v1",
-      channel: "corniche",
+      channel: "azusa",
       event: "reservation",
       hotel_id: integration.hotelId,
       reservation: {
@@ -551,11 +550,15 @@ export class CornicheApiService implements ChannelApiInterface {
     };
   }
 
+  // --- Oreon mapping helpers ---
   private normalizePhoneNumber(raw?: string): string | undefined {
     if (!raw || typeof raw !== "string") return undefined;
     const trimmed = raw.trim();
+    // Remove spaces and dashes
     const digits = trimmed.replace(/[^+\d]/g, "");
+    // Ensure starts with + or leading digit
     if (digits.startsWith("+")) return digits;
+    // If already looks like E.164 without +, prepend it
     return `+${digits}`;
   }
 
@@ -573,7 +576,7 @@ export class CornicheApiService implements ChannelApiInterface {
     const roomtypeNum = Number(roomtypeRaw);
     const roomtype = Number.isFinite(roomtypeNum) ? roomtypeNum : undefined;
     if (roomtype === undefined) {
-      this.logger.warn(`[Corniche] Non-numeric room_type_id: ${roomtypeRaw}`);
+      this.logger.warn(`[Azusa] Non-numeric room_type_id: ${roomtypeRaw}`);
     }
 
     const startDate = payload.check_in;
@@ -587,22 +590,27 @@ export class CornicheApiService implements ChannelApiInterface {
       1;
 
     return {
+      // Required string fields
       fullName,
       email,
       phoneNumber: phone,
       property: payload.property_id || integration.channelPropertyId,
       roomNumber,
+      // Required dates and ints
       createdAt: new Date(),
       roomtype,
       startDate,
       endDate,
       numberOfGuests,
+      // Required settlement fields with sensible defaults
       paymentMethod: "CHANNEL_MANAGER",
       receivingAccount: "OTA",
+      // Optional financials
       amountPaid: Number(payload.amount_paid ?? 0),
       outstanding: Number(payload.outstanding ?? 0),
+      // Source tracking
       reservationSource:
-        integration?.channelName || integration?.channelType || "corniche",
+        integration?.channelName || integration?.channelType || "azusa",
       sourceReservationId:
         payload?.source_reservation_id ||
         payload?.reservation_id ||
@@ -616,56 +624,15 @@ export class CornicheApiService implements ChannelApiInterface {
     integration: ChannelIntegration,
     data: any,
   ): Promise<any> {
-    this.logger.log("Processing Corniche cancellation webhook");
-    const payload = data?.data ?? {};
-
-    const standardized = {
-      version: "v1",
-      channel: "corniche",
-      event: "cancellation",
-      hotel_id: integration.hotelId,
-      cancellation: {
-        source_reservation_id:
-          payload.reservation_id || payload.booking_id || payload.id,
-        reason: payload.reason || "Canceled via Corniche",
-        canceled_at: payload.canceled_at || new Date(),
-      },
-    };
-
-    return {
-      processed: true,
-      type: "cancellation",
-      data,
-      ...standardized,
-    };
+    this.logger.log("Processing Azusa cancellation webhook");
+    return { processed: true, type: "cancellation", data };
   }
 
   private async processModificationWebhook(
     integration: ChannelIntegration,
     data: any,
   ): Promise<any> {
-    this.logger.log("Processing Corniche modification webhook");
-    const payload = data?.data ?? {};
-    const oreonGuestDto = this.buildOreonCreateGuestDto(integration, payload);
-
-    const standardized = {
-      version: "v1",
-      channel: "corniche",
-      event: "modification",
-      hotel_id: integration.hotelId,
-      modification: {
-        source_reservation_id:
-          payload.reservation_id || payload.booking_id || payload.id,
-        updates: payload.updates || {},
-        oreon_guest_dto: oreonGuestDto,
-      },
-    };
-
-    return {
-      processed: true,
-      type: "modification",
-      data,
-      ...standardized,
-    };
+    this.logger.log("Processing Azusa modification webhook");
+    return { processed: true, type: "modification", data };
   }
 }

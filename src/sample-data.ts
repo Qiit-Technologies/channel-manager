@@ -304,6 +304,7 @@ export const sampleChannelIntegrations = {
     ChannelType.TRIPADVISOR,
     ChannelType.AGODA,
     ChannelType.HOTELBEDS,
+    // ChannelType.AZUSA,
     ChannelType.CUSTOM,
   ],
 };
@@ -1262,6 +1263,13 @@ export const sampleChannelInfo = {
       "reservation_sync",
       "availability_updates",
     ],
+    // [ChannelType.AZUSA]: [
+    //   "webhooks",
+    //   "reservation_sync",
+    //   "availability_updates",
+    //   "rate_management",
+    //   "guest_management",
+    // ],
     [ChannelType.CUSTOM]: ["custom_api", "webhooks", "full_control"],
   },
 };

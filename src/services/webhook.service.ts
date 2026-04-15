@@ -26,6 +26,7 @@ export interface WebhookPayload {
   integrationId?: number;
   channelType?: string;
   eventType: WebhookEventType;
+  event: string;
   timestamp: string;
   data: any;
 }
@@ -98,6 +99,7 @@ export class WebhookService {
       integrationId: integration.id,
       channelType: integration.channelType,
       eventType,
+      event: eventType,
       timestamp: new Date().toISOString(),
       data,
     };
@@ -155,6 +157,7 @@ export class WebhookService {
     const payload: WebhookPayload = {
       hotelId: webhookConfig.hotelId,
       eventType,
+      event: eventType,
       timestamp: new Date().toISOString(),
       data,
     };

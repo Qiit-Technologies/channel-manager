@@ -1061,7 +1061,12 @@ export class ChannelManagerService {
         if (existingTypes.includes(type)) return false;
 
         // Specialized channels with hotel-specific restrictions
-        if (type === ChannelType.CORNICHE || type === ChannelType.SEVEN) {
+        if (
+          type === ChannelType.CORNICHE ||
+          type === ChannelType.SEVEN
+          // ||
+          // type === ChannelType.AZUSA
+        ) {
           try {
             const api = this.channelApiFactory.createChannelApi(type);
             // This is a bit of a hack: we check if the integration would be supported
@@ -1220,6 +1225,17 @@ export class ChannelManagerService {
           ...pmsResult.data,
           oreonBookingCode: pmsResult.data?.bookingCode || null,
           oreonForwarded: true,
+          // Add missing fields to match Oreon structure
+          startTime: mappedData.startTime || "14:00",
+          endTime: mappedData.endTime || "12:00",
+          outstanding: String(mappedData.amountPaid || 0),
+          isCheckedIn: false,
+          isCheckedOut: false,
+          roomId: pmsResult.data?.roomId,
+          roomtype: mappedData.roomtypeId,
+          floor: pmsResult.data?.floor || 1,
+          // Ensure phoneNumber is always a string
+          phoneNumber: String(mappedData.phoneNumber || ""),
         };
 
         await this.webhookService.broadcast(
@@ -1228,7 +1244,12 @@ export class ChannelManagerService {
           resultPayload,
         );
 
-        return resultPayload;
+        return {
+          ...mappedData,
+          ...pmsResult.data,
+          oreonBookingCode: pmsResult.data?.bookingCode || null,
+          oreonForwarded: true,
+        };
       } else {
         this.logger.error(
           `[createBooking] PMS rejected booking: ${pmsResult.error}`,
@@ -1280,12 +1301,27 @@ export class ChannelManagerService {
       );
 
       if (pmsResult.success) {
-        const resultPayload = {
+        const basePayload = {
           ...booking,
           ...mappedUpdates,
           status: mappedUpdates.bookingStatus || booking.bookingStatus,
           oreonBookingCode: pmsResult.data?.bookingCode || null,
           oreonForwarded: true,
+        };
+
+        const resultPayload = {
+          ...basePayload,
+          // Add missing fields to match Oreon structure
+          startTime: mappedUpdates.startTime || "14:00",
+          endTime: mappedUpdates.endTime || "12:00",
+          outstanding: String(basePayload.amountPaid || 0),
+          isCheckedIn: false,
+          isCheckedOut: false,
+          roomId: pmsResult.data?.roomId || booking.roomId,
+          roomtype: mappedUpdates.roomtypeId || booking.roomtypeId,
+          floor: pmsResult.data?.floor || 1,
+          // Ensure phoneNumber is always a string
+          phoneNumber: String(basePayload.phoneNumber || ""),
         };
 
         const webhookEvent =
