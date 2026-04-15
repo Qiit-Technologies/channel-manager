@@ -55,8 +55,8 @@ export class ChannelApiFactory {
       case ChannelType.WAKANOW:
         return new WakanowApiService();
 
-      case ChannelType.AZUSA:
-        return new AzusaApiService();
+      // case ChannelType.AZUSA:
+      //   return new AzusaApiService();
 
       default:
         throw new Error(`Unsupported channel type: ${channelType}`);
@@ -91,8 +91,8 @@ export class ChannelApiFactory {
         return "Corniche";
       case ChannelType.WAKANOW:
         return "Wakanow";
-      case ChannelType.AZUSA:
-        return "Azusa";
+      // case ChannelType.AZUSA:
+      //   return "Azusa";
       default:
         return channelType;
     }
@@ -199,16 +199,16 @@ export class ChannelApiFactory {
           "Currency: NGN/USD",
         ];
 
-      case ChannelType.AZUSA:
-        return [
-          "Hotel-specific integration",
-          "Real-time availability sync",
-          "Rate management",
-          "Guest reservation management",
-          "Webhook support",
-          "Custom property mapping",
-          "Multi-language support",
-        ];
+      // case ChannelType.AZUSA:
+      //   return [
+      //     "Hotel-specific integration",
+      //     "Real-time availability sync",
+      //     "Rate management",
+      //     "Guest reservation management",
+      //     "Webhook support",
+      //     "Custom property mapping",
+      //     "Multi-language support",
+      //   ];
 
       default:
         return [];
