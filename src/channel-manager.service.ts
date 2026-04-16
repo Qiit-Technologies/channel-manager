@@ -55,6 +55,21 @@ export class ChannelManagerService {
     private readonly pmsSyncService: PmsSyncService,
   ) {}
 
+  /**
+   * Get property name by hotelId
+   */
+  private async getPropertyName(hotelId: number): Promise<string | null> {
+    try {
+      const hotel = await this.oreonHotelClient.getHotel(hotelId);
+      return hotel?.name || null;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to get property name for hotelId ${hotelId}: ${error.message}`,
+      );
+      return null;
+    }
+  }
+
   // Hotel Management Methods
   async getHotelsByRegistrationSource(
     registrationSource?: string,
@@ -1219,23 +1234,39 @@ export class ChannelManagerService {
           `[createBooking] PMS creation successful: ${pmsResult.data?.bookingCode}`,
         );
 
-        // Since we share the database, return a merged view of the authoritative data
+        // Create webhook payload matching Oreon structure
         const resultPayload = {
-          ...mappedData,
-          ...pmsResult.data,
-          oreonBookingCode: pmsResult.data?.bookingCode || null,
-          oreonForwarded: true,
-          // Add missing fields to match Oreon structure
+          hotelId: mappedData.hotelId,
+          id: pmsResult.data?.id,
+          fullName: mappedData.fullName,
+          email: mappedData.email,
+          phoneNumber: String(mappedData.phoneNumber || ""),
+          startDate: mappedData.startDate,
+          endDate: mappedData.endDate,
           startTime: mappedData.startTime || "14:00",
           endTime: mappedData.endTime || "12:00",
-          outstanding: String(mappedData.amountPaid || 0),
+          bookingStatus: mappedData.bookingStatus,
+          amountPaid: String(mappedData.amountPaid || 0),
+          outstanding: String(
+            (mappedData.bookingAmount || 0) - (mappedData.amountPaid || 0),
+          ),
+          numberOfGuests: mappedData.numberOfGuests || 1,
           isCheckedIn: false,
           isCheckedOut: false,
+          bookingCode: pmsResult.data?.bookingCode || mappedData.bookingCode,
+          otaBookingCode: mappedData.otaBookingCode,
+          roomtypeId: mappedData.roomtypeId,
+          roomNumber: mappedData.roomNumber,
           roomId: pmsResult.data?.roomId,
-          roomtype: mappedData.roomtypeId,
+          roomtype: {
+            id: mappedData.roomtypeId,
+            name: mappedData.roomtypeName,
+          },
           floor: pmsResult.data?.floor || 1,
-          // Ensure phoneNumber is always a string
-          phoneNumber: String(mappedData.phoneNumber || ""),
+          propertyReference: `REF-${mappedData.hotelId}`,
+          property:
+            mappedData.property ||
+            (await this.getPropertyName(mappedData.hotelId)),
         };
 
         await this.webhookService.broadcast(
@@ -1310,22 +1341,47 @@ export class ChannelManagerService {
         };
 
         const resultPayload = {
-          ...basePayload,
-          // Add missing fields to match Oreon structure
+          hotelId: booking.hotelId,
+          id: booking.id,
+          fullName: basePayload.fullName || booking.fullName,
+          email: basePayload.email || booking.email,
+          phoneNumber: String(
+            basePayload.phoneNumber || booking.phoneNumber || "",
+          ),
+          startDate: basePayload.startDate || booking.startDate,
+          endDate: basePayload.endDate || booking.endDate,
           startTime: mappedUpdates.startTime || "14:00",
           endTime: mappedUpdates.endTime || "12:00",
-          outstanding: String(basePayload.amountPaid || 0),
+          bookingStatus: basePayload.bookingStatus || booking.bookingStatus,
+          amountPaid: String(basePayload.amountPaid || booking.amountPaid || 0),
+          outstanding: String(
+            (basePayload.bookingAmount || booking.bookingAmount || 0) -
+              (basePayload.amountPaid || booking.amountPaid || 0),
+          ),
+          numberOfGuests:
+            basePayload.numberOfGuests || booking.numberOfGuests || 1,
           isCheckedIn: false,
           isCheckedOut: false,
+          bookingCode: basePayload.bookingCode || booking.bookingCode,
+          otaBookingCode: basePayload.otaBookingCode || booking.otaBookingCode,
+          roomtypeId: mappedUpdates.roomtypeId || booking.roomtypeId,
+          roomNumber: basePayload.roomNumber || booking.roomNumber,
           roomId: pmsResult.data?.roomId || booking.roomId,
-          roomtype: mappedUpdates.roomtypeId || booking.roomtypeId,
+          roomtype: {
+            id: mappedUpdates.roomtypeId || booking.roomtypeId,
+            name: mappedUpdates.roomtypeName || null,
+          },
           floor: pmsResult.data?.floor || 1,
-          // Ensure phoneNumber is always a string
-          phoneNumber: String(basePayload.phoneNumber || ""),
+          propertyReference: `REF-${booking.hotelId}`,
+          property:
+            basePayload.property ||
+            booking.property ||
+            (await this.getPropertyName(booking.hotelId)),
+          updatedFields: Object.keys(mappedUpdates),
         };
 
         const webhookEvent =
-          resultPayload.status === BookingStatus.CANCELLED
+          resultPayload.bookingStatus === BookingStatus.CANCELLED
             ? WebhookEventType.BOOKING_CANCEL
             : WebhookEventType.BOOKING_MODIFY;
 
@@ -1371,6 +1427,11 @@ export class ChannelManagerService {
       startDate: data.startDate || data.checkInDate || data.checkIn,
       endDate: data.endDate || data.checkOutDate || data.checkOut,
       roomtypeId: data.roomtypeId || data.roomTypeId || data.roomType,
+      roomtypeName:
+        data.roomtypeName ||
+        data.roomTypeName ||
+        data.roomType?.name ||
+        data.roomtype?.name,
       bookingAmount: data.bookingAmount || data.amount || data.totalPrice,
       amountPaid:
         data.amountPaid ||

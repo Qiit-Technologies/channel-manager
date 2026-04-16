@@ -24,6 +24,21 @@ export class PmsSyncService {
     private readonly oreonHotelClient: OreonHotelClient,
   ) {}
 
+  /**
+   * Get property name by hotelId
+   */
+  private async getPropertyName(hotelId: number): Promise<string | null> {
+    try {
+      const hotel = await this.oreonHotelClient.getHotel(hotelId);
+      return hotel?.name || null;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to get property name for hotelId ${hotelId}: ${error.message}`,
+      );
+      return null;
+    }
+  }
+
   // Sync room types from PMS to channel manager
   async syncRoomTypes(hotelId: number): Promise<void> {
     try {
@@ -84,28 +99,32 @@ export class PmsSyncService {
 
           let updatedAvail: ChannelAvailability;
           if (avails.length > 0) {
-            updatedAvail = await this.channelManagerRepository.updateAvailability(
-              avails[0].id,
-              {
+            updatedAvail =
+              await this.channelManagerRepository.updateAvailability(
+                avails[0].id,
+                {
+                  totalRooms,
+                  availableRooms: availableRoomsNow,
+                  updatedAt: new Date(),
+                },
+              );
+          } else {
+            updatedAvail =
+              await this.channelManagerRepository.createAvailability({
+                integrationId: integration.id,
+                roomtypeId: roomType.id,
+                date: today,
                 totalRooms,
                 availableRooms: availableRoomsNow,
-                updatedAt: new Date(),
-              },
-            );
-          } else {
-            updatedAvail = await this.channelManagerRepository.createAvailability({
-              integrationId: integration.id,
-              roomtypeId: roomType.id,
-              date: today,
-              totalRooms,
-              availableRooms: availableRoomsNow,
-            });
+              });
           }
 
           // Trigger real-time sync if enabled
           if (integration.isRealTimeSync && updatedAvail) {
             try {
-              await this.channelSyncEngine.syncAvailabilityToChannel(updatedAvail);
+              await this.channelSyncEngine.syncAvailabilityToChannel(
+                updatedAvail,
+              );
             } catch (err) {
               this.logger.error(
                 `Real-time sync failed during inventory update for integration ${integration.id}: ${err.message}`,
@@ -323,7 +342,9 @@ export class PmsSyncService {
       // 1. Fetch guest details to get booking codes and dates
       const guest = await this.channelManagerRepository.findGuestById(guestId);
       if (!guest) {
-        this.logger.warn(`Guest ${guestId} not found, cannot update availability`);
+        this.logger.warn(
+          `Guest ${guestId} not found, cannot update availability`,
+        );
         return;
       }
 
@@ -372,26 +393,47 @@ export class PmsSyncService {
 
             if (availabilities && availabilities.length > 0) {
               const current = availabilities[0];
-              const baseTotal = current.totalRooms || current.availableRooms || 0;
-              
+              const baseTotal =
+                current.totalRooms || current.availableRooms || 0;
+
               // If delta is -1 (CHECK_IN), occupied increases by 1, available decreases by 1
               // If delta is +1 (CHECK_OUT/NO_SHOW), occupied decreases by 1, available increases by 1
-              const newOccupied = Math.max(0, Math.min(baseTotal, (current.occupiedRooms || 0) - delta));
-              const newAvailable = Math.max(0, baseTotal - newOccupied - (current.blockedRooms || 0) - (current.maintenanceRooms || 0));
+              const newOccupied = Math.max(
+                0,
+                Math.min(baseTotal, (current.occupiedRooms || 0) - delta),
+              );
+              const newAvailable = Math.max(
+                0,
+                baseTotal -
+                  newOccupied -
+                  (current.blockedRooms || 0) -
+                  (current.maintenanceRooms || 0),
+              );
 
-              const updatedAvail = await this.channelManagerRepository.updateAvailability(current.id, {
-                occupiedRooms: newOccupied,
-                availableRooms: newAvailable,
-                status: newAvailable > 0 ? AvailabilityStatus.AVAILABLE : AvailabilityStatus.OCCUPIED,
-                updatedAt: new Date(),
-              });
+              const updatedAvail =
+                await this.channelManagerRepository.updateAvailability(
+                  current.id,
+                  {
+                    occupiedRooms: newOccupied,
+                    availableRooms: newAvailable,
+                    status:
+                      newAvailable > 0
+                        ? AvailabilityStatus.AVAILABLE
+                        : AvailabilityStatus.OCCUPIED,
+                    updatedAt: new Date(),
+                  },
+                );
 
               // 4. Trigger real-time sync if enabled
               if (integration.isRealTimeSync) {
                 try {
-                  await this.channelSyncEngine.syncAvailabilityToChannel(updatedAvail);
+                  await this.channelSyncEngine.syncAvailabilityToChannel(
+                    updatedAvail,
+                  );
                 } catch (syncError) {
-                  this.logger.error(`Real-time sync failed for integration ${integration.id}: ${syncError.message}`);
+                  this.logger.error(
+                    `Real-time sync failed for integration ${integration.id}: ${syncError.message}`,
+                  );
                 }
               }
             }
@@ -408,12 +450,30 @@ export class PmsSyncService {
             : WebhookEventType.BOOKING_NO_SHOW;
 
       await this.webhookService.broadcast(hotelId, webhookEvent, {
-        guestId,
-        hotelId,
+        hotelId: hotelId,
+        id: guestId,
         bookingCode: guest?.bookingCode || null,
         otaBookingCode: guest?.otaBookingCode || null,
-        eventType,
-        timestamp: new Date().toISOString(),
+        bookingStatus: guest?.bookingStatus || "NO_SHOW",
+        amountPaid: guest?.amountPaid?.toString() || "0.00",
+        outstanding: guest?.outstanding?.toString() || "0.00",
+        numberOfGuests: guest?.numberOfGuests || 1,
+        isCheckedIn: false,
+        isCheckedOut: false,
+        startTime: "14:00",
+        endTime: "12:00",
+        startDate: guest?.startDate || new Date().toISOString().split("T")[0],
+        endDate: guest?.endDate || new Date().toISOString().split("T")[0],
+        phoneNumber: guest?.phoneNumber || "",
+        fullName: guest?.fullName || "",
+        email: guest?.email || "",
+        roomtypeId: guest?.roomtypeId,
+        roomNumber: guest?.roomNumber,
+        roomId: guest?.roomId,
+        roomtype: { id: guest?.roomtypeId, name: null },
+        floor: 1,
+        propertyReference: `REF-${hotelId}`,
+        property: guest?.property || (await this.getPropertyName(hotelId)),
       });
 
       this.logger.log(
