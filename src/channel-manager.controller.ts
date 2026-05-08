@@ -329,72 +329,64 @@ export class ChannelManagerController {
   @Get("integrations")
   @UseGuards(ApiKeyGuard)
   @ApiOperation({
-    summary: "List channel integrations",
+    summary: "Get channel integration(s)",
     description:
-      "Returns channel integrations for a hotel when `hotelId` is provided; otherwise, returns all integrations in the system.",
+      "Retrieves channel integrations. Returns a single integration if integrationId or hotelId+channelType are provided; otherwise returns a list.",
+  })
+  @ApiQuery({
+    name: "integrationId",
+    required: false,
+    type: Number,
+    description: "Channel integration identifier",
   })
   @ApiQuery({
     name: "hotelId",
     required: false,
     type: Number,
-    description: "Filter integrations belonging to a specific hotel",
-    example: 1,
+    description: "Hotel identifier",
+  })
+  @ApiQuery({
+    name: "channelType",
+    required: false,
+    enum: ChannelType,
+    description: "Channel provider type",
   })
   @ApiResponse({
     status: 200,
-    description: "List of channel integrations",
-    type: ChannelIntegration,
-    isArray: true,
+    description: "Successful response",
     content: {
       "application/json": {
         schema: {
-          type: "array",
-          items: { $ref: getSchemaPath(ChannelIntegration) },
+          oneOf: [
+            { $ref: getSchemaPath(ChannelIntegration) },
+            {
+              type: "array",
+              items: { $ref: getSchemaPath(ChannelIntegration) },
+            },
+          ],
         },
-        example: createSwaggerExample(sampleChannelIntegrations.list),
       },
     },
   })
-  async getChannelIntegrations(
+  async getIntegrations(
+    @Query("integrationId") integrationId?: number,
     @Query("hotelId") hotelId?: number,
-  ): Promise<ChannelIntegration[]> {
+    @Query("channelType") channelType?: ChannelType,
+  ): Promise<ChannelIntegration | ChannelIntegration[]> {
+    // If we have criteria for a single integration (integrationId or HotelId+ChannelType)
+    if ((integrationId && !isNaN(integrationId)) || (hotelId && channelType)) {
+      return await this.channelManagerService.getChannelIntegration(
+        integrationId,
+        hotelId,
+        channelType,
+      );
+    }
+
+    // Otherwise return a list
     if (hotelId) {
       return await this.channelManagerService.getChannelIntegrations(hotelId);
-    } else {
-      // If no hotelId provided, return all integrations
-      return await this.channelManagerService.getAllIntegrations();
     }
-  }
-
-  @Get("integrations/:id")
-  @ApiOperation({
-    summary: "Get channel integration",
-    description: "Retrieves a channel integration by its unique identifier.",
-  })
-  @ApiParam({
-    name: "id",
-    description: "Channel integration identifier",
-    example: 42,
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Channel integration details",
-    type: ChannelIntegration,
-    content: {
-      "application/json": {
-        schema: { $ref: getSchemaPath(ChannelIntegration) },
-        example: createSwaggerExample(sampleChannelIntegrations.single),
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Channel integration not found",
-  })
-  async getChannelIntegration(
-    @Param("id") id: number,
-  ): Promise<ChannelIntegration> {
-    return await this.channelManagerService.getChannelIntegration(id);
+    return await this.channelManagerService.getAllIntegrations();
   }
 
   @Put("integrations/:id")

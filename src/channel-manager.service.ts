@@ -210,16 +210,40 @@ export class ChannelManagerService {
     return await this.channelManagerRepository.findActiveIntegrations();
   }
 
-  async getChannelIntegration(id: number): Promise<ChannelIntegration> {
-    const integration =
-      await this.channelManagerRepository.findIntegrationById(id);
-    if (!integration) {
+  async getChannelIntegration(
+    integrationId?: number,
+    hotelId?: number,
+    channelType?: ChannelType,
+  ): Promise<ChannelIntegration> {
+    // 1. Try lookup by hotelId and channelType if both are provided
+    if (hotelId && channelType) {
+      const integration =
+        await this.channelManagerRepository.findIntegrationByHotelAndType(
+          hotelId,
+          channelType,
+        );
+      if (integration) {
+        return integration;
+      }
       throw new HttpException(
-        "Channel integration not found",
+        `Channel integration not found for hotel ID ${hotelId} and type ${channelType}`,
         HttpStatus.NOT_FOUND,
       );
     }
-    return integration;
+
+    // 2. Try lookup by numeric integrationId
+    if (integrationId && !isNaN(integrationId)) {
+      const integration =
+        await this.channelManagerRepository.findIntegrationById(integrationId);
+      if (integration) {
+        return integration;
+      }
+    }
+
+    throw new HttpException(
+      "Channel integration not found with provided criteria (integrationId or HotelId+ChannelType)",
+      HttpStatus.NOT_FOUND,
+    );
   }
 
   async updateChannelIntegration(
