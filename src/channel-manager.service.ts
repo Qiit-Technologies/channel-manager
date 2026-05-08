@@ -547,9 +547,9 @@ export class ChannelManagerService {
         if (integration.isRealTimeSync) {
           try {
             await this.channelSyncEngine.syncAvailabilityToChannel(result);
-          } catch (syncError) {
+          } catch (apiError: any) {
             this.logger.error(
-              `Real-time sync failed for integration ${dto.integrationId}: ${syncError.message}`,
+              `Real-time sync failed for integration ${dto.integrationId}: ${apiError.message}`,
             );
           }
         }

@@ -76,7 +76,7 @@ export class OtaConfigurationService {
       try {
         const api = this.channelApiFactory.createChannelApi(channelType);
         result = await api.testConnection(config as any);
-      } catch (apiError) {
+      } catch (apiError: any) {
         result = {
           success: false,
           error: `API initialization failed: ${apiError.message}`,

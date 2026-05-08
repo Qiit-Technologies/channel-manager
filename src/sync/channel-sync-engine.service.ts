@@ -400,7 +400,7 @@ export class ChannelSyncEngine {
           } as ChannelAvailability;
           try {
             await this.syncAvailabilityToChannel(updated);
-          } catch (err) {
+          } catch (err: any) {
             this.logger.error(
               `Real-time availability push failed: ${err.message}`,
             );

@@ -125,7 +125,7 @@ export class PmsSyncService {
               await this.channelSyncEngine.syncAvailabilityToChannel(
                 updatedAvail,
               );
-            } catch (err) {
+            } catch (err: any) {
               this.logger.error(
                 `Real-time sync failed during inventory update for integration ${integration.id}: ${err.message}`,
               );
@@ -430,7 +430,7 @@ export class PmsSyncService {
                   await this.channelSyncEngine.syncAvailabilityToChannel(
                     updatedAvail,
                   );
-                } catch (syncError) {
+                } catch (syncError: any) {
                   this.logger.error(
                     `Real-time sync failed for integration ${integration.id}: ${syncError.message}`,
                   );
