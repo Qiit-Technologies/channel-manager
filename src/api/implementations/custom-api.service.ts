@@ -13,7 +13,7 @@ export class CustomApiService implements ChannelApiInterface {
   private readonly httpService = new HttpService();
 
   async testConnection(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       this.logger.log("Testing Custom API connection...");
@@ -31,7 +31,7 @@ export class CustomApiService implements ChannelApiInterface {
             Authorization: `Bearer ${integration.accessToken}`,
             "Content-Type": "application/json",
           },
-        })
+        }),
       );
 
       if (response.status === 200) {
@@ -43,7 +43,7 @@ export class CustomApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Custom API connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -51,11 +51,11 @@ export class CustomApiService implements ChannelApiInterface {
 
   async updateInventory(
     integration: ChannelIntegration,
-    mapping: ChannelMapping
+    mapping: ChannelMapping,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Custom API inventory for: ${mapping.channelRoomTypeName}`
+        `Updating Custom API inventory for: ${mapping.channelRoomTypeName}`,
       );
 
       // Custom API inventory update
@@ -72,22 +72,22 @@ export class CustomApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.accessToken}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
         throw new Error(
-          `Failed to update Custom API inventory: ${response.statusText}`
+          `Failed to update Custom API inventory: ${response.statusText}`,
         );
       }
 
       this.logger.log(
-        `Custom API inventory updated successfully for: ${mapping.channelRoomTypeName}`
+        `Custom API inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to update Custom API inventory: ${error.message}`
+        `Failed to update Custom API inventory: ${error.message}`,
       );
       throw error;
     }
@@ -95,11 +95,11 @@ export class CustomApiService implements ChannelApiInterface {
 
   async updateRates(
     integration: ChannelIntegration,
-    ratePlan: ChannelRatePlan
+    ratePlan: ChannelRatePlan,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Custom API rates for: ${ratePlan.channelRatePlanName}`
+        `Updating Custom API rates for: ${ratePlan.channelRatePlanName}`,
       );
 
       // Custom API rate update
@@ -114,20 +114,20 @@ export class CustomApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.accessToken}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
         throw new Error(
-          `Failed to update Custom API rates: ${response.statusText}`
+          `Failed to update Custom API rates: ${response.statusText}`,
         );
       }
 
       this.logger.log(
-        `Custom API rates updated successfully for: ${ratePlan.channelRatePlanName}`
+        `Custom API rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Custom API rates: ${error.message}`);
       throw error;
     }
@@ -135,17 +135,17 @@ export class CustomApiService implements ChannelApiInterface {
 
   async updateAvailability(
     integration: ChannelIntegration,
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): Promise<void> {
     try {
       this.logger.log(
-        `Updating Custom API availability for date: ${availability.date}`
+        `Updating Custom API availability for date: ${availability.date}`,
       );
 
       // Custom API availability update
       const availabilityData = this.buildAvailabilityRequest(
         integration,
-        availability
+        availability,
       );
 
       const response = await firstValueFrom(
@@ -157,22 +157,22 @@ export class CustomApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.accessToken}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
         throw new Error(
-          `Failed to update Custom API availability: ${response.statusText}`
+          `Failed to update Custom API availability: ${response.statusText}`,
         );
       }
 
       this.logger.log(
-        `Custom API availability updated successfully for date: ${availability.date}`
+        `Custom API availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to update Custom API availability: ${error.message}`
+        `Failed to update Custom API availability: ${error.message}`,
       );
       throw error;
     }
@@ -180,7 +180,7 @@ export class CustomApiService implements ChannelApiInterface {
 
   async processWebhook(
     integration: ChannelIntegration,
-    webhookData: any
+    webhookData: any,
   ): Promise<any> {
     try {
       this.logger.log("Processing Custom API webhook...");
@@ -200,13 +200,13 @@ export class CustomApiService implements ChannelApiInterface {
           return await this.processInventoryWebhook(integration, parsedData);
         default:
           this.logger.warn(
-            `Unknown Custom API webhook type: ${parsedData.event_type}`
+            `Unknown Custom API webhook type: ${parsedData.event_type}`,
           );
           return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to process Custom API webhook: ${error.message}`
+        `Failed to process Custom API webhook: ${error.message}`,
       );
       throw error;
     }
@@ -214,14 +214,14 @@ export class CustomApiService implements ChannelApiInterface {
 
   async createGuestReservation(
     integration: ChannelIntegration,
-    guestData: any
+    guestData: any,
   ): Promise<any> {
     try {
       this.logger.log("Creating Custom API guest reservation...");
 
       const reservationData = this.buildReservationRequest(
         integration,
-        guestData
+        guestData,
       );
 
       const response = await firstValueFrom(
@@ -233,21 +233,21 @@ export class CustomApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.accessToken}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 201) {
         throw new Error(
-          `Failed to create Custom API reservation: ${response.statusText}`
+          `Failed to create Custom API reservation: ${response.statusText}`,
         );
       }
 
       this.logger.log("Custom API guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to create Custom API guest reservation: ${error.message}`
+        `Failed to create Custom API guest reservation: ${error.message}`,
       );
       throw error;
     }
@@ -256,7 +256,7 @@ export class CustomApiService implements ChannelApiInterface {
   async updateGuestReservation(
     integration: ChannelIntegration,
     guestId: string,
-    updates: any
+    updates: any,
   ): Promise<any> {
     try {
       this.logger.log(`Updating Custom API guest reservation: ${guestId}`);
@@ -264,7 +264,7 @@ export class CustomApiService implements ChannelApiInterface {
       const updateData = this.buildReservationUpdateRequest(
         integration,
         guestId,
-        updates
+        updates,
       );
 
       const response = await firstValueFrom(
@@ -276,21 +276,21 @@ export class CustomApiService implements ChannelApiInterface {
               Authorization: `Bearer ${integration.accessToken}`,
               "Content-Type": "application/json",
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
         throw new Error(
-          `Failed to update Custom API reservation: ${response.statusText}`
+          `Failed to update Custom API reservation: ${response.statusText}`,
         );
       }
 
       this.logger.log("Custom API guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to update Custom API guest reservation: ${error.message}`
+        `Failed to update Custom API guest reservation: ${error.message}`,
       );
       throw error;
     }
@@ -298,7 +298,7 @@ export class CustomApiService implements ChannelApiInterface {
 
   async cancelGuestReservation(
     integration: ChannelIntegration,
-    guestId: string
+    guestId: string,
   ): Promise<any> {
     try {
       this.logger.log(`Cancelling Custom API guest reservation: ${guestId}`);
@@ -310,21 +310,21 @@ export class CustomApiService implements ChannelApiInterface {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
             },
-          }
-        )
+          },
+        ),
       );
 
       if (response.status !== 200) {
         throw new Error(
-          `Failed to cancel Custom API reservation: ${response.statusText}`
+          `Failed to cancel Custom API reservation: ${response.statusText}`,
         );
       }
 
       this.logger.log("Custom API guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to cancel Custom API guest reservation: ${error.message}`
+        `Failed to cancel Custom API guest reservation: ${error.message}`,
       );
       throw error;
     }
@@ -339,7 +339,7 @@ export class CustomApiService implements ChannelApiInterface {
           headers: {
             Authorization: `Bearer ${integration.accessToken}`,
           },
-        })
+        }),
       );
 
       return {
@@ -348,9 +348,9 @@ export class CustomApiService implements ChannelApiInterface {
         apiInfo: response.data,
         endpoint: this.getApiEndpoint(integration),
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to get Custom API channel info: ${error.message}`
+        `Failed to get Custom API channel info: ${error.message}`,
       );
       throw error;
     }
@@ -361,7 +361,7 @@ export class CustomApiService implements ChannelApiInterface {
   }
 
   async validateCredentials(
-    integration: Partial<ChannelIntegration>
+    integration: Partial<ChannelIntegration>,
   ): Promise<boolean> {
     const testResult = await this.testConnection(integration);
     return testResult.success;
@@ -379,7 +379,7 @@ export class CustomApiService implements ChannelApiInterface {
 
   private buildInventoryRequest(
     integration: ChannelIntegration,
-    mapping: ChannelMapping
+    mapping: ChannelMapping,
   ): any {
     return {
       room_type: {
@@ -396,7 +396,7 @@ export class CustomApiService implements ChannelApiInterface {
 
   private buildRateRequest(
     integration: ChannelIntegration,
-    ratePlan: ChannelRatePlan
+    ratePlan: ChannelRatePlan,
   ): any {
     return {
       rate_plan: {
@@ -415,11 +415,16 @@ export class CustomApiService implements ChannelApiInterface {
 
   private buildAvailabilityRequest(
     integration: ChannelIntegration,
-    availability: ChannelAvailability
+    availability: ChannelAvailability,
   ): any {
     return {
       availability: {
-        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split("T")[0],
+        date: (availability.date instanceof Date
+          ? availability.date
+          : new Date(availability.date)
+        )
+          .toISOString()
+          .split("T")[0],
         room_type_id: availability.roomtypeId || "",
         available_rooms: availability.availableRooms,
         total_rooms: availability.totalRooms,
@@ -432,7 +437,7 @@ export class CustomApiService implements ChannelApiInterface {
 
   private buildReservationRequest(
     integration: ChannelIntegration,
-    guestData: any
+    guestData: any,
   ): any {
     return {
       reservation: {
@@ -452,7 +457,7 @@ export class CustomApiService implements ChannelApiInterface {
   private buildReservationUpdateRequest(
     integration: ChannelIntegration,
     guestId: string,
-    updates: any
+    updates: any,
   ): any {
     return {
       reservation: {
@@ -468,9 +473,9 @@ export class CustomApiService implements ChannelApiInterface {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to parse Custom API webhook data: ${error.message}`
+        `Failed to parse Custom API webhook data: ${error.message}`,
       );
       return webhookData;
     }
@@ -478,10 +483,10 @@ export class CustomApiService implements ChannelApiInterface {
 
   private async processReservationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     this.logger.log(
-      `Processing Custom API reservation webhook for guest: ${data.guest_name}`
+      `Processing Custom API reservation webhook for guest: ${data.guest_name}`,
     );
     return {
       processed: true,
@@ -492,10 +497,10 @@ export class CustomApiService implements ChannelApiInterface {
 
   private async processCancellationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     this.logger.log(
-      `Processing Custom API cancellation webhook for reservation: ${data.reservation_id}`
+      `Processing Custom API cancellation webhook for reservation: ${data.reservation_id}`,
     );
     return {
       processed: true,
@@ -506,10 +511,10 @@ export class CustomApiService implements ChannelApiInterface {
 
   private async processModificationWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     this.logger.log(
-      `Processing Custom API modification webhook for reservation: ${data.reservation_id}`
+      `Processing Custom API modification webhook for reservation: ${data.reservation_id}`,
     );
     return {
       processed: true,
@@ -520,10 +525,10 @@ export class CustomApiService implements ChannelApiInterface {
 
   private async processInventoryWebhook(
     integration: ChannelIntegration,
-    data: any
+    data: any,
   ): Promise<any> {
     this.logger.log(
-      `Processing Custom API inventory webhook for room type: ${data.room_type_id}`
+      `Processing Custom API inventory webhook for room type: ${data.room_type_id}`,
     );
     return {
       processed: true,

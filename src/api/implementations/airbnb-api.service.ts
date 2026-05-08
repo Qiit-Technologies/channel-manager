@@ -1,23 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { ChannelApiInterface } from '../channel-api.interface';
-import { ChannelIntegration } from '../../entities/channel-integration.entity';
-import { ChannelMapping } from '../../entities/channel-mapping.entity';
-import { ChannelAvailability } from '../../entities/channel-availability.entity';
-import { ChannelRatePlan } from '../../entities/channel-rate-plan.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
+import { ChannelApiInterface } from "../channel-api.interface";
+import { ChannelIntegration } from "../../entities/channel-integration.entity";
+import { ChannelMapping } from "../../entities/channel-mapping.entity";
+import { ChannelAvailability } from "../../entities/channel-availability.entity";
+import { ChannelRatePlan } from "../../entities/channel-rate-plan.entity";
 
 @Injectable()
 export class AirbnbApiService implements ChannelApiInterface {
   private readonly logger = new Logger(AirbnbApiService.name);
-  private readonly baseUrl = 'https://api.airbnb.com/v2';
+  private readonly baseUrl = "https://api.airbnb.com/v2";
   private readonly httpService = new HttpService();
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log('Testing Airbnb connection...');
+      this.logger.log("Testing Airbnb connection...");
 
       // Test API credentials by making a simple request to get listing info
       const response = await firstValueFrom(
@@ -25,15 +25,15 @@ export class AirbnbApiService implements ChannelApiInterface {
           `${this.baseUrl}/listings/${integration.channelPropertyId}`,
           {
             headers: {
-              'X-Airbnb-API-Key': integration.apiKey,
-              'Content-Type': 'application/json',
+              "X-Airbnb-API-Key": integration.apiKey,
+              "Content-Type": "application/json",
             },
           },
         ),
       );
 
       if (response.status === 200) {
-        this.logger.log('Airbnb connection test successful');
+        this.logger.log("Airbnb connection test successful");
         return { success: true };
       } else {
         return {
@@ -41,7 +41,7 @@ export class AirbnbApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Airbnb connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -65,8 +65,8 @@ export class AirbnbApiService implements ChannelApiInterface {
           inventoryData,
           {
             headers: {
-              'X-Airbnb-API-Key': integration.apiKey,
-              'Content-Type': 'application/json',
+              "X-Airbnb-API-Key": integration.apiKey,
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -81,7 +81,7 @@ export class AirbnbApiService implements ChannelApiInterface {
       this.logger.log(
         `Airbnb inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Airbnb inventory: ${error.message}`);
       throw error;
     }
@@ -105,8 +105,8 @@ export class AirbnbApiService implements ChannelApiInterface {
           pricingData,
           {
             headers: {
-              'X-Airbnb-API-Key': integration.apiKey,
-              'Content-Type': 'application/json',
+              "X-Airbnb-API-Key": integration.apiKey,
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -121,7 +121,7 @@ export class AirbnbApiService implements ChannelApiInterface {
       this.logger.log(
         `Airbnb rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Airbnb rates: ${error.message}`);
       throw error;
     }
@@ -145,8 +145,8 @@ export class AirbnbApiService implements ChannelApiInterface {
           calendarData,
           {
             headers: {
-              'X-Airbnb-API-Key': integration.apiKey,
-              'Content-Type': 'application/json',
+              "X-Airbnb-API-Key": integration.apiKey,
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -161,7 +161,7 @@ export class AirbnbApiService implements ChannelApiInterface {
       this.logger.log(
         `Airbnb availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Airbnb availability: ${error.message}`,
       );
@@ -174,24 +174,24 @@ export class AirbnbApiService implements ChannelApiInterface {
     webhookData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Processing Airbnb webhook...');
+      this.logger.log("Processing Airbnb webhook...");
 
       // Parse Airbnb webhook data
       const parsedData = this.parseWebhookData(webhookData);
 
       // Process based on webhook type
       switch (parsedData.type) {
-        case 'reservation_created':
+        case "reservation_created":
           return await this.processReservationWebhook(integration, parsedData);
-        case 'reservation_cancelled':
+        case "reservation_cancelled":
           return await this.processCancellationWebhook(integration, parsedData);
-        case 'reservation_updated':
+        case "reservation_updated":
           return await this.processModificationWebhook(integration, parsedData);
         default:
           this.logger.warn(`Unknown Airbnb webhook type: ${parsedData.type}`);
-          return { processed: false, reason: 'Unknown webhook type' };
+          return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to process Airbnb webhook: ${error.message}`);
       throw error;
     }
@@ -202,7 +202,7 @@ export class AirbnbApiService implements ChannelApiInterface {
     guestData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Creating Airbnb guest reservation...');
+      this.logger.log("Creating Airbnb guest reservation...");
 
       const reservationData = this.buildReservationRequest(
         integration,
@@ -212,8 +212,8 @@ export class AirbnbApiService implements ChannelApiInterface {
       const response = await firstValueFrom(
         this.httpService.post(`${this.baseUrl}/reservations`, reservationData, {
           headers: {
-            'X-Airbnb-API-Key': integration.apiKey,
-            'Content-Type': 'application/json',
+            "X-Airbnb-API-Key": integration.apiKey,
+            "Content-Type": "application/json",
           },
         }),
       );
@@ -224,9 +224,9 @@ export class AirbnbApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Airbnb guest reservation created successfully');
+      this.logger.log("Airbnb guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to create Airbnb guest reservation: ${error.message}`,
       );
@@ -254,8 +254,8 @@ export class AirbnbApiService implements ChannelApiInterface {
           updateData,
           {
             headers: {
-              'X-Airbnb-API-Key': integration.apiKey,
-              'Content-Type': 'application/json',
+              "X-Airbnb-API-Key": integration.apiKey,
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -267,9 +267,9 @@ export class AirbnbApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Airbnb guest reservation updated successfully');
+      this.logger.log("Airbnb guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Airbnb guest reservation: ${error.message}`,
       );
@@ -287,7 +287,7 @@ export class AirbnbApiService implements ChannelApiInterface {
       const response = await firstValueFrom(
         this.httpService.delete(`${this.baseUrl}/reservations/${guestId}`, {
           headers: {
-            'X-Airbnb-API-Key': integration.apiKey,
+            "X-Airbnb-API-Key": integration.apiKey,
           },
         }),
       );
@@ -298,9 +298,9 @@ export class AirbnbApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Airbnb guest reservation cancelled successfully');
+      this.logger.log("Airbnb guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to cancel Airbnb guest reservation: ${error.message}`,
       );
@@ -310,25 +310,25 @@ export class AirbnbApiService implements ChannelApiInterface {
 
   async getChannelInfo(integration: ChannelIntegration): Promise<any> {
     try {
-      this.logger.log('Getting Airbnb channel info...');
+      this.logger.log("Getting Airbnb channel info...");
 
       const response = await firstValueFrom(
         this.httpService.get(
           `${this.baseUrl}/listings/${integration.channelPropertyId}`,
           {
             headers: {
-              'X-Airbnb-API-Key': integration.apiKey,
+              "X-Airbnb-API-Key": integration.apiKey,
             },
           },
         ),
       );
 
       return {
-        channel: 'Airbnb',
-        status: 'active',
+        channel: "Airbnb",
+        status: "active",
         listingInfo: response.data,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get Airbnb channel info: ${error.message}`);
       throw error;
     }
@@ -353,7 +353,7 @@ export class AirbnbApiService implements ChannelApiInterface {
     return {
       listing: {
         room_type: mapping.channelRoomTypeName,
-        description: mapping.channelDescription || '',
+        description: mapping.channelDescription || "",
         amenities: mapping.channelAmenities || [],
         images: mapping.channelImages || [],
       },
@@ -367,7 +367,7 @@ export class AirbnbApiService implements ChannelApiInterface {
     return {
       pricing: {
         base_price: ratePlan.baseRate,
-        currency: ratePlan.currency || 'USD',
+        currency: ratePlan.currency || "USD",
         seasonal_pricing: ratePlan.seasonalRates || {},
         weekend_pricing: ratePlan.dayOfWeekRates || {},
         special_dates: ratePlan.specialDates || {},
@@ -381,12 +381,17 @@ export class AirbnbApiService implements ChannelApiInterface {
   ): any {
     return {
       calendar: {
-        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split('T')[0],
-        available: availability.status === 'AVAILABLE',
+        date: (availability.date instanceof Date
+          ? availability.date
+          : new Date(availability.date)
+        )
+          .toISOString()
+          .split("T")[0],
+        available: availability.status === "AVAILABLE",
         min_nights: availability.restrictions?.minStay || 1,
         max_nights: availability.restrictions?.maxStay || 30,
         price: availability.rate,
-        currency: availability.currency || 'USD',
+        currency: availability.currency || "USD",
       },
     };
   }
@@ -403,7 +408,7 @@ export class AirbnbApiService implements ChannelApiInterface {
         check_out: guestData.endDate,
         number_of_guests: guestData.numberOfGuests || 1,
         total_price: guestData.finalPrice,
-        currency: guestData.currency || 'USD',
+        currency: guestData.currency || "USD",
       },
     };
   }
@@ -423,11 +428,11 @@ export class AirbnbApiService implements ChannelApiInterface {
 
   private parseWebhookData(webhookData: any): any {
     try {
-      if (typeof webhookData === 'string') {
+      if (typeof webhookData === "string") {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to parse Airbnb webhook data: ${error.message}`,
       );
@@ -444,7 +449,7 @@ export class AirbnbApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'reservation',
+      type: "reservation",
       guestId: data.reservation_id,
     };
   }
@@ -458,7 +463,7 @@ export class AirbnbApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'cancellation',
+      type: "cancellation",
       guestId: data.reservation_id,
     };
   }
@@ -472,7 +477,7 @@ export class AirbnbApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'modification',
+      type: "modification",
       guestId: data.reservation_id,
     };
   }

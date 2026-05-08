@@ -70,7 +70,7 @@ export class CornicheApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Corniche connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -107,7 +107,7 @@ export class CornicheApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Corniche inventory update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Corniche inventory update failed: ${error.message}`);
       throw error;
     }
@@ -144,7 +144,7 @@ export class CornicheApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Corniche rate update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Corniche rate update failed: ${error.message}`);
       throw error;
     }
@@ -184,7 +184,7 @@ export class CornicheApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Corniche availability update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Corniche availability update failed: ${error.message}`,
       );
@@ -218,7 +218,7 @@ export class CornicheApiService implements ChannelApiInterface {
           this.logger.warn(`Unknown webhook type: ${parsedData.type}`);
           return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Corniche webhook processing failed: ${error.message}`);
       throw error;
     }
@@ -257,7 +257,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
       this.logger.log("Corniche guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Corniche guest reservation creation failed: ${error.message}`,
       );
@@ -300,7 +300,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
       this.logger.log("Corniche guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Corniche guest reservation update failed: ${error.message}`,
       );
@@ -335,7 +335,7 @@ export class CornicheApiService implements ChannelApiInterface {
 
       this.logger.log("Corniche guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Corniche guest reservation cancellation failed: ${error.message}`,
       );
@@ -370,7 +370,7 @@ export class CornicheApiService implements ChannelApiInterface {
         hotelInfo: response.data,
         supportedHotel: true,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to get Corniche channel info: ${error.message}`,
       );

@@ -1,23 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { ChannelApiInterface } from '../channel-api.interface';
-import { ChannelIntegration } from '../../entities/channel-integration.entity';
-import { ChannelMapping } from '../../entities/channel-mapping.entity';
-import { ChannelAvailability } from '../../entities/channel-availability.entity';
-import { ChannelRatePlan } from '../../entities/channel-rate-plan.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
+import { ChannelApiInterface } from "../channel-api.interface";
+import { ChannelIntegration } from "../../entities/channel-integration.entity";
+import { ChannelMapping } from "../../entities/channel-mapping.entity";
+import { ChannelAvailability } from "../../entities/channel-availability.entity";
+import { ChannelRatePlan } from "../../entities/channel-rate-plan.entity";
 
 @Injectable()
 export class AgodaApiService implements ChannelApiInterface {
   private readonly logger = new Logger(AgodaApiService.name);
-  private readonly baseUrl = 'https://api.agoda.com/v1';
+  private readonly baseUrl = "https://api.agoda.com/v1";
   private readonly httpService = new HttpService();
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log('Testing Agoda connection...');
+      this.logger.log("Testing Agoda connection...");
 
       // Test API credentials by making a simple request to get hotel info
       const response = await firstValueFrom(
@@ -26,14 +26,14 @@ export class AgodaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
       );
 
       if (response.status === 200) {
-        this.logger.log('Agoda connection test successful');
+        this.logger.log("Agoda connection test successful");
         return { success: true };
       } else {
         return {
@@ -41,7 +41,7 @@ export class AgodaApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Agoda connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -66,7 +66,7 @@ export class AgodaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -81,7 +81,7 @@ export class AgodaApiService implements ChannelApiInterface {
       this.logger.log(
         `Agoda inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Agoda inventory: ${error.message}`);
       throw error;
     }
@@ -106,7 +106,7 @@ export class AgodaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -119,7 +119,7 @@ export class AgodaApiService implements ChannelApiInterface {
       this.logger.log(
         `Agoda rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Agoda rates: ${error.message}`);
       throw error;
     }
@@ -147,7 +147,7 @@ export class AgodaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -162,7 +162,7 @@ export class AgodaApiService implements ChannelApiInterface {
       this.logger.log(
         `Agoda availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Agoda availability: ${error.message}`,
       );
@@ -175,26 +175,26 @@ export class AgodaApiService implements ChannelApiInterface {
     webhookData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Processing Agoda webhook...');
+      this.logger.log("Processing Agoda webhook...");
 
       // Parse Agoda webhook data
       const parsedData = this.parseWebhookData(webhookData);
 
       // Process based on webhook type
       switch (parsedData.event_type) {
-        case 'RESERVATION_CREATED':
+        case "RESERVATION_CREATED":
           return await this.processReservationWebhook(integration, parsedData);
-        case 'RESERVATION_CANCELLED':
+        case "RESERVATION_CANCELLED":
           return await this.processCancellationWebhook(integration, parsedData);
-        case 'RESERVATION_MODIFIED':
+        case "RESERVATION_MODIFIED":
           return await this.processModificationWebhook(integration, parsedData);
         default:
           this.logger.warn(
             `Unknown Agoda webhook type: ${parsedData.event_type}`,
           );
-          return { processed: false, reason: 'Unknown webhook type' };
+          return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to process Agoda webhook: ${error.message}`);
       throw error;
     }
@@ -205,7 +205,7 @@ export class AgodaApiService implements ChannelApiInterface {
     guestData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Creating Agoda guest reservation...');
+      this.logger.log("Creating Agoda guest reservation...");
 
       const reservationData = this.buildReservationRequest(
         integration,
@@ -216,7 +216,7 @@ export class AgodaApiService implements ChannelApiInterface {
         this.httpService.post(`${this.baseUrl}/reservations`, reservationData, {
           headers: {
             Authorization: `Bearer ${integration.accessToken}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }),
       );
@@ -227,9 +227,9 @@ export class AgodaApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Agoda guest reservation created successfully');
+      this.logger.log("Agoda guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to create Agoda guest reservation: ${error.message}`,
       );
@@ -258,7 +258,7 @@ export class AgodaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -270,9 +270,9 @@ export class AgodaApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Agoda guest reservation updated successfully');
+      this.logger.log("Agoda guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Agoda guest reservation: ${error.message}`,
       );
@@ -301,9 +301,9 @@ export class AgodaApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Agoda guest reservation cancelled successfully');
+      this.logger.log("Agoda guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to cancel Agoda guest reservation: ${error.message}`,
       );
@@ -313,7 +313,7 @@ export class AgodaApiService implements ChannelApiInterface {
 
   async getChannelInfo(integration: ChannelIntegration): Promise<any> {
     try {
-      this.logger.log('Getting Agoda channel info...');
+      this.logger.log("Getting Agoda channel info...");
 
       const response = await firstValueFrom(
         this.httpService.get(
@@ -327,11 +327,11 @@ export class AgodaApiService implements ChannelApiInterface {
       );
 
       return {
-        channel: 'Agoda',
-        status: 'active',
+        channel: "Agoda",
+        status: "active",
         hotelInfo: response.data,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get Agoda channel info: ${error.message}`);
       throw error;
     }
@@ -356,11 +356,11 @@ export class AgodaApiService implements ChannelApiInterface {
     return {
       room_type: {
         name: mapping.channelRoomTypeName,
-        description: mapping.channelDescription || '',
+        description: mapping.channelDescription || "",
         amenities: mapping.channelAmenities || [],
         images: mapping.channelImages || [],
         capacity: mapping.mappingRules?.capacity || 2,
-        languages: ['en', 'zh', 'ja', 'ko'], // Agoda supports multiple languages
+        languages: ["en", "zh", "ja", "ko"], // Agoda supports multiple languages
       },
     };
   }
@@ -372,12 +372,12 @@ export class AgodaApiService implements ChannelApiInterface {
     return {
       rates: {
         base_rate: ratePlan.baseRate,
-        currency: ratePlan.currency || 'USD',
+        currency: ratePlan.currency || "USD",
         seasonal_rates: ratePlan.seasonalRates || {},
         day_of_week_rates: ratePlan.dayOfWeekRates || {},
         special_dates: ratePlan.specialDates || {},
         restrictions: ratePlan.restrictions || {},
-        languages: ['en', 'zh', 'ja', 'ko'], // Multi-language support
+        languages: ["en", "zh", "ja", "ko"], // Multi-language support
       },
     };
   }
@@ -388,10 +388,15 @@ export class AgodaApiService implements ChannelApiInterface {
   ): any {
     return {
       availability: {
-        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split('T')[0],
+        date: (availability.date instanceof Date
+          ? availability.date
+          : new Date(availability.date)
+        )
+          .toISOString()
+          .split("T")[0],
         available_rooms: availability.availableRooms,
         total_rooms: availability.totalRooms,
-        status: availability.status === 'AVAILABLE' ? 'OPEN' : 'CLOSED',
+        status: availability.status === "AVAILABLE" ? "OPEN" : "CLOSED",
         restrictions: availability.restrictions || {},
       },
     };
@@ -410,8 +415,8 @@ export class AgodaApiService implements ChannelApiInterface {
         room_type_id: guestData.roomTypeId,
         number_of_guests: guestData.numberOfGuests || 1,
         total_price: guestData.finalPrice,
-        currency: guestData.currency || 'USD',
-        language: guestData.language || 'en',
+        currency: guestData.currency || "USD",
+        language: guestData.language || "en",
       },
     };
   }
@@ -431,11 +436,11 @@ export class AgodaApiService implements ChannelApiInterface {
 
   private parseWebhookData(webhookData: any): any {
     try {
-      if (typeof webhookData === 'string') {
+      if (typeof webhookData === "string") {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to parse Agoda webhook data: ${error.message}`);
       return webhookData;
     }
@@ -450,7 +455,7 @@ export class AgodaApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'reservation',
+      type: "reservation",
       guestId: data.reservation_id,
     };
   }
@@ -464,7 +469,7 @@ export class AgodaApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'cancellation',
+      type: "cancellation",
       guestId: data.reservation_id,
     };
   }
@@ -478,7 +483,7 @@ export class AgodaApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'modification',
+      type: "modification",
       guestId: data.reservation_id,
     };
   }

@@ -31,7 +31,7 @@ export class PmsSyncService {
     try {
       const hotel = await this.oreonHotelClient.getHotel(hotelId);
       return hotel?.name || null;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.warn(
         `Failed to get property name for hotelId ${hotelId}: ${error.message}`,
       );
@@ -54,7 +54,7 @@ export class PmsSyncService {
       // Note: In the future, we could auto-create mappings here if they don't exist
       // For now, we just log the sync to ensure connectivity
       this.logger.log(`Room type sync completed for hotel: ${hotelId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Room type sync failed for hotel ${hotelId}: ${error.message}`,
       );
@@ -135,7 +135,7 @@ export class PmsSyncService {
       }
 
       this.logger.log(`Inventory sync completed for hotel: ${hotelId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Inventory sync failed for hotel ${hotelId}: ${error.message}`,
       );
@@ -205,7 +205,7 @@ export class PmsSyncService {
       }
 
       this.logger.log(`Rate sync completed for hotel: ${hotelId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Rate sync failed for hotel ${hotelId}: ${error.message}`,
       );
@@ -222,7 +222,7 @@ export class PmsSyncService {
       // This remains a placeholder for the periodic deep sync
 
       this.logger.log(`Guest booking sync completed for hotel: ${hotelId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Guest booking sync failed for hotel ${hotelId}: ${error.message}`,
       );
@@ -242,7 +242,7 @@ export class PmsSyncService {
       ]);
 
       this.logger.log(`Full sync completed for hotel: ${hotelId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Full sync failed for hotel ${hotelId}: ${error.message}`,
       );
@@ -260,7 +260,7 @@ export class PmsSyncService {
       for (const integration of activeIntegrations) {
         try {
           await this.fullSync(integration.hotelId);
-        } catch (error) {
+        } catch (error: any) {
           this.logger.error(
             `Sync failed for integration ${integration.id}: ${error.message}`,
           );
@@ -268,7 +268,7 @@ export class PmsSyncService {
       }
 
       this.logger.log("Sync completed for all active integrations");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to sync all integrations: ${error.message}`);
     }
   }
@@ -279,7 +279,7 @@ export class PmsSyncService {
     try {
       this.logger.log("Starting scheduled sync");
       await this.syncAllActiveIntegrations();
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Scheduled sync failed: ${error.message}`);
     }
   }
@@ -295,7 +295,7 @@ export class PmsSyncService {
       await this.updateAvailabilityForGuest(guestId, hotelId, "CHECK_IN");
 
       this.logger.log(`Guest check-in sync completed: ${guestId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Guest check-in sync failed: ${error.message}`);
     }
   }
@@ -311,7 +311,7 @@ export class PmsSyncService {
       await this.updateAvailabilityForGuest(guestId, hotelId, "CHECK_OUT");
 
       this.logger.log(`Guest check-out sync completed: ${guestId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Guest check-out sync failed: ${error.message}`);
     }
   }
@@ -327,7 +327,7 @@ export class PmsSyncService {
       await this.updateAvailabilityForGuest(guestId, hotelId, "NO_SHOW");
 
       this.logger.log(`Guest no-show sync completed: ${guestId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Guest no-show sync failed: ${error.message}`);
     }
   }
@@ -479,7 +479,7 @@ export class PmsSyncService {
       this.logger.log(
         `Availability updated and webhook broadcasted for guest ${guestId} event: ${eventType}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update availability for guest ${guestId}: ${error.message}`,
       );

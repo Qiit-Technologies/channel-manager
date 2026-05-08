@@ -55,7 +55,7 @@ async function createIntegration() {
     );
 
     console.log("Integration created:", response.data);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error:", error.response?.data || error.message);
   }
 }
@@ -82,7 +82,7 @@ async function createHotelbedsIntegration() {
     );
 
     console.log("Hotelbeds integration created:", response.data);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error:", error.response?.data || error.message);
   }
 }
@@ -97,7 +97,7 @@ async function getIntegrations() {
     });
 
     console.log("Integrations:", response.data);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error:", error.response?.data || error.message);
   }
 }
@@ -269,4 +269,4 @@ curl -X POST \
 
 - API key required for all protected endpoints
 - Strict authentication enforced
-- Enhanced security features enabled 
+- Enhanced security features enabled

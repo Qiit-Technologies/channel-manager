@@ -26,7 +26,7 @@ async function runSeed() {
     
     await dataSource.destroy();
     console.log('✅ Database connection closed');
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Seeding failed:', error);
     process.exit(1);
   }

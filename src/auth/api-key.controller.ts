@@ -9,13 +9,13 @@ import {
   UseGuards,
   HttpStatus,
   HttpException,
-} from '@nestjs/common';
-import { ApiKeyService } from './api-key.service';
-import { CreateApiKeyDto } from '../dto/create-api-key.dto';
-import { RequireApiKey } from './api-key.decorator';
-import { EnhancedApiKeyGuard } from './enhanced-api-key.guard';
+} from "@nestjs/common";
+import { ApiKeyService } from "./api-key.service";
+import { CreateApiKeyDto } from "../dto/create-api-key.dto";
+import { RequireApiKey } from "./api-key.decorator";
+import { EnhancedApiKeyGuard } from "./enhanced-api-key.guard";
 
-@Controller('api-keys')
+@Controller("api-keys")
 @UseGuards(EnhancedApiKeyGuard)
 export class ApiKeyController {
   constructor(private readonly apiKeyService: ApiKeyService) {}
@@ -29,22 +29,22 @@ export class ApiKeyController {
 
       // Here you would typically save the API key to the database
       // For now, we'll just return the generated key
-      
+
       return {
-        message: 'API key created successfully',
+        message: "API key created successfully",
         apiKey,
         keyHash,
         ...createApiKeyDto,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new HttpException(
-        'Failed to create API key',
+        "Failed to create API key",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get('generate')
+  @Get("generate")
   @RequireApiKey()
   async generateApiKey() {
     try {
@@ -52,21 +52,21 @@ export class ApiKeyController {
       const keyHash = this.apiKeyService.hashApiKey(apiKey);
 
       return {
-        message: 'API key generated successfully',
+        message: "API key generated successfully",
         apiKey,
         keyHash,
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new HttpException(
-        'Failed to generate API key',
+        "Failed to generate API key",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get('validate/:apiKey')
-  async validateApiKey(@Param('apiKey') apiKey: string) {
+  @Get("validate/:apiKey")
+  async validateApiKey(@Param("apiKey") apiKey: string) {
     try {
       const isValid = this.apiKeyService.validateApiKeyFormat(apiKey);
       const parsed = this.apiKeyService.parseApiKey(apiKey);
@@ -76,28 +76,30 @@ export class ApiKeyController {
         isValid,
         parsed,
         isExpired,
-        message: isValid ? 'API key format is valid' : 'Invalid API key format',
+        message: isValid ? "API key format is valid" : "Invalid API key format",
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new HttpException(
-        'Failed to validate API key',
+        "Failed to validate API key",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get('info')
+  @Get("info")
   @RequireApiKey()
   async getApiKeyInfo() {
     return {
-      message: 'API key is valid',
+      message: "API key is valid",
       timestamp: new Date().toISOString(),
       endpoints: {
-        'POST /api-keys': 'Create new API key (requires authentication)',
-        'GET /api-keys/generate': 'Generate new API key (requires authentication)',
-        'GET /api-keys/validate/:apiKey': 'Validate API key format (public)',
-        'GET /api-keys/info': 'Get API key information (requires authentication)',
+        "POST /api-keys": "Create new API key (requires authentication)",
+        "GET /api-keys/generate":
+          "Generate new API key (requires authentication)",
+        "GET /api-keys/validate/:apiKey": "Validate API key format (public)",
+        "GET /api-keys/info":
+          "Get API key information (requires authentication)",
       },
     };
   }
-} 
+}

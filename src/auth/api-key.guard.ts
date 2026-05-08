@@ -87,7 +87,7 @@ export class ApiKeyGuard implements CanActivate {
           return true;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       // If database lookup fails, fall back to environment variable
     }
 

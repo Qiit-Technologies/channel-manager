@@ -1,23 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { ChannelApiInterface } from '../channel-api.interface';
-import { ChannelIntegration } from '../../entities/channel-integration.entity';
-import { ChannelMapping } from '../../entities/channel-mapping.entity';
-import { ChannelAvailability } from '../../entities/channel-availability.entity';
-import { ChannelRatePlan } from '../../entities/channel-rate-plan.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
+import { ChannelApiInterface } from "../channel-api.interface";
+import { ChannelIntegration } from "../../entities/channel-integration.entity";
+import { ChannelMapping } from "../../entities/channel-mapping.entity";
+import { ChannelAvailability } from "../../entities/channel-availability.entity";
+import { ChannelRatePlan } from "../../entities/channel-rate-plan.entity";
 
 @Injectable()
 export class TripAdvisorApiService implements ChannelApiInterface {
   private readonly logger = new Logger(TripAdvisorApiService.name);
-  private readonly baseUrl = 'https://api.tripadvisor.com/v1';
+  private readonly baseUrl = "https://api.tripadvisor.com/v1";
   private readonly httpService = new HttpService();
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log('Testing TripAdvisor connection...');
+      this.logger.log("Testing TripAdvisor connection...");
 
       // Test API credentials by making a simple request to get property info
       const response = await firstValueFrom(
@@ -26,14 +26,14 @@ export class TripAdvisorApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
       );
 
       if (response.status === 200) {
-        this.logger.log('TripAdvisor connection test successful');
+        this.logger.log("TripAdvisor connection test successful");
         return { success: true };
       } else {
         return {
@@ -41,7 +41,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`TripAdvisor connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -66,7 +66,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -81,7 +81,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
       this.logger.log(
         `TripAdvisor inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update TripAdvisor inventory: ${error.message}`,
       );
@@ -108,7 +108,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -123,7 +123,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
       this.logger.log(
         `TripAdvisor rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update TripAdvisor rates: ${error.message}`);
       throw error;
     }
@@ -151,7 +151,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -166,7 +166,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
       this.logger.log(
         `TripAdvisor availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update TripAdvisor availability: ${error.message}`,
       );
@@ -179,26 +179,26 @@ export class TripAdvisorApiService implements ChannelApiInterface {
     webhookData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Processing TripAdvisor webhook...');
+      this.logger.log("Processing TripAdvisor webhook...");
 
       // Parse TripAdvisor webhook data
       const parsedData = this.parseWebhookData(webhookData);
 
       // Process based on webhook type
       switch (parsedData.event_type) {
-        case 'REVIEW_CREATED':
+        case "REVIEW_CREATED":
           return await this.processReviewWebhook(integration, parsedData);
-        case 'REVIEW_UPDATED':
+        case "REVIEW_UPDATED":
           return await this.processReviewUpdateWebhook(integration, parsedData);
-        case 'BOOKING_CREATED':
+        case "BOOKING_CREATED":
           return await this.processReservationWebhook(integration, parsedData);
         default:
           this.logger.warn(
             `Unknown TripAdvisor webhook type: ${parsedData.event_type}`,
           );
-          return { processed: false, reason: 'Unknown webhook type' };
+          return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to process TripAdvisor webhook: ${error.message}`,
       );
@@ -211,7 +211,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
     guestData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Creating TripAdvisor guest reservation...');
+      this.logger.log("Creating TripAdvisor guest reservation...");
 
       const reservationData = this.buildReservationRequest(
         integration,
@@ -222,7 +222,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
         this.httpService.post(`${this.baseUrl}/bookings`, reservationData, {
           headers: {
             Authorization: `Bearer ${integration.accessToken}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }),
       );
@@ -233,9 +233,9 @@ export class TripAdvisorApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('TripAdvisor guest reservation created successfully');
+      this.logger.log("TripAdvisor guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to create TripAdvisor guest reservation: ${error.message}`,
       );
@@ -264,7 +264,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -276,9 +276,9 @@ export class TripAdvisorApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('TripAdvisor guest reservation updated successfully');
+      this.logger.log("TripAdvisor guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update TripAdvisor guest reservation: ${error.message}`,
       );
@@ -307,9 +307,9 @@ export class TripAdvisorApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('TripAdvisor guest reservation cancelled successfully');
+      this.logger.log("TripAdvisor guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to cancel TripAdvisor guest reservation: ${error.message}`,
       );
@@ -319,7 +319,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
 
   async getChannelInfo(integration: ChannelIntegration): Promise<any> {
     try {
-      this.logger.log('Getting TripAdvisor channel info...');
+      this.logger.log("Getting TripAdvisor channel info...");
 
       const response = await firstValueFrom(
         this.httpService.get(
@@ -333,11 +333,11 @@ export class TripAdvisorApiService implements ChannelApiInterface {
       );
 
       return {
-        channel: 'TripAdvisor',
-        status: 'active',
+        channel: "TripAdvisor",
+        status: "active",
         propertyInfo: response.data,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to get TripAdvisor channel info: ${error.message}`,
       );
@@ -364,7 +364,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
     return {
       listing: {
         room_type: mapping.channelRoomTypeName,
-        description: mapping.channelDescription || '',
+        description: mapping.channelDescription || "",
         amenities: mapping.channelAmenities || [],
         images: mapping.channelImages || [],
         capacity: mapping.mappingRules?.capacity || 2,
@@ -379,7 +379,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
     return {
       rates: {
         base_rate: ratePlan.baseRate,
-        currency: ratePlan.currency || 'USD',
+        currency: ratePlan.currency || "USD",
         seasonal_rates: ratePlan.seasonalRates || {},
         day_of_week_rates: ratePlan.dayOfWeekRates || {},
         special_dates: ratePlan.specialDates || {},
@@ -394,10 +394,15 @@ export class TripAdvisorApiService implements ChannelApiInterface {
   ): any {
     return {
       availability: {
-        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split('T')[0],
+        date: (availability.date instanceof Date
+          ? availability.date
+          : new Date(availability.date)
+        )
+          .toISOString()
+          .split("T")[0],
         available_rooms: availability.availableRooms,
         total_rooms: availability.totalRooms,
-        status: availability.status === 'AVAILABLE' ? 'OPEN' : 'CLOSED',
+        status: availability.status === "AVAILABLE" ? "OPEN" : "CLOSED",
         restrictions: availability.restrictions || {},
       },
     };
@@ -416,7 +421,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
         room_type_id: guestData.roomTypeId,
         number_of_guests: guestData.numberOfGuests || 1,
         total_price: guestData.finalPrice,
-        currency: guestData.currency || 'USD',
+        currency: guestData.currency || "USD",
       },
     };
   }
@@ -436,11 +441,11 @@ export class TripAdvisorApiService implements ChannelApiInterface {
 
   private parseWebhookData(webhookData: any): any {
     try {
-      if (typeof webhookData === 'string') {
+      if (typeof webhookData === "string") {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to parse TripAdvisor webhook data: ${error.message}`,
       );
@@ -455,7 +460,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
     this.logger.log(
       `Processing TripAdvisor review webhook for guest: ${data.guest_name}`,
     );
-    return { processed: true, type: 'review', reviewId: data.review_id };
+    return { processed: true, type: "review", reviewId: data.review_id };
   }
 
   private async processReviewUpdateWebhook(
@@ -465,7 +470,7 @@ export class TripAdvisorApiService implements ChannelApiInterface {
     this.logger.log(
       `Processing TripAdvisor review update webhook for review: ${data.review_id}`,
     );
-    return { processed: true, type: 'review_update', reviewId: data.review_id };
+    return { processed: true, type: "review_update", reviewId: data.review_id };
   }
 
   private async processReservationWebhook(
@@ -475,6 +480,6 @@ export class TripAdvisorApiService implements ChannelApiInterface {
     this.logger.log(
       `Processing TripAdvisor reservation webhook for guest: ${data.guest_name}`,
     );
-    return { processed: true, type: 'reservation', guestId: data.booking_id };
+    return { processed: true, type: "reservation", guestId: data.booking_id };
   }
 }

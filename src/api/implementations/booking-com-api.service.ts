@@ -17,14 +17,18 @@ export class BookingComApiService implements ChannelApiInterface {
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log(`Testing Booking.com connection for property: ${integration.channelPropertyId}`);
+      this.logger.log(
+        `Testing Booking.com connection for property: ${integration.channelPropertyId}`,
+      );
 
       if (!integration.apiKey || !integration.apiSecret) {
         throw new Error("API credentials (key and secret) are required");
       }
 
       if (!integration.channelPropertyId) {
-        throw new Error("Channel property ID is required for testing connection");
+        throw new Error(
+          "Channel property ID is required for testing connection",
+        );
       }
 
       // Attempt to fetch property info to validate credentials
@@ -42,16 +46,23 @@ export class BookingComApiService implements ChannelApiInterface {
         this.logger.log("Booking.com connection test successful");
         return { success: true };
       } else {
-        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `API returned ${response.status}: ${response.statusText}`,
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error.message;
       this.logger.error(`Booking.com connection test failed: ${errorMessage}`);
-      
+
       // For demo purposes, we might want to be less strict if the endpoint is not reachable
-      if (process.env.NODE_ENV === 'development' && error.code === 'ECONNREFUSED') {
-         this.logger.warn("Booking.com API unreachable, but allowing in development mode");
-         return { success: true };
+      if (
+        process.env.NODE_ENV === "development" &&
+        error.code === "ECONNREFUSED"
+      ) {
+        this.logger.warn(
+          "Booking.com API unreachable, but allowing in development mode",
+        );
+        return { success: true };
       }
 
       return { success: false, error: errorMessage };
@@ -89,7 +100,7 @@ export class BookingComApiService implements ChannelApiInterface {
       this.logger.log(
         `Inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update inventory: ${error.message}`);
       throw error;
     }
@@ -126,7 +137,7 @@ export class BookingComApiService implements ChannelApiInterface {
       this.logger.log(
         `Rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update rates: ${error.message}`);
       throw error;
     }
@@ -170,7 +181,7 @@ export class BookingComApiService implements ChannelApiInterface {
       this.logger.log(
         `Availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update availability: ${error.message}`);
       throw error;
     }
@@ -198,7 +209,7 @@ export class BookingComApiService implements ChannelApiInterface {
           this.logger.warn(`Unknown webhook type: ${parsedData.type}`);
           return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to process webhook: ${error.message}`);
       throw error;
     }
@@ -239,7 +250,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
       this.logger.log("Guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to create guest reservation: ${error.message}`);
       throw error;
     }
@@ -282,7 +293,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
       this.logger.log("Guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update guest reservation: ${error.message}`);
       throw error;
     }
@@ -313,7 +324,7 @@ export class BookingComApiService implements ChannelApiInterface {
 
       this.logger.log("Guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to cancel guest reservation: ${error.message}`);
       throw error;
     }
@@ -337,7 +348,7 @@ export class BookingComApiService implements ChannelApiInterface {
       );
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get channel info: ${error.message}`);
       throw error;
     }
@@ -451,7 +462,7 @@ export class BookingComApiService implements ChannelApiInterface {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to parse webhook data: ${error.message}`);
       return webhookData;
     }

@@ -91,7 +91,7 @@ export class ChannelSyncEngine {
       this.logger.log(
         `Sync completed successfully for: ${integration.channelName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Sync failed for ${integration.channelName}: ${error.message}`,
       );
@@ -134,7 +134,7 @@ export class ChannelSyncEngine {
       this.logger.log(
         `Real-time availability sync completed for: ${integration.channelName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Real-time availability sync failed: ${error.message}`);
       throw error;
     }
@@ -160,7 +160,7 @@ export class ChannelSyncEngine {
       try {
         await channelApi.updateInventory(integration, mapping);
         recordsSuccess++;
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error(
           `Failed to sync inventory for mapping ${mapping.id}: ${error.message}`,
         );
@@ -192,7 +192,7 @@ export class ChannelSyncEngine {
       try {
         await channelApi.updateRates(integration, ratePlan);
         recordsSuccess++;
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error(
           `Failed to sync rates for rate plan ${ratePlan.id}: ${error.message}`,
         );
@@ -238,7 +238,7 @@ export class ChannelSyncEngine {
           try {
             await channelApi.updateAvailability(integration, avail);
             recordsSuccess++;
-          } catch (error) {
+          } catch (error: any) {
             this.logger.error(
               `Failed to sync availability for date ${avail.date}: ${error.message}`,
             );
@@ -246,7 +246,7 @@ export class ChannelSyncEngine {
           }
           recordsProcessed++;
         }
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error(
           `Failed to sync availability for mapping ${mapping.id}: ${error.message}`,
         );
@@ -407,7 +407,7 @@ export class ChannelSyncEngine {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to apply reservation availability: ${error.message}`,
       );
@@ -512,7 +512,7 @@ export class ChannelSyncEngine {
       this.logger.log(
         `Webhook processed successfully for: ${integration.channelName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Webhook processing failed for ${integration.channelName}: ${error.message}`,
       );

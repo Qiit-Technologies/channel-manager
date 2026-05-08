@@ -93,7 +93,7 @@ export class OtaConfigurationService {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Configuration test failed for ${channelType}: ${error.message}`,
       );

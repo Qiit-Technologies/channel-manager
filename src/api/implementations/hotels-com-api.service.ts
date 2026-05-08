@@ -1,23 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { ChannelApiInterface } from '../channel-api.interface';
-import { ChannelIntegration } from '../../entities/channel-integration.entity';
-import { ChannelMapping } from '../../entities/channel-mapping.entity';
-import { ChannelAvailability } from '../../entities/channel-availability.entity';
-import { ChannelRatePlan } from '../../entities/channel-rate-plan.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
+import { ChannelApiInterface } from "../channel-api.interface";
+import { ChannelIntegration } from "../../entities/channel-integration.entity";
+import { ChannelMapping } from "../../entities/channel-mapping.entity";
+import { ChannelAvailability } from "../../entities/channel-availability.entity";
+import { ChannelRatePlan } from "../../entities/channel-rate-plan.entity";
 
 @Injectable()
 export class HotelsComApiService implements ChannelApiInterface {
   private readonly logger = new Logger(HotelsComApiService.name);
-  private readonly baseUrl = 'https://api.hotels.com/v1';
+  private readonly baseUrl = "https://api.hotels.com/v1";
   private readonly httpService = new HttpService();
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log('Testing Hotels.com connection...');
+      this.logger.log("Testing Hotels.com connection...");
 
       // Test API credentials by making a simple request to get hotel info
       const response = await firstValueFrom(
@@ -26,14 +26,14 @@ export class HotelsComApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
       );
 
       if (response.status === 200) {
-        this.logger.log('Hotels.com connection test successful');
+        this.logger.log("Hotels.com connection test successful");
         return { success: true };
       } else {
         return {
@@ -41,7 +41,7 @@ export class HotelsComApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Hotels.com connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -66,7 +66,7 @@ export class HotelsComApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -81,7 +81,7 @@ export class HotelsComApiService implements ChannelApiInterface {
       this.logger.log(
         `Hotels.com inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Hotels.com inventory: ${error.message}`,
       );
@@ -108,7 +108,7 @@ export class HotelsComApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -123,7 +123,7 @@ export class HotelsComApiService implements ChannelApiInterface {
       this.logger.log(
         `Hotels.com rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Hotels.com rates: ${error.message}`);
       throw error;
     }
@@ -151,7 +151,7 @@ export class HotelsComApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -166,7 +166,7 @@ export class HotelsComApiService implements ChannelApiInterface {
       this.logger.log(
         `Hotels.com availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Hotels.com availability: ${error.message}`,
       );
@@ -179,26 +179,26 @@ export class HotelsComApiService implements ChannelApiInterface {
     webhookData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Processing Hotels.com webhook...');
+      this.logger.log("Processing Hotels.com webhook...");
 
       // Parse Hotels.com webhook data
       const parsedData = this.parseWebhookData(webhookData);
 
       // Process based on webhook type
       switch (parsedData.event_type) {
-        case 'BOOKING_CREATED':
+        case "BOOKING_CREATED":
           return await this.processReservationWebhook(integration, parsedData);
-        case 'BOOKING_CANCELLED':
+        case "BOOKING_CANCELLED":
           return await this.processCancellationWebhook(integration, parsedData);
-        case 'BOOKING_MODIFIED':
+        case "BOOKING_MODIFIED":
           return await this.processModificationWebhook(integration, parsedData);
         default:
           this.logger.warn(
             `Unknown Hotels.com webhook type: ${parsedData.event_type}`,
           );
-          return { processed: false, reason: 'Unknown webhook type' };
+          return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to process Hotels.com webhook: ${error.message}`,
       );
@@ -211,7 +211,7 @@ export class HotelsComApiService implements ChannelApiInterface {
     guestData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Creating Hotels.com guest reservation...');
+      this.logger.log("Creating Hotels.com guest reservation...");
 
       const reservationData = this.buildReservationRequest(
         integration,
@@ -222,7 +222,7 @@ export class HotelsComApiService implements ChannelApiInterface {
         this.httpService.post(`${this.baseUrl}/bookings`, reservationData, {
           headers: {
             Authorization: `Bearer ${integration.accessToken}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }),
       );
@@ -233,9 +233,9 @@ export class HotelsComApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Hotels.com guest reservation created successfully');
+      this.logger.log("Hotels.com guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to create Hotels.com guest reservation: ${error.message}`,
       );
@@ -264,7 +264,7 @@ export class HotelsComApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -276,9 +276,9 @@ export class HotelsComApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Hotels.com guest reservation updated successfully');
+      this.logger.log("Hotels.com guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Hotels.com guest reservation: ${error.message}`,
       );
@@ -307,9 +307,9 @@ export class HotelsComApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Hotels.com guest reservation cancelled successfully');
+      this.logger.log("Hotels.com guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to cancel Hotels.com guest reservation: ${error.message}`,
       );
@@ -319,7 +319,7 @@ export class HotelsComApiService implements ChannelApiInterface {
 
   async getChannelInfo(integration: ChannelIntegration): Promise<any> {
     try {
-      this.logger.log('Getting Hotels.com channel info...');
+      this.logger.log("Getting Hotels.com channel info...");
 
       const response = await firstValueFrom(
         this.httpService.get(
@@ -333,11 +333,11 @@ export class HotelsComApiService implements ChannelApiInterface {
       );
 
       return {
-        channel: 'Hotels.com',
-        status: 'active',
+        channel: "Hotels.com",
+        status: "active",
         hotelInfo: response.data,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to get Hotels.com channel info: ${error.message}`,
       );
@@ -364,7 +364,7 @@ export class HotelsComApiService implements ChannelApiInterface {
     return {
       room_type: {
         name: mapping.channelRoomTypeName,
-        description: mapping.channelDescription || '',
+        description: mapping.channelDescription || "",
         amenities: mapping.channelAmenities || [],
         images: mapping.channelImages || [],
         capacity: mapping.mappingRules?.capacity || 2,
@@ -379,7 +379,7 @@ export class HotelsComApiService implements ChannelApiInterface {
     return {
       rates: {
         base_rate: ratePlan.baseRate,
-        currency: ratePlan.currency || 'USD',
+        currency: ratePlan.currency || "USD",
         seasonal_rates: ratePlan.seasonalRates || {},
         day_of_week_rates: ratePlan.dayOfWeekRates || {},
         special_dates: ratePlan.specialDates || {},
@@ -394,10 +394,15 @@ export class HotelsComApiService implements ChannelApiInterface {
   ): any {
     return {
       availability: {
-        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split('T')[0],
+        date: (availability.date instanceof Date
+          ? availability.date
+          : new Date(availability.date)
+        )
+          .toISOString()
+          .split("T")[0],
         available_rooms: availability.availableRooms,
         total_rooms: availability.totalRooms,
-        status: availability.status === 'AVAILABLE' ? 'OPEN' : 'CLOSED',
+        status: availability.status === "AVAILABLE" ? "OPEN" : "CLOSED",
         restrictions: availability.restrictions || {},
       },
     };
@@ -416,7 +421,7 @@ export class HotelsComApiService implements ChannelApiInterface {
         room_type_id: guestData.roomTypeId,
         number_of_guests: guestData.numberOfGuests || 1,
         total_price: guestData.finalPrice,
-        currency: guestData.currency || 'USD',
+        currency: guestData.currency || "USD",
       },
     };
   }
@@ -436,11 +441,11 @@ export class HotelsComApiService implements ChannelApiInterface {
 
   private parseWebhookData(webhookData: any): any {
     try {
-      if (typeof webhookData === 'string') {
+      if (typeof webhookData === "string") {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to parse Hotels.com webhook data: ${error.message}`,
       );
@@ -455,7 +460,7 @@ export class HotelsComApiService implements ChannelApiInterface {
     this.logger.log(
       `Processing Hotels.com reservation webhook for guest: ${data.guest_name}`,
     );
-    return { processed: true, type: 'reservation', guestId: data.booking_id };
+    return { processed: true, type: "reservation", guestId: data.booking_id };
   }
 
   private async processCancellationWebhook(
@@ -465,7 +470,7 @@ export class HotelsComApiService implements ChannelApiInterface {
     this.logger.log(
       `Processing Hotels.com cancellation webhook for booking: ${data.booking_id}`,
     );
-    return { processed: true, type: 'cancellation', guestId: data.booking_id };
+    return { processed: true, type: "cancellation", guestId: data.booking_id };
   }
 
   private async processModificationWebhook(
@@ -475,6 +480,6 @@ export class HotelsComApiService implements ChannelApiInterface {
     this.logger.log(
       `Processing Hotels.com modification webhook for booking: ${data.booking_id}`,
     );
-    return { processed: true, type: 'modification', guestId: data.booking_id };
+    return { processed: true, type: "modification", guestId: data.booking_id };
   }
 }

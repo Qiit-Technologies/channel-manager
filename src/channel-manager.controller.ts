@@ -1421,7 +1421,7 @@ export class ChannelManagerController {
   ): Promise<string[]> {
     try {
       return this.channelApiFactory.getChannelFeatures(type);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to get features for channel ${type}: ${error.message}`,
       );

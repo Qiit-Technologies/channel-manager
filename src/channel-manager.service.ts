@@ -62,7 +62,7 @@ export class ChannelManagerService {
     try {
       const hotel = await this.oreonHotelClient.getHotel(hotelId);
       return hotel?.name || null;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.warn(
         `Failed to get property name for hotelId ${hotelId}: ${error.message}`,
       );
@@ -194,7 +194,7 @@ export class ChannelManagerService {
         `Created channel integration: ${integration.channelName} for hotel ID: ${hotelId}`,
       );
       return integration;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to create channel integration: ${error.message}`,
       );
@@ -427,7 +427,7 @@ export class ChannelManagerService {
         `Created channel mapping for room type ID: ${dto.roomtypeId}`,
       );
       return mapping;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to create channel mapping: ${error.message}`);
       throw error;
     }
@@ -599,7 +599,7 @@ export class ChannelManagerService {
       }
 
       return results.length === 1 && !dto.updates ? results[0] : results;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to sync availability: ${error.message}`);
       throw error;
     }
@@ -663,7 +663,7 @@ export class ChannelManagerService {
         `Updated channel rate plan: ${ratePlan.channelRatePlanName}`,
       );
       return ratePlan;
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof HttpException) {
         throw error;
       }
@@ -779,7 +779,7 @@ export class ChannelManagerService {
         otaConfig = await this.otaConfigurationService.getConfiguration(
           integration.channelType,
         );
-      } catch (error) {
+      } catch (error: any) {
         // For hotel-specific channels like CORNICHE, a global OTA config might not exist
         this.logger.debug(
           `No global configuration found for ${integration.channelType}: ${error.message}`,
@@ -817,7 +817,7 @@ export class ChannelManagerService {
       } else {
         return { success: false, error: testResult.error };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Integration test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -839,7 +839,7 @@ export class ChannelManagerService {
           this.logger.log(
             `Scheduled sync completed for: ${integration.channelName}`,
           );
-        } catch (error) {
+        } catch (error: any) {
           this.logger.error(
             `Scheduled sync failed for ${integration.channelName}: ${error.message}`,
           );
@@ -854,7 +854,7 @@ export class ChannelManagerService {
           );
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Scheduled sync task failed: ${error.message}`);
     }
   }
@@ -871,7 +871,7 @@ export class ChannelManagerService {
       } else {
         this.logger.warn(`Guest ${guestId} not found for check-in`);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to handle guest check-in: ${error.message}`);
     }
   }
@@ -885,7 +885,7 @@ export class ChannelManagerService {
       } else {
         this.logger.warn(`Guest ${guestId} not found for check-out`);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to handle guest check-out: ${error.message}`);
     }
   }
@@ -899,7 +899,7 @@ export class ChannelManagerService {
       } else {
         this.logger.warn(`Guest ${guestId} not found for no-show`);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to handle guest no-show: ${error.message}`);
     }
   }
@@ -930,7 +930,7 @@ export class ChannelManagerService {
       this.logger.log(
         `Auto-setup completed for integration: ${integration.channelName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Auto-setup failed for integration ${integration.channelName}: ${error.message}`,
       );
@@ -984,7 +984,7 @@ export class ChannelManagerService {
       this.logger.log(
         `Created ${pmsData.roomTypes.length} room type mappings for integration: ${integration.id}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to auto-create room type mappings: ${error.message}`,
       );
@@ -1038,7 +1038,7 @@ export class ChannelManagerService {
       this.logger.log(
         `Availability sync setup completed for integration: ${integration.id}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to setup availability sync: ${error.message}`);
       throw error;
     }
@@ -1078,7 +1078,7 @@ export class ChannelManagerService {
       this.logger.log(
         `Rate sync setup completed for integration: ${integration.id}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to setup rate sync: ${error.message}`);
       throw error;
     }
@@ -1121,7 +1121,7 @@ export class ChannelManagerService {
         // Default: general channels are available to everyone
         return true;
       });
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to get available integration types: ${error.message}`,
       );
@@ -1181,7 +1181,7 @@ export class ChannelManagerService {
           );
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update availability for guest: ${error.message}`,
       );
@@ -1194,7 +1194,7 @@ export class ChannelManagerService {
       const [bookings, total] =
         await this.channelManagerRepository.findBookings(dto);
       return { bookings, total };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get bookings: ${error.message}`);
       throw new HttpException(
         `Failed to retrieve bookings: ${error.message}`,
@@ -1214,7 +1214,7 @@ export class ChannelManagerService {
         );
       }
       return booking;
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof HttpException) {
         throw error;
       }
@@ -1314,7 +1314,7 @@ export class ChannelManagerService {
           pmsResult.status || HttpStatus.BAD_REQUEST,
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof HttpException) throw error;
       this.logger.error(`Failed to create booking: ${error.message}`);
       throw new HttpException(
@@ -1422,7 +1422,7 @@ export class ChannelManagerService {
           pmsResult.status || HttpStatus.BAD_REQUEST,
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof HttpException) throw error;
       this.logger.error(`Failed to update booking: ${error.message}`);
       throw new HttpException(
@@ -1515,7 +1515,7 @@ export class ChannelManagerService {
         }
         return room.id;
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof HttpException) throw error;
       this.logger.error(`Validation error: ${error.message}`);
       throw new HttpException(

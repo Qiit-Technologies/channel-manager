@@ -77,7 +77,7 @@ export class WebhookService {
           `Webhook broadcast background task failed: ${error.message}`,
         );
       });
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Webhook broadcast setup failed: ${error.message}`);
     }
   }
@@ -131,7 +131,7 @@ export class WebhookService {
           timeout: 60000, // 5 second timeout
         }),
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to send webhook ${eventType} to ${integration.webhookUrl}: ${error.message}`,
       );
@@ -209,7 +209,7 @@ export class WebhookService {
           this.httpService.post(webhookConfig.url, payload, requestConfig),
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to send hotel webhook ${eventType} to ${webhookConfig.url}: ${error.message}`,
       );

@@ -43,7 +43,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
 
       this.logger.log("Hotelbeds connection test successful");
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Hotelbeds connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -80,7 +80,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
         hotelsCount: response.data.total || 0,
         lastUpdated: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to get Hotelbeds channel info: ${error.message}`,
       );
@@ -119,7 +119,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Inventory update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Inventory update failed: ${error.message}`);
       throw error;
     }
@@ -160,7 +160,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Rate update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Rate update failed: ${error.message}`);
       throw error;
     }
@@ -199,7 +199,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Availability update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Availability update failed: ${error.message}`);
       throw error;
     }
@@ -233,7 +233,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       return response.data.bookings || [];
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get bookings: ${error.message}`);
       return [];
     }
@@ -264,7 +264,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       return response.status === 200;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update booking: ${error.message}`);
       return false;
     }
@@ -278,7 +278,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       this.logger.log("Processing Hotelbeds webhook...");
       // Process webhook data from Hotelbeds
       return { success: true, data: webhookData };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Webhook processing failed: ${error.message}`);
       throw error;
     }
@@ -310,7 +310,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Guest reservation creation failed: ${error.message}`);
       throw error;
     }
@@ -343,7 +343,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Guest reservation update failed: ${error.message}`);
       throw error;
     }
@@ -373,7 +373,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
       );
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Guest reservation cancellation failed: ${error.message}`,
       );
@@ -391,7 +391,7 @@ export class HotelbedsApiService implements ChannelApiInterface {
     try {
       const result = await this.testConnection(integration);
       return result.success;
-    } catch (error) {
+    } catch (error: any) {
       return false;
     }
   }

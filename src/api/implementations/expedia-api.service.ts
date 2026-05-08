@@ -1,30 +1,30 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { ChannelApiInterface } from '../channel-api.interface';
-import { ChannelIntegration } from '../../entities/channel-integration.entity';
-import { ChannelMapping } from '../../entities/channel-mapping.entity';
-import { ChannelAvailability } from '../../entities/channel-availability.entity';
-import { ChannelRatePlan } from '../../entities/channel-rate-plan.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
+import { ChannelApiInterface } from "../channel-api.interface";
+import { ChannelIntegration } from "../../entities/channel-integration.entity";
+import { ChannelMapping } from "../../entities/channel-mapping.entity";
+import { ChannelAvailability } from "../../entities/channel-availability.entity";
+import { ChannelRatePlan } from "../../entities/channel-rate-plan.entity";
 
 @Injectable()
 export class ExpediaApiService implements ChannelApiInterface {
   private readonly logger = new Logger(ExpediaApiService.name);
-  private readonly baseUrl = 'https://api.ean.com/v3';
+  private readonly baseUrl = "https://api.ean.com/v3";
   private readonly httpService = new HttpService();
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      this.logger.log('Testing Expedia connection...');
+      this.logger.log("Testing Expedia connection...");
 
       // Test API credentials by making a simple request to get hotel info
       const response = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/hotels`, {
           headers: {
             Authorization: `Bearer ${integration.accessToken}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           params: {
             hotel_ids: integration.channelPropertyId,
@@ -33,7 +33,7 @@ export class ExpediaApiService implements ChannelApiInterface {
       );
 
       if (response.status === 200) {
-        this.logger.log('Expedia connection test successful');
+        this.logger.log("Expedia connection test successful");
         return { success: true };
       } else {
         return {
@@ -41,7 +41,7 @@ export class ExpediaApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Expedia connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -66,7 +66,7 @@ export class ExpediaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -81,7 +81,7 @@ export class ExpediaApiService implements ChannelApiInterface {
       this.logger.log(
         `Expedia inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Expedia inventory: ${error.message}`);
       throw error;
     }
@@ -106,7 +106,7 @@ export class ExpediaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -121,7 +121,7 @@ export class ExpediaApiService implements ChannelApiInterface {
       this.logger.log(
         `Expedia rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Expedia rates: ${error.message}`);
       throw error;
     }
@@ -149,7 +149,7 @@ export class ExpediaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -164,7 +164,7 @@ export class ExpediaApiService implements ChannelApiInterface {
       this.logger.log(
         `Expedia availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Expedia availability: ${error.message}`,
       );
@@ -177,26 +177,26 @@ export class ExpediaApiService implements ChannelApiInterface {
     webhookData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Processing Expedia webhook...');
+      this.logger.log("Processing Expedia webhook...");
 
       // Parse Expedia webhook data
       const parsedData = this.parseWebhookData(webhookData);
 
       // Process based on webhook type
       switch (parsedData.event_type) {
-        case 'RESERVATION_CREATED':
+        case "RESERVATION_CREATED":
           return await this.processReservationWebhook(integration, parsedData);
-        case 'RESERVATION_CANCELLED':
+        case "RESERVATION_CANCELLED":
           return await this.processCancellationWebhook(integration, parsedData);
-        case 'RESERVATION_MODIFIED':
+        case "RESERVATION_MODIFIED":
           return await this.processModificationWebhook(integration, parsedData);
         default:
           this.logger.warn(
             `Unknown Expedia webhook type: ${parsedData.event_type}`,
           );
-          return { processed: false, reason: 'Unknown webhook type' };
+          return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to process Expedia webhook: ${error.message}`);
       throw error;
     }
@@ -207,7 +207,7 @@ export class ExpediaApiService implements ChannelApiInterface {
     guestData: any,
   ): Promise<any> {
     try {
-      this.logger.log('Creating Expedia guest reservation...');
+      this.logger.log("Creating Expedia guest reservation...");
 
       const reservationData = this.buildReservationRequest(
         integration,
@@ -218,7 +218,7 @@ export class ExpediaApiService implements ChannelApiInterface {
         this.httpService.post(`${this.baseUrl}/reservations`, reservationData, {
           headers: {
             Authorization: `Bearer ${integration.accessToken}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }),
       );
@@ -229,9 +229,9 @@ export class ExpediaApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Expedia guest reservation created successfully');
+      this.logger.log("Expedia guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to create Expedia guest reservation: ${error.message}`,
       );
@@ -260,7 +260,7 @@ export class ExpediaApiService implements ChannelApiInterface {
           {
             headers: {
               Authorization: `Bearer ${integration.accessToken}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           },
         ),
@@ -272,9 +272,9 @@ export class ExpediaApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Expedia guest reservation updated successfully');
+      this.logger.log("Expedia guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Expedia guest reservation: ${error.message}`,
       );
@@ -303,9 +303,9 @@ export class ExpediaApiService implements ChannelApiInterface {
         );
       }
 
-      this.logger.log('Expedia guest reservation cancelled successfully');
+      this.logger.log("Expedia guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to cancel Expedia guest reservation: ${error.message}`,
       );
@@ -315,7 +315,7 @@ export class ExpediaApiService implements ChannelApiInterface {
 
   async getChannelInfo(integration: ChannelIntegration): Promise<any> {
     try {
-      this.logger.log('Getting Expedia channel info...');
+      this.logger.log("Getting Expedia channel info...");
 
       const response = await firstValueFrom(
         this.httpService.get(
@@ -329,11 +329,11 @@ export class ExpediaApiService implements ChannelApiInterface {
       );
 
       return {
-        channel: 'Expedia',
-        status: 'active',
+        channel: "Expedia",
+        status: "active",
         hotelInfo: response.data,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get Expedia channel info: ${error.message}`);
       throw error;
     }
@@ -358,7 +358,7 @@ export class ExpediaApiService implements ChannelApiInterface {
     return {
       room_type: {
         name: mapping.channelRoomTypeName,
-        description: mapping.channelDescription || '',
+        description: mapping.channelDescription || "",
         amenities: mapping.channelAmenities || [],
         images: mapping.channelImages || [],
         capacity: mapping.mappingRules?.capacity || 2,
@@ -373,7 +373,7 @@ export class ExpediaApiService implements ChannelApiInterface {
     return {
       rates: {
         base_rate: ratePlan.baseRate,
-        currency: ratePlan.currency || 'USD',
+        currency: ratePlan.currency || "USD",
         seasonal_rates: ratePlan.seasonalRates || {},
         day_of_week_rates: ratePlan.dayOfWeekRates || {},
         special_dates: ratePlan.specialDates || {},
@@ -388,10 +388,15 @@ export class ExpediaApiService implements ChannelApiInterface {
   ): any {
     return {
       availability: {
-        date:  (availability.date instanceof Date ? availability.date : new Date(availability.date)).toISOString().split('T')[0],
+        date: (availability.date instanceof Date
+          ? availability.date
+          : new Date(availability.date)
+        )
+          .toISOString()
+          .split("T")[0],
         available_rooms: availability.availableRooms,
         total_rooms: availability.totalRooms,
-        status: availability.status === 'AVAILABLE' ? 'OPEN' : 'CLOSED',
+        status: availability.status === "AVAILABLE" ? "OPEN" : "CLOSED",
         restrictions: availability.restrictions || {},
       },
     };
@@ -410,7 +415,7 @@ export class ExpediaApiService implements ChannelApiInterface {
         room_type_id: guestData.roomTypeId,
         number_of_guests: guestData.numberOfGuests || 1,
         total_price: guestData.finalPrice,
-        currency: guestData.currency || 'USD',
+        currency: guestData.currency || "USD",
       },
     };
   }
@@ -430,11 +435,11 @@ export class ExpediaApiService implements ChannelApiInterface {
 
   private parseWebhookData(webhookData: any): any {
     try {
-      if (typeof webhookData === 'string') {
+      if (typeof webhookData === "string") {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to parse Expedia webhook data: ${error.message}`,
       );
@@ -451,7 +456,7 @@ export class ExpediaApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'reservation',
+      type: "reservation",
       guestId: data.reservation_id,
     };
   }
@@ -465,7 +470,7 @@ export class ExpediaApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'cancellation',
+      type: "cancellation",
       guestId: data.reservation_id,
     };
   }
@@ -479,7 +484,7 @@ export class ExpediaApiService implements ChannelApiInterface {
     );
     return {
       processed: true,
-      type: 'modification',
+      type: "modification",
       guestId: data.reservation_id,
     };
   }

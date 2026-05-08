@@ -70,7 +70,7 @@ export class AzusaApiService implements ChannelApiInterface {
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Azusa connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -107,7 +107,7 @@ export class AzusaApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Azusa inventory update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Azusa inventory update failed: ${error.message}`);
       throw error;
     }
@@ -144,7 +144,7 @@ export class AzusaApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Azusa rate update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Azusa rate update failed: ${error.message}`);
       throw error;
     }
@@ -184,7 +184,7 @@ export class AzusaApiService implements ChannelApiInterface {
       );
 
       this.logger.log("Azusa availability update successful");
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Azusa availability update failed: ${error.message}`);
       throw error;
     }
@@ -216,7 +216,7 @@ export class AzusaApiService implements ChannelApiInterface {
           this.logger.warn(`Unknown webhook type: ${parsedData.type}`);
           return { processed: false, reason: "Unknown webhook type" };
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Azusa webhook processing failed: ${error.message}`);
       throw error;
     }
@@ -255,7 +255,7 @@ export class AzusaApiService implements ChannelApiInterface {
 
       this.logger.log("Azusa guest reservation created successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Azusa guest reservation creation failed: ${error.message}`,
       );
@@ -298,7 +298,7 @@ export class AzusaApiService implements ChannelApiInterface {
 
       this.logger.log("Azusa guest reservation updated successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Azusa guest reservation update failed: ${error.message}`,
       );
@@ -333,7 +333,7 @@ export class AzusaApiService implements ChannelApiInterface {
 
       this.logger.log("Azusa guest reservation cancelled successfully");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Azusa guest reservation cancellation failed: ${error.message}`,
       );
@@ -368,7 +368,7 @@ export class AzusaApiService implements ChannelApiInterface {
         hotelInfo: response.data,
         supportedHotel: true,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get Azusa channel info: ${error.message}`);
       throw error;
     }

@@ -39,7 +39,7 @@ export class WakanowApiService implements ChannelApiInterface {
       // Mock success for now until real API details are available
       this.logger.log("Wakanow connection test successful (Mock)");
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Wakanow connection test failed: ${error.message}`);
       return { success: false, error: error.message };
     }
@@ -62,7 +62,7 @@ export class WakanowApiService implements ChannelApiInterface {
       this.logger.log(
         `Wakanow inventory updated successfully for: ${mapping.channelRoomTypeName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Wakanow inventory: ${error.message}`);
       throw error;
     }
@@ -85,7 +85,7 @@ export class WakanowApiService implements ChannelApiInterface {
       this.logger.log(
         `Wakanow rates updated successfully for: ${ratePlan.channelRatePlanName}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to update Wakanow rates: ${error.message}`);
       throw error;
     }
@@ -111,7 +111,7 @@ export class WakanowApiService implements ChannelApiInterface {
       this.logger.log(
         `Wakanow availability updated successfully for date: ${availability.date}`,
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Wakanow availability: ${error.message}`,
       );
@@ -197,7 +197,7 @@ export class WakanowApiService implements ChannelApiInterface {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to process Wakanow webhook: ${error.message}`);
       throw error;
     }
@@ -220,7 +220,7 @@ export class WakanowApiService implements ChannelApiInterface {
 
       this.logger.log("Wakanow guest reservation created successfully");
       return { id: "mock-reservation-id", ...reservationData.reservation };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to create Wakanow guest reservation: ${error.message}`,
       );
@@ -247,7 +247,7 @@ export class WakanowApiService implements ChannelApiInterface {
 
       this.logger.log("Wakanow guest reservation updated successfully");
       return { id: guestId, ...updates };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to update Wakanow guest reservation: ${error.message}`,
       );
@@ -267,7 +267,7 @@ export class WakanowApiService implements ChannelApiInterface {
 
       this.logger.log("Wakanow guest reservation cancelled successfully");
       return { success: true, id: guestId };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to cancel Wakanow guest reservation: ${error.message}`,
       );
@@ -290,7 +290,7 @@ export class WakanowApiService implements ChannelApiInterface {
           name: "Mock Hotel Name",
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to get Wakanow channel info: ${error.message}`);
       throw error;
     }
@@ -390,7 +390,7 @@ export class WakanowApiService implements ChannelApiInterface {
         return JSON.parse(webhookData);
       }
       return webhookData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to parse Wakanow webhook data: ${error.message}`,
       );
