@@ -10,6 +10,8 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "src",
+    "baseUrl": "./",
+    "ignoreDeprecations": "5.0",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -19,7 +21,7 @@
     "noFallthroughCasesInSwitch": false,
     "types": ["node"],
     "paths": {
-      "src/*": ["./src/*"]
+      "src/*": ["src/*"]
     }
   },
   "include": ["src/**/*"],
