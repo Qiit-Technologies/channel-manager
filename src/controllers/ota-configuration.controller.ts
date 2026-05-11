@@ -57,13 +57,11 @@ export class OtaConfigurationController {
             refreshToken: null,
             baseUrl: "https://api.booking.com",
             isActive: true,
-            additionalConfig: {
-              rateLimit: 1000,
-              timeout: 30000,
-            },
-            lastTested: "2025-01-15T10:00:00.000Z",
-            testStatus: "SUCCESS",
-            errorMessage: null,
+            webhookUrl: "https://api.booking.com/webhooks",
+            webhookVerb: "POST",
+            webhookSecret: "whsec_bk_12345",
+            isWebhookEnabled: true,
+            webhookEvents: ["BOOKING_NEW", "BOOKING_CANCEL"],
             createdAt: "2025-01-01T08:00:00.000Z",
             updatedAt: "2025-01-15T10:00:00.000Z",
           },
@@ -83,6 +81,11 @@ export class OtaConfigurationController {
             lastTested: "2025-01-14T09:00:00.000Z",
             testStatus: "SUCCESS",
             errorMessage: null,
+            webhookUrl: "https://api.expedia.com/webhooks",
+            webhookVerb: "POST",
+            webhookSecret: "whsec_exp_67890",
+            isWebhookEnabled: true,
+            webhookEvents: ["BOOKING_NEW", "BOOKING_MODIFY"],
             createdAt: "2025-01-02T08:00:00.000Z",
             updatedAt: "2025-01-14T09:00:00.000Z",
           },
@@ -159,6 +162,11 @@ export class OtaConfigurationController {
         apiSecret: { type: "string", example: "your-api-secret" },
         baseUrl: { type: "string", example: "https://api.booking.com" },
         isActive: { type: "boolean", example: true },
+        webhookUrl: { type: "string", example: "https://api.ota.com/webhook" },
+        webhookVerb: { type: "string", example: "POST", default: "POST" },
+        webhookSecret: { type: "string", example: "whsec_12345" },
+        isWebhookEnabled: { type: "boolean", example: true },
+        webhookEvents: { type: "array", items: { type: "string" } },
         additionalConfig: { type: "object" },
       },
       required: ["channelType"],
@@ -172,6 +180,10 @@ export class OtaConfigurationController {
           apiSecret: "your-api-secret",
           baseUrl: "https://api.booking.com",
           isActive: true,
+          webhookUrl: "https://api.booking.com/webhooks",
+          webhookVerb: "POST",
+          webhookSecret: "whsec_bk_12345",
+          isWebhookEnabled: true,
           additionalConfig: {
             rateLimit: 1000,
             timeout: 30000,
@@ -195,6 +207,10 @@ export class OtaConfigurationController {
           refreshToken: null,
           baseUrl: "https://api.booking.com",
           isActive: true,
+          webhookUrl: "https://api.booking.com/webhooks",
+          webhookVerb: "POST",
+          webhookSecret: "whsec_bk_12345",
+          isWebhookEnabled: true,
           additionalConfig: {
             rateLimit: 1000,
             timeout: 30000,
@@ -234,6 +250,11 @@ export class OtaConfigurationController {
         apiSecret: { type: "string" },
         baseUrl: { type: "string" },
         isActive: { type: "boolean" },
+        webhookUrl: { type: "string" },
+        webhookVerb: { type: "string", default: "POST" },
+        webhookSecret: { type: "string" },
+        isWebhookEnabled: { type: "boolean" },
+        webhookEvents: { type: "array", items: { type: "string" } },
         additionalConfig: { type: "object" },
       },
     },
@@ -245,6 +266,10 @@ export class OtaConfigurationController {
           apiSecret: "new-api-secret",
           baseUrl: "https://api.booking.com",
           isActive: true,
+          webhookUrl: "https://api.booking.com/webhooks",
+          webhookVerb: "PATCH",
+          webhookSecret: "whsec_new_67890",
+          isWebhookEnabled: true,
           additionalConfig: {
             rateLimit: 2000,
           },
@@ -267,6 +292,10 @@ export class OtaConfigurationController {
           refreshToken: null,
           baseUrl: "https://api.booking.com",
           isActive: false,
+          webhookUrl: "https://api.booking.com/webhooks",
+          webhookVerb: "PATCH",
+          webhookSecret: "whsec_new_67890",
+          isWebhookEnabled: true,
           additionalConfig: {
             rateLimit: 1000,
             timeout: 30000,
@@ -324,6 +353,31 @@ export class OtaConfigurationController {
     @Param("channelType") channelType: ChannelType,
   ): Promise<{ success: boolean; error?: string }> {
     return await this.otaConfigurationService.testConfiguration(channelType);
+  }
+
+  @Post(":channelType/webhook-test")
+  @ApiOperation({
+    summary: "Trigger global test webhook for channel",
+    description:
+      "Sends a test notification to the global webhook URL of the specified channel.",
+  })
+  @ApiParam({ name: "channelType", enum: ChannelType })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        eventType: { type: "string", default: "TEST" },
+      },
+    },
+  })
+  async triggerWebhookTest(
+    @Param("channelType") channelType: ChannelType,
+    @Body("eventType") eventType: string = "TEST",
+  ) {
+    return await this.otaConfigurationService.triggerWebhookTest(
+      channelType,
+      eventType,
+    );
   }
 
   @Delete(":channelType")

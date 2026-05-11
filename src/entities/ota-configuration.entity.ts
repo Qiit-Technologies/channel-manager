@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { ChannelType } from "./channel-integration.entity";
+import { WebhookEventType } from "../services/webhook.service";
 
 @Entity("ota_configuration")
 export class OtaConfiguration {
@@ -37,6 +38,21 @@ export class OtaConfiguration {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ nullable: true })
+  webhookUrl: string;
+
+  @Column({ nullable: true })
+  webhookSecret: string;
+
+  @Column({ default: "POST" })
+  webhookVerb: string;
+
+  @Column({ default: false })
+  isWebhookEnabled: boolean;
+
+  @Column({ type: "json", nullable: true })
+  webhookEvents: WebhookEventType[];
 
   @Column({ type: "json", nullable: true })
   additionalConfig: Record<string, any>;

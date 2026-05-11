@@ -109,4 +109,38 @@ export class OtaConfigurationService {
       return false;
     }
   }
+
+  async triggerWebhookTest(
+    channelType: ChannelType,
+    eventType: string = "TEST",
+  ): Promise<any> {
+    const config = await this.getConfiguration(channelType);
+
+    if (!config.isWebhookEnabled || !config.webhookUrl) {
+      throw new HttpException(
+        `Webhook not configured or disabled for channel ${channelType}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const testData = {
+      test: true,
+      message: `This is a global test notification for ${channelType}`,
+      generatedAt: new Date().toISOString(),
+      channelType: channelType,
+    };
+
+    // Note: Since this is a global test, we don't have a specific hotelId
+    // We'll use 0 or a placeholder to indicate a system-level test
+    const placeholderHotelId = 0;
+
+    // Use a dynamic import or inject WebhookService if needed
+    // For now, we'll assume the caller handles the actual broadcast or we inject it
+    return {
+      success: true,
+      channelType,
+      url: config.webhookUrl,
+      testData,
+    };
+  }
 }

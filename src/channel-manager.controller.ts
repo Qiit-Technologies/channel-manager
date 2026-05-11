@@ -35,7 +35,6 @@ import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
 import { CreateRoomTypeDto } from "./dto/create-roomtype.dto";
 import { CreateRoomDto } from "./dto/create-room.dto";
 import { GetBookingsDto } from "./dto/get-bookings.dto";
-import { UpdateHotelWebhookDto } from "./dto/update-hotel-webhook.dto";
 import {
   ChannelIntegration,
   ChannelType,
@@ -1735,118 +1734,6 @@ export class ChannelManagerController {
     };
 
     return summary;
-  }
-
-  // Hotel Webhook Configuration
-  @Get("hotels/:hotelId/webhook-config")
-  @ApiOperation({
-    summary: "Get hotel webhook configuration",
-    description: "Returns the global webhook settings for a specific hotel.",
-  })
-  @ApiParam({ name: "hotelId", type: Number })
-  async getHotelWebhook(@Param("hotelId") hotelId: number) {
-    return await this.channelManagerService.getHotelWebhook(hotelId);
-  }
-
-  @Post("hotels/:hotelId/webhook-config")
-  @ApiOperation({
-    summary: "Update hotel webhook configuration",
-    description:
-      "Updates or creates the global webhook settings for a specific hotel.",
-  })
-  @ApiParam({ name: "hotelId", type: Number })
-  @ApiBody({
-    type: UpdateHotelWebhookDto,
-    examples: {
-      defaultConfig: {
-        summary: "Default Webhook Configuration",
-        value: {
-          url: "https://api.yourhotel.com/webhooks",
-          secret: "whsec_123456789",
-          verb: "POST",
-          isEnabled: true,
-          events: ["BOOKING_NEW", "BOOKING_CANCEL", "CHECK_IN"],
-        },
-      },
-    },
-  })
-  async updateHotelWebhook(
-    @Param("hotelId") hotelId: number,
-    @Body() updates: UpdateHotelWebhookDto,
-  ) {
-    return await this.channelManagerService.updateHotelWebhook(
-      hotelId,
-      updates,
-    );
-  }
-
-  @Post("hotels/:hotelId/webhook-test")
-  @ApiOperation({
-    summary: "Trigger test webhook",
-    description:
-      "Sends a test notification to the configured hotel webhook URL to verify the connection.",
-  })
-  @ApiParam({ name: "hotelId", type: Number })
-  @ApiBody({
-    schema: {
-      type: "object",
-      properties: {
-        eventType: {
-          type: "string",
-          enum: Object.values(WebhookEventType),
-          example: "BOOKING_NEW",
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Test webhook triggered successfully",
-    content: {
-      "application/json": {
-        schema: {
-          type: "object",
-          properties: {
-            hotelId: { type: "number", example: 1 },
-            eventType: { type: "string", example: "BOOKING_NEW" },
-            timestamp: {
-              type: "string",
-              example: "2026-03-16T15:24:17Z",
-            },
-            data: {
-              type: "object",
-              properties: {
-                bookingCode: {
-                  type: "string",
-                  example: "REF1-20260316-XYZ",
-                },
-                otaBookingCode: {
-                  type: "string",
-                  example: "EXP-998877",
-                },
-                fullName: { type: "string", example: "John Doe" },
-                roomTypeId: { type: "number", example: 10 },
-                email: { type: "string", example: "john@example.com" },
-                startDate: { type: "string", example: "2026-04-01" },
-                endDate: { type: "string", example: "2026-04-05" },
-                amount: { type: "number", example: 50000.0 },
-                status: { type: "string", example: "CONFIRMED" },
-                roomNumber: { type: "string", example: "101" },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
-  async triggerWebhookTest(
-    @Param("hotelId") hotelId: number,
-    @Body("eventType") eventType: WebhookEventType = WebhookEventType.TEST,
-  ) {
-    return await this.channelManagerService.triggerWebhookTest(
-      hotelId,
-      eventType,
-    );
   }
 
   @Get("dashboard/performance")

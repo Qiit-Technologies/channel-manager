@@ -7,6 +7,7 @@ import {
   IntegrationStatus,
 } from "../entities/channel-integration.entity";
 import { HotelWebhook } from "../entities/hotel-webhook.entity";
+import { OtaConfiguration } from "../entities/ota-configuration.entity";
 import { ChannelManagerRepository } from "../channel-manager.repository";
 
 export enum WebhookEventType {
@@ -41,7 +42,7 @@ export class WebhookService {
   ) {}
 
   /**
-   * Broadcasts a notification to all relevant webhooks (integrations and hotel-level)
+   * Broadcasts a notification to all relevant webhooks (integrations, channel-level, and hotel-level)
    */
   async broadcast(
     hotelId: number,
@@ -51,32 +52,46 @@ export class WebhookService {
     try {
       const notifications: Promise<void>[] = [];
 
-      // 1. Notify Integration-level webhooks (legacy/per-channel)
+      // 1. Notify Channel-type webhooks (Global config per channel)
+      // Fetch all integrations for this hotel to find which channels to notify
       const integrations =
         await this.channelManagerRepository.findIntegrationsByHotel(hotelId);
+
       for (const integration of integrations) {
-        if (
-          integration.status === IntegrationStatus.ACTIVE &&
-          integration.isWebhookEnabled &&
-          integration.webhookUrl
-        ) {
-          notifications.push(this.notify(integration, eventType, data));
+        if (integration.status !== IntegrationStatus.ACTIVE) {
+          continue;
+        }
+
+        // Fetch the Global Channel-type webhook configuration
+        const otaConfig =
+          await this.channelManagerRepository.findOtaConfigurationByChannelType(
+            integration.channelType,
+          );
+
+        if (otaConfig && otaConfig.isWebhookEnabled && otaConfig.webhookUrl) {
+          // Check if this event type is allowed for this channel webhook
+          if (
+            !otaConfig.webhookEvents ||
+            otaConfig.webhookEvents.includes(eventType)
+          ) {
+            notifications.push(
+              this.notifyChannel(otaConfig, hotelId, eventType, data),
+            );
+          }
         }
       }
 
-      // 2. Notify Hotel-level webhook (new/preferred)
-      const hotelWebhook =
-        await this.channelManagerRepository.findHotelWebhook(hotelId);
-      if (hotelWebhook && hotelWebhook.isEnabled && hotelWebhook.url) {
-        notifications.push(this.notifyHotel(hotelWebhook, eventType, data));
-      }
-
       // Fire and forget notifications concurrently so we don't block main thread
-      Promise.allSettled(notifications).catch((error) => {
-        this.logger.error(
-          `Webhook broadcast background task failed: ${error.message}`,
+      if (notifications.length > 0) {
+        this.logger.log(
+          `Broadcasting ${eventType} for hotel ${hotelId} to ${notifications.length} webhooks`,
         );
-      });
+        Promise.allSettled(notifications).catch((error) => {
+          this.logger.error(
+            `Webhook broadcast background task failed: ${error.message}`,
+          );
+        });
+      }
     } catch (error: any) {
       this.logger.error(`Webhook broadcast setup failed: ${error.message}`);
     }
@@ -109,6 +124,7 @@ export class WebhookService {
         "Content-Type": "application/json",
         "X-Webhook-Event": eventType,
         "X-Webhook-Timestamp": payload.timestamp,
+        "User-Agent": "Orion-ChannelManager-Webhook/1.0",
       };
 
       // Sign payload if secret is configured
@@ -122,18 +138,75 @@ export class WebhookService {
       }
 
       this.logger.log(
-        `Sending webhook ${eventType} to ${integration.webhookUrl} for hotel ${integration.hotelId}`,
+        `Sending integration webhook ${eventType} to ${integration.webhookUrl} for hotel ${integration.hotelId}`,
       );
 
       await firstValueFrom(
         this.httpService.post(integration.webhookUrl, payload, {
           headers,
-          timeout: 60000, // 5 second timeout
+          timeout: 60000,
         }),
       );
     } catch (error: any) {
       this.logger.error(
-        `Failed to send webhook ${eventType} to ${integration.webhookUrl}: ${error.message}`,
+        `Failed to send integration webhook ${eventType} to ${integration.webhookUrl}: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Sends a channel-type level webhook notification (Global for all hotels on this channel)
+   */
+  async notifyChannel(
+    otaConfig: OtaConfiguration,
+    hotelId: number,
+    eventType: WebhookEventType,
+    data: any,
+  ): Promise<void> {
+    const payload: WebhookPayload = {
+      hotelId,
+      channelType: otaConfig.channelType,
+      eventType,
+      event: eventType,
+      timestamp: new Date().toISOString(),
+      data,
+    };
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "X-Webhook-Event": eventType,
+        "X-Webhook-Timestamp": payload.timestamp,
+        "X-Channel-Type": otaConfig.channelType,
+        "X-Secret-Key": otaConfig.webhookSecret,
+        "User-Agent": "Orion-ChannelManager-Webhook/1.0",
+      };
+
+      if (otaConfig.webhookSecret) {
+        const signature = this.generateSignature(
+          JSON.stringify(payload),
+          otaConfig.webhookSecret,
+        );
+        headers["X-Webhook-Signature"] = signature;
+      }
+
+      const verb = (otaConfig.webhookVerb || "POST").toUpperCase();
+      this.logger.log(
+        `Sending channel-type webhook ${eventType} to ${otaConfig.webhookUrl} for hotel ${hotelId} (${otaConfig.channelType}) using ${verb}`,
+      );
+
+      await firstValueFrom(
+        this.httpService.request({
+          method: verb as any,
+          url: otaConfig.webhookUrl,
+          data: payload,
+          headers,
+          timeout: 60000,
+        }),
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send channel-type webhook ${eventType} to ${otaConfig.webhookUrl}: ${error.message}`,
       );
     }
   }
@@ -168,6 +241,7 @@ export class WebhookService {
         "Content-Type": "application/json",
         "X-Webhook-Event": eventType,
         "X-Webhook-Timestamp": payload.timestamp,
+        "User-Agent": "Orion-ChannelManager-Webhook/1.0",
       };
 
       if (webhookConfig.secret) {
@@ -180,12 +254,12 @@ export class WebhookService {
       }
 
       this.logger.log(
-        `Sending hotel webhook ${eventType} (${verb}) to ${webhookConfig.url} for hotel ${webhookConfig.hotelId}`,
+        `Sending hotel-level webhook ${eventType} (${verb}) to ${webhookConfig.url} for hotel ${webhookConfig.hotelId}`,
       );
 
       const requestConfig = {
         headers,
-        timeout: 60000, // Reduced from 60s to 10s to prevent hanging requests
+        timeout: 60000,
       };
 
       if (verb === "GET") {
@@ -211,7 +285,7 @@ export class WebhookService {
       }
     } catch (error: any) {
       this.logger.error(
-        `Failed to send hotel webhook ${eventType} to ${webhookConfig.url}: ${error.message}`,
+        `Failed to send hotel-level webhook ${eventType} to ${webhookConfig.url}: ${error.message}`,
       );
     }
   }

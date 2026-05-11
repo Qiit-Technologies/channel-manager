@@ -1,23 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import {
-  Repository,
-  Between,
-  FindOptionsWhere,
-  MoreThanOrEqual,
-  LessThanOrEqual,
-} from "typeorm";
+import { Repository, Between, FindOptionsWhere } from "typeorm";
 import { ChannelIntegration } from "./entities/channel-integration.entity";
 import { ChannelMapping } from "./entities/channel-mapping.entity";
 import { ChannelSyncLog } from "./entities/channel-sync-log.entity";
 import { ChannelRatePlan } from "./entities/channel-rate-plan.entity";
 import { ChannelAvailability } from "./entities/channel-availability.entity";
-import { Guest, BookingStatus } from "./entities/guest.entity";
+import { Guest } from "./entities/guest.entity";
 import { IntegrationStatus } from "./entities/channel-integration.entity";
 import { HotelWebhook } from "./entities/hotel-webhook.entity";
+import { OtaConfiguration } from "./entities/ota-configuration.entity";
 import { SyncStatus } from "./entities/channel-sync-log.entity";
 import { GetBookingsDto } from "./dto/get-bookings.dto";
-import axios from "axios";
 
 @Injectable()
 export class ChannelManagerRepository {
@@ -36,6 +30,8 @@ export class ChannelManagerRepository {
     private guestRepo: Repository<Guest>,
     @InjectRepository(HotelWebhook)
     private hotelWebhookRepo: Repository<HotelWebhook>,
+    @InjectRepository(OtaConfiguration)
+    private otaConfigurationRepo: Repository<OtaConfiguration>,
   ) {}
 
   // Channel Integration Methods
@@ -495,5 +491,14 @@ export class ChannelManagerRepository {
       });
       return await this.hotelWebhookRepo.save(newWebhook);
     }
+  }
+
+  // OTA Configuration Methods
+  async findOtaConfigurationByChannelType(
+    channelType: any,
+  ): Promise<OtaConfiguration | null> {
+    return await this.otaConfigurationRepo.findOne({
+      where: { channelType, isActive: true },
+    });
   }
 }
