@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { randomBytes } from "crypto";
-import { Repository } from "typeorm";
+import { In, IsNull, Repository } from "typeorm";
 import { Guest } from "../entities/guest.entity";
 import { IcalFeed } from "./entities/ical-feed.entity";
 import { IcalImportSource } from "./entities/ical-import-source.entity";
@@ -73,8 +73,8 @@ export class IcalService {
 
   async createFeed(
     hotelId: number,
-    roomId: number,
-    roomNumber?: string,
+    roomId: number | null,
+    roomNumber?: string | null,
     label?: string,
   ): Promise<IcalFeed> {
     const feed = this.feeds.create({
@@ -86,6 +86,67 @@ export class IcalService {
       isActive: true,
     });
     return this.feeds.save(feed);
+  }
+
+  /**
+   * Creates one feed per room, skipping rooms that already have an active
+   * feed. Returns the created feeds (with their one-time tokens) plus the
+   * room ids that were skipped.
+   */
+  async createBulkFeeds(
+    hotelId: number,
+    rooms: Array<{ roomId: number; roomNumber: string }>,
+  ): Promise<{ created: IcalFeed[]; skippedRoomIds: number[] }> {
+    const roomIds = [...new Set(rooms.map((r) => r.roomId))];
+    const existing =
+      roomIds.length > 0
+        ? await this.feeds.find({
+            where: { hotelId, roomId: In(roomIds), isActive: true },
+          })
+        : [];
+    const seen = new Set(existing.map((f) => f.roomId));
+    const created: IcalFeed[] = [];
+    const skippedRoomIds: number[] = [];
+    for (const room of rooms) {
+      if (seen.has(room.roomId)) {
+        if (!skippedRoomIds.includes(room.roomId)) {
+          skippedRoomIds.push(room.roomId);
+        }
+        continue;
+      }
+      seen.add(room.roomId);
+      created.push(
+        await this.createFeed(
+          hotelId,
+          room.roomId,
+          room.roomNumber,
+          `Room ${room.roomNumber} auto`,
+        ),
+      );
+    }
+    return { created, skippedRoomIds };
+  }
+
+  /**
+   * Idempotent whole-property feed (`roomId` null). When one already exists
+   * the existing feed is returned WITHOUT its token — the caller must not
+   * re-expose a token it didn't just create.
+   */
+  async createPropertyFeed(
+    hotelId: number,
+    label?: string,
+  ): Promise<{ feed: IcalFeed; alreadyExisted: boolean }> {
+    const existing = await this.feeds.findOne({
+      where: { hotelId, roomId: IsNull(), isActive: true },
+    });
+    if (existing) return { feed: existing, alreadyExisted: true };
+    const feed = await this.createFeed(
+      hotelId,
+      null,
+      null,
+      label || "Property feed",
+    );
+    return { feed, alreadyExisted: false };
   }
 
   async listFeeds(hotelId?: number): Promise<IcalFeed[]> {
@@ -111,7 +172,9 @@ export class IcalService {
   /**
    * Builds the RFC 5545 calendar for one feed token. Includes live PMS stays
    * AND external (OTA-imported) blocks so the feed never fights the channel.
-   * No guest PII is emitted — every event is a generic busy block.
+   * No guest PII is emitted — every event is a generic busy block (per-room
+   * feeds) or `Busy - Room <number>` (property feeds; room numbers are not
+   * PII). Ranges are merged per room, never across rooms.
    */
   async generateCalendar(
     token: string,
@@ -121,84 +184,117 @@ export class IcalService {
     });
     if (!feed) throw new NotFoundException("iCal feed not found");
 
+    const isPropertyFeed = feed.roomId === null || feed.roomId === undefined;
+
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const todayKey = dateKey(today);
     const horizon = new Date(today.getTime() + EXPORT_WINDOW_DAYS * 86400000);
     const horizonKey = dateKey(horizon);
 
-    // Live PMS stays on this room (shared guest table).
-    const stays = await this.guests
+    // Live PMS stays (shared guest table).
+    const staysQb = this.guests
       .createQueryBuilder("g")
-      .select(["g.id", "g.startDate", "g.endDate"])
+      .select(["g.id", "g.startDate", "g.endDate", "g.roomId", "g.roomNumber"])
       .where("g.hotelId = :hotelId", { hotelId: feed.hotelId })
-      .andWhere("g.roomId = :roomId", { roomId: feed.roomId })
       .andWhere("g.isVoid != :voided", { voided: true })
       .andWhere("g.isCheckedOut = :checkedOut", { checkedOut: false })
       .andWhere("g.startDate IS NOT NULL")
       .andWhere("g.endDate IS NOT NULL")
       .andWhere("g.endDate > :today", { today: todayKey })
       .andWhere("g.startDate < :horizon", { horizon: horizonKey })
-      .orderBy("g.startDate", "ASC")
-      .getMany();
+      .orderBy("g.startDate", "ASC");
+    if (!isPropertyFeed) {
+      staysQb.andWhere("g.roomId = :roomId", { roomId: feed.roomId });
+    }
+    const stays = await staysQb.getMany();
 
-    const ranges: BusyRange[] = stays.map((stay) => {
+    // Group busy ranges per room so property feeds never merge across rooms.
+    const byRoom = new Map<string, { label: string; ranges: BusyRange[] }>();
+    const pushRange = (
+      roomId: number | null,
+      roomNumber: string | null | undefined,
+      range: BusyRange,
+    ) => {
+      const key = isPropertyFeed ? `room:${roomId}` : "single";
+      const label =
+        roomNumber && roomNumber.trim()
+          ? roomNumber.trim()
+          : `Room ${roomId}`;
+      let entry = byRoom.get(key);
+      if (!entry) {
+        entry = { label, ranges: [] };
+        byRoom.set(key, entry);
+      }
+      entry.ranges.push(range);
+    };
+
+    for (const stay of stays) {
       const start = dateKey(new Date(stay.startDate));
       const end = dateKey(new Date(stay.endDate));
-      return {
+      pushRange(stay.roomId ?? null, stay.roomNumber ?? null, {
         start: start < todayKey ? todayKey : start,
         end: end > horizonKey ? horizonKey : end,
         uid: `anli-guest-${stay.id}@anli-channel-manager`,
-      };
-    });
+      });
+    }
 
-    // External blocks on this room (from OTA imports).
-    const roomBlocks = await this.externalBlocks
+    // External blocks (from OTA imports).
+    const blocksQb = this.externalBlocks
       .createQueryBuilder("b")
       .where("b.hotelId = :hotelId", { hotelId: feed.hotelId })
-      .andWhere("b.roomId = :roomId", { roomId: feed.roomId })
       .andWhere("b.endDate > :today", { today: todayKey })
-      .orderBy("b.startDate", "ASC")
-      .getMany();
+      .orderBy("b.startDate", "ASC");
+    if (!isPropertyFeed) {
+      blocksQb.andWhere("b.roomId = :roomId", { roomId: feed.roomId });
+    }
+    const roomBlocks = await blocksQb.getMany();
     for (const block of roomBlocks) {
-      ranges.push({
+      pushRange(block.roomId ?? null, null, {
         start: dateKey(new Date(block.startDate)),
         end: dateKey(new Date(block.endDate)),
         uid: `anli-ext-${block.id}@anli-channel-manager`,
       });
     }
 
-    const merged = mergeRanges(
-      ranges.filter((r) => r.end > r.start && r.end > todayKey),
-    );
-
     const dtstamp =
       new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const calName = isPropertyFeed
+      ? "Anli - All rooms"
+      : `Anli - Room ${feed.roomNumber || feed.roomId}`;
     const lines = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
       "PRODID:-//Anli//Channel Manager//EN",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
-      `X-WR-CALNAME:${escapeIcsText(`Anli - Room ${feed.roomNumber || feed.roomId}`)}`,
+      `X-WR-CALNAME:${escapeIcsText(calName)}`,
     ];
-    for (const range of merged) {
-      lines.push(
-        "BEGIN:VEVENT",
-        `UID:${range.uid}`,
-        `DTSTAMP:${dtstamp}`,
-        `DTSTART;VALUE=DATE:${icsDate(range.start)}`,
-        `DTEND;VALUE=DATE:${icsDate(range.end)}`,
-        "SUMMARY:Busy - Anli",
-        "STATUS:CONFIRMED",
-        "TRANSP:OPAQUE",
-        "END:VEVENT",
+    for (const { label, ranges } of byRoom.values()) {
+      const merged = mergeRanges(
+        ranges.filter((r) => r.end > r.start && r.end > todayKey),
       );
+      for (const range of merged) {
+        const summary = isPropertyFeed ? `Busy - Room ${label}` : "Busy - Anli";
+        lines.push(
+          "BEGIN:VEVENT",
+          `UID:${range.uid}`,
+          `DTSTAMP:${dtstamp}`,
+          `DTSTART;VALUE=DATE:${icsDate(range.start)}`,
+          `DTEND;VALUE=DATE:${icsDate(range.end)}`,
+          `SUMMARY:${escapeIcsText(summary)}`,
+          "STATUS:CONFIRMED",
+          "TRANSP:OPAQUE",
+          "END:VEVENT",
+        );
+      }
     }
     lines.push("END:VCALENDAR");
     return {
       ics: lines.join("\r\n") + "\r\n",
-      roomNumber: feed.roomNumber || String(feed.roomId),
+      roomNumber: isPropertyFeed
+        ? "property"
+        : feed.roomNumber || String(feed.roomId),
     };
   }
 

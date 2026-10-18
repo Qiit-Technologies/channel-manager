@@ -8,8 +8,11 @@ import {
 } from "typeorm";
 
 /**
- * An iCal export feed for one room. The hotel pastes the feed URL into an
- * OTA (Airbnb "Import calendar", Booking.com iCal sync) so Anli bookings
+ * An iCal export feed for one room (`roomId` set) or a whole property
+ * (`roomId` null — a combined feed of every room, meant for calendar
+ * subscriptions / owner overviews, NOT for OTA import which needs one URL
+ * per listing). The hotel pastes a per-room feed URL into an OTA
+ * (Airbnb "Import calendar", Booking.com iCal sync) so Anli bookings
  * block those dates on the channel.
  *
  * The `token` is an unguessable 64-hex-char secret and acts as the only
@@ -25,8 +28,8 @@ export class IcalFeed {
   @Column({ type: "int" })
   hotelId: number;
 
-  @Column({ type: "int" })
-  roomId: number;
+  @Column({ type: "int", nullable: true })
+  roomId: number | null;
 
   @Column({ nullable: true })
   roomNumber: string;
