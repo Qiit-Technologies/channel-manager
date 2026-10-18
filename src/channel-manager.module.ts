@@ -25,6 +25,10 @@ import { PmsSyncService } from "./services/pms-sync.service";
 import { PmsReservationClient } from "./services/pms-reservation-client.service";
 import { OreonHotelClient } from "./services/oreon-hotel-client.service";
 import { WebhookService } from "./services/webhook.service";
+import { IcalModule } from "./ical/ical.module";
+import { IcalFeed } from "./ical/entities/ical-feed.entity";
+import { IcalImportSource } from "./ical/entities/ical-import-source.entity";
+import { IcalExternalBlock } from "./ical/entities/ical-external-block.entity";
 
 @Module({
   imports: [
@@ -53,6 +57,9 @@ import { WebhookService } from "./services/webhook.service";
               ApiKey,
               OtaConfiguration,
               HotelWebhook,
+              IcalFeed,
+              IcalImportSource,
+              IcalExternalBlock,
             ],
             migrations: [__dirname + "/migrations/*{.ts,.js}"],
             // Only run migrations when explicitly requested
@@ -80,11 +87,16 @@ import { WebhookService } from "./services/webhook.service";
             ApiKey,
             OtaConfiguration,
             HotelWebhook,
+            IcalFeed,
+            IcalImportSource,
+            IcalExternalBlock,
           ]),
         ]
       : []),
     HttpModule,
     ScheduleModule.forRoot(),
+    // iCal sync needs the database, like the other sync services
+    ...(process.env.TEST_MODE !== "true" ? [IcalModule] : []),
   ],
   controllers: [
     ChannelManagerController,
