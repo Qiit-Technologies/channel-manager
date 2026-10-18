@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { HttpModule } from "@nestjs/axios";
 import { Guest } from "../entities/guest.entity";
+import { ApiKey } from "../entities/api-key.entity";
 import { IcalFeed } from "./entities/ical-feed.entity";
 import { IcalImportSource } from "./entities/ical-import-source.entity";
 import { IcalExternalBlock } from "./entities/ical-external-block.entity";
@@ -16,6 +17,9 @@ import { IcalPollService } from "./ical-poll.service";
       IcalImportSource,
       IcalExternalBlock,
       Guest,
+      // ApiKeyGuard (used by this module's controllers) needs the
+      // ApiKey repository in this module's injector context.
+      ApiKey,
     ]),
     HttpModule,
   ],
