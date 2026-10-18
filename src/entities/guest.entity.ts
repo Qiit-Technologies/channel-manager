@@ -99,6 +99,14 @@ export class Guest {
   @Column({ type: "int", nullable: true })
   roomId: number;
 
+  // Mapped from the shared PMS guest table (synchronize is off, so this is
+  // read-only mapping, no DDL). Needed by the iCal export availability query.
+  @Column({ default: false })
+  isVoid: boolean;
+
+  @Column({ default: false })
+  isCheckedOut: boolean;
+
   @Column({ default: 1 })
   numberOfGuests: number;
 
