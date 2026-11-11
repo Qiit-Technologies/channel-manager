@@ -14,7 +14,7 @@ export class CornicheApiService implements ChannelApiInterface {
   private readonly httpService = new HttpService();
 
   // Hotel-specific configuration for Corniche integration
-  private readonly SUPPORTED_HOTEL_IDS = [14, 8]; // Focused supported hotel ID for Corniche (ID 14)
+  private readonly SUPPORTED_HOTEL_IDS = [8];
 
   async testConnection(
     integration: Partial<ChannelIntegration>,
@@ -438,7 +438,8 @@ export class CornicheApiService implements ChannelApiInterface {
     return {
       propertyId: integration.channelPropertyId,
       date: availability.date,
-      roomTypeId: availability.roomtypeId,
+      roomTypeId:
+        availability.channelData?.channelRoomTypeId ?? availability.roomtypeId,
       availability: {
         total: availability.totalRooms,
         available: availability.availableRooms,

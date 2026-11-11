@@ -1,0 +1,323 @@
+CORNICHE × ANLI PMS
+TECHNICAL INTEGRATION HANDOFF
+
+Prepared for: Corniche technical team
+Property: Corniche — Anli hotel ID 8
+Purpose: Implement the two-way reservation and inventory integration between Corniche and Anli.
+
+
+1. OVERVIEW
+
+ANLI PMS → CORNICHE
+Anli sends event notifications to one Corniche HTTPS callback URL configured for hotel 8. The callback URL is shared across bookings; it is not created per reservation.
+
+CORNICHE → ANLI PMS
+Corniche can read room types, availability, rates, and reservations, and create, update, cancel, or request an invoice for reservations through Anli's Partner Channel API.
+
+Anli PMS is the system of record. Check-in is performed by Anli staff; Corniche does not check guests in through this integration.
+
+Choose one path for Corniche reservation writes: call Anli's Partner Channel API directly, or use the Channel Manager proxy described in section 5. Do not send the same reservation through both paths.
+
+
+2. CONNECTION DETAILS
+
+CHANNEL MANAGER PRODUCTION BASE URL
+https://channel-manager-8rq4.onrender.com/api/v1
+
+This is the Channel Manager host. Anli's PMS Partner Channel API has a separate base URL; Anli will provide its URL and API key through the agreed secure onboarding channel.
+
+AUTHENTICATION
+
+- Anli Partner Channel API: send x-api-key with the key provided by Anli.
+- Protected Channel Manager routes: send x-api-key with the Channel Manager key provided for Corniche.
+- Use HTTPS. Do not place API keys or secrets in URLs, source code, or logs.
+
+PROPERTY MAPPING
+
+Anli will confirm Corniche's propertyReference and the Anli roomTypeId values to use when creating reservations. The Anli hotel ID is 8. Corniche room codes must be mapped to Anli roomTypeId values before booking writes.
+
+
+3. ANLI PMS → CORNICHE WEBHOOK
+
+CALLBACK SETUP
+
+Corniche provides one public HTTPS callback URL and the event subscriptions it wants to receive. Anli configures the hotel-level callback for hotel 8. POST is the recommended method.
+
+ENVELOPE
+
+{
+  "hotelId": 8,
+  "eventType": "BOOKING_NEW",
+  "event": "BOOKING_NEW",
+  "timestamp": "2026-11-11T12:30:00.000Z",
+  "data": {
+    "bookingCode": "ANL-123456",
+    "otaBookingCode": "CORN-987654"
+  }
+}
+
+The envelope fields are hotelId, eventType, event, timestamp, and data. event and eventType contain the same event name.
+
+EVENTS
+
+- BOOKING_NEW: reservation created.
+- BOOKING_MODIFY: reservation changed.
+- BOOKING_CANCEL: reservation cancelled.
+- BOOKING_NO_SHOW: no-show event name.
+- CHECK_IN: guest checked in by Anli staff.
+- CHECK_OUT: guest checked out.
+- AVAILABILITY_CHANGE: room availability/status changed.
+- RATE_CHANGE: room rate changed.
+- TEST: test notification.
+
+PAYLOAD FIELDS
+
+Booking, modification, cancellation, check-in, and check-out data can include:
+
+- hotelId, id, bookingCode, otaBookingCode.
+- fullName, email, phoneNumber.
+- startDate, endDate, startTime, endTime.
+- bookingStatus, amountPaid, outstanding, numberOfGuests.
+- isCheckedIn, isCheckedOut.
+- roomtypeId, roomNumber, roomId, roomtype, floor.
+- propertyReference, property.
+- updatedFields on modification events.
+- isVoid, voidReason, voidedBy, voidedAt on cancellation events.
+- checkInTime on check-in events.
+- checkOutNote, checkOutTime, earlyCheckoutDetails on check-out events.
+
+roomtype may be an object containing id, createdAt, name, description, maxGuests, baseRate, photos, amenities, and isActive. Related hotel, staff, and rooms details may not be present. Some cancellation notifications contain only hotelId, id, fullName, email, bookingCode, isVoid, and voidReason. Keep the booking references from the original reservation for reconciliation. Amounts may be numbers or numeric strings.
+
+RATE_CHANGE data can include room (id, roomNumber, roomtype, floor), previousPrice, newPrice, priceChange, priceChangePercent, changedAt, and changedBy.
+
+AVAILABILITY_CHANGE data contains room and timestamp. Depending on the change, room can include id, roomNumber, roomtype, floor, previousStatus, newStatus, isDirty, isOccupied, isBooked, outOfOrderReason, and expectedReturnDate.
+
+TEST data contains test, message, and timestamp.
+
+SIGNATURE AND ACKNOWLEDGEMENT
+
+When webhook signing is configured, Anli sends:
+
+- X-Webhook-Event: event name.
+- X-Webhook-Timestamp: same value as the envelope timestamp.
+- X-Webhook-Signature: lowercase hexadecimal HMAC-SHA256 of the serialized JSON payload using the shared secret.
+- Content-Type: application/json.
+
+Corniche should verify the signature against the exact raw request body, compare signatures safely, and process callbacks idempotently using bookingCode and otaBookingCode. Return a 2xx response promptly after accepting a valid notification. The sender timeout is 60 seconds; automatic retry delivery is not guaranteed.
+
+
+4. ANLI PMS PARTNER CHANNEL API
+
+Anli will provide the production PMS base URL separately. Append the route paths below to that base URL. All requests use x-api-key. Send Content-Type: application/json when sending a JSON body.
+
+4.1 LIST PROPERTIES
+
+GET {ANLI_PMS_BASE_URL}/partner/channel/properties
+
+Optional query fields: includeInactive (true or 1) and clientId.
+
+Each result contains propertyReference, code, name, type, isActive, enabled.
+
+4.2 LIST ROOM TYPES AND STAY AVAILABILITY
+
+GET {ANLI_PMS_BASE_URL}/partner/channel/properties/{propertyReference}/room-types?checkInDate=2026-12-10&checkOutDate=2026-12-12
+
+Optional query fields: checkInDate and checkOutDate; provide both or neither. Check-in is inclusive and check-out is exclusive. If omitted, the API uses a one-night stay starting today.
+
+Each result contains roomTypeId, roomTypeCode, and availableUnits (minimum units available across the requested nights).
+
+4.3 READ DAILY INVENTORY, RATES, AND AVAILABILITY
+
+GET {ANLI_PMS_BASE_URL}/partner/channel/inventory?propertyReference={propertyReference}&startDate=2026-12-10&endDate=2026-12-12&roomTypeId=12
+
+Optional query fields: propertyReference, startDate, endDate, roomTypeId. Dates are inclusive. With a propertyReference, omitted dates default to today through 30 days later. Maximum range: 100 days. Without propertyReference, only stored inventory rows are returned and availability is not calculated.
+
+Each result contains propertyReference, currency, roomTypeId, date, price, minimumStay, availability. Availability reflects sellable rooms and active reservations, constrained by any saved channel allotment. Price is the saved daily price when present; otherwise Anli calculates a rate.
+
+4.4 WRITE DAILY INVENTORY, RATES, AND ALLOTMENTS
+
+POST {ANLI_PMS_BASE_URL}/partner/channel/inventory
+
+Body: entries (required non-empty array). Each entry accepts:
+
+- propertyReference (required string).
+- date (required ISO date).
+- roomTypeId (optional integer).
+- price (optional non-negative number).
+- minimumStay (optional non-negative integer).
+- availability (optional non-negative integer).
+
+Each entry must supply at least one of price, minimumStay, or availability. Currency is configured on the property and is not accepted as an input field.
+
+{
+  "entries": [
+    {
+      "propertyReference": "CORNICHE-REF",
+      "date": "2026-12-10",
+      "roomTypeId": 12,
+      "price": 150000,
+      "minimumStay": 1,
+      "availability": 3
+    }
+  ]
+}
+
+Response: updated and data. Each data item contains propertyReference, currency, roomTypeId, date, price, minimumStay, availability.
+
+4.5 LIST RESERVATIONS
+
+GET {ANLI_PMS_BASE_URL}/partner/channel/bookings?propertyReference={propertyReference}&page=1&limit=50
+
+Optional query fields: propertyReference, createdFrom, createdTo, roomTypeId, page, limit. createdFrom and createdTo filter reservation creation dates, not stay dates. page defaults to 1; limit defaults to 50 and is capped at 200.
+
+Response contains data and meta (page, limit, count, total). Each data item contains bookingCode, otaBookingCode, creationDate, checkInDate, checkOutDate, amount, currency, bookingSource, status, propertyReference, roomTypeId, roomTypeCode.
+
+4.6 CREATE RESERVATION
+
+POST {ANLI_PMS_BASE_URL}/partner/channel/bookings
+
+Required body fields: propertyReference, fullName, roomtypeId, checkInDate, checkOutDate.
+
+Optional body fields: email, phoneNumber, roomNumber, bookingCode, otaBookingCode, bookingStatus, bookingSource, amount, amountPaid, numberOfGuests, isComplimentary, sourceReservationId.
+
+bookingStatus may be CONFIRMED, PENDING, or CANCELLED. Do not send CHECKEDIN. amountPaid defaults to zero; numberOfGuests defaults to one; isComplimentary defaults to false. If amount is omitted, Anli attempts to calculate it. There is no input currency field.
+
+{
+  "propertyReference": "CORNICHE-REF",
+  "fullName": "Jane Doe",
+  "email": "jane@example.com",
+  "phoneNumber": "+2348012345678",
+  "roomtypeId": 12,
+  "roomNumber": "401",
+  "checkInDate": "2026-12-10",
+  "checkOutDate": "2026-12-12",
+  "bookingCode": "CORN-987654",
+  "otaBookingCode": "CORN-987654",
+  "bookingStatus": "CONFIRMED",
+  "bookingSource": "CORNICHE",
+  "amount": 300000,
+  "amountPaid": 0,
+  "numberOfGuests": 2,
+  "isComplimentary": false,
+  "sourceReservationId": "CORN-987654"
+}
+
+Success: HTTP 201 booking summary containing id, bookingCode, otaBookingCode, status, propertyReference, amount, currency, checkInDate, checkOutDate. Duplicate bookingCode or otaBookingCode returns HTTP 409. No separate idempotency-key header is provided; retain the booking references returned by Anli.
+
+4.7 UPDATE RESERVATION
+
+PATCH {ANLI_PMS_BASE_URL}/partner/channel/bookings/{reference}
+
+reference is bookingCode or otaBookingCode. Required body field: hotelId (8 for Corniche). Optional fields: fullName, email, phoneNumber, checkInDate, checkOutDate, bookingStatus (CONFIRMED or PENDING), amount, numberOfGuests.
+
+Room type, room number, currency, booking source, amountPaid, and cancellation reason cannot be changed through this endpoint. Cancelled, checked-in, or checked-out reservations cannot be updated.
+
+Success: same booking summary fields as create.
+
+4.8 CANCEL RESERVATION
+
+POST {ANLI_PMS_BASE_URL}/partner/channel/bookings/{reference}/cancel
+
+reference is bookingCode or otaBookingCode. Body fields: hotelId (required; 8 for Corniche), reason (optional, maximum 500 characters).
+
+Success: same booking summary fields as create. Repeating cancellation returns the cancelled summary. Checked-in or checked-out reservations cannot be cancelled.
+
+4.9 GENERATE INVOICE PDF
+
+POST {ANLI_PMS_BASE_URL}/partner/channel/bookings/{reference}/invoice
+Accept: application/pdf
+
+reference is bookingCode or otaBookingCode. JSON body: hotelId (required; 8 for Corniche). Success returns a PDF generated on demand from the current folio. It is not a separate accounting invoice record. Cancelled reservations cannot be invoiced.
+
+
+5. CHANNEL MANAGER API (OPTIONAL)
+
+Production base URL:
+https://channel-manager-8rq4.onrender.com/api/v1
+
+Use the Channel Manager API key in x-api-key on protected routes. The booking proxy requires reservation forwarding to be enabled for Corniche. Channel Manager read routes return Channel Manager records; use section 4 for Anli's normalized inventory and reservation responses.
+
+5.1 BOOKING READS
+
+List:
+GET https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/bookings
+
+Optional query fields: hotelId, integrationId, createdFrom, createdTo, checkInFrom, checkInTo, source, status, bookingCode, otaBookingCode, limit, offset. Dates use ISO format. limit defaults to 100; offset defaults to 0.
+
+Channel Manager status values: PENDING, CONFIRMED, CANCELLED, CHECKEDIN, CHECKED_OUT, NO_SHOW, MODIFIED.
+
+Response: bookings array and total. Records are returned as stored by Channel Manager.
+
+Get one:
+GET https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/bookings/{bookingCode}
+
+URL-encode the path reference. Returns a Channel Manager booking record or HTTP 404.
+
+5.2 CHANNEL MANAGER AVAILABILITY READ
+
+GET https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/availability?integrationId=42&roomtypeId=12&startDate=2026-12-10&endDate=2026-12-12
+
+Required query fields: integrationId, roomtypeId, startDate, endDate. Dates are inclusive.
+
+Each record can contain id, integrationId, roomtypeId, date, status, availableRooms, totalRooms, occupiedRooms, blockedRooms, maintenanceRooms, rate, currency, isClosed, closeReason, restrictions, channelData, isSynced, lastSyncedAt, syncStatus, errorMessage, createdAt, updatedAt, createdBy, updatedBy. Status values: AVAILABLE, UNAVAILABLE, OCCUPIED, MAINTENANCE, BLOCKED.
+
+5.3 CHANNEL MANAGER RATE-PLAN READ
+
+GET https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/integrations/{integrationId}/rate-plans
+
+Each rate plan can contain id, integrationId, roomtypeId, channelRatePlanId, channelRatePlanName, ratePlanType, baseRate, currency, minStay, maxStay, closedToArrival, closedToDeparture, advanceBookingDays, cancellationPolicy, seasonalRates, dayOfWeekRates, specialDates, rateModifier, rateModifierType, isActive, restrictions, inclusions, exclusions, createdAt, updatedAt, createdBy, updatedBy.
+
+ratePlanType values: STANDARD, DISCOUNT, PACKAGE, PROMOTIONAL, CORPORATE, GROUP. rateModifierType values: PERCENTAGE, FIXED_AMOUNT, MULTIPLIER. This is a stored rate-plan definition, not daily priced inventory.
+
+5.4 BOOKING WRITE PROXY
+
+The proxy accepts mapped fields rather than a strict DTO. Use the Anli Partner Channel API in section 4 when you need its strict request contract.
+
+Create:
+POST https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/bookings
+
+Fields mapped by the proxy:
+- hotelId; propertyReference or propertyRef.
+- bookingCode; otaBookingCode or externalConfirmId.
+- fullName, name, guestName, or guest.fullName.
+- email or guest.email.
+- phoneNumber, phone, or guest.phoneNumber.
+- startDate, checkInDate, or checkIn; endDate, checkOutDate, or checkOut.
+- roomtypeId, roomTypeId, or roomType.
+- roomtypeName, roomTypeName, roomType.name, or roomtype.name.
+- roomNumber or guest.roomNumber.
+- bookingAmount, amount, or totalPrice; amountPaid; numberOfGuests.
+- bookingSource or source; bookingStatus or status.
+- property or propertyName.
+
+Nested guest fields used: fullName, email, phoneNumber, roomNumber. amountPaid defaults to the booking amount if omitted; send 0 explicitly when nothing has been paid. Fields such as currency, integrationId, guestDetails, and channelData are not forwarded.
+
+Update:
+PUT https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/bookings/{bookingCode}
+
+Body fields mapped: hotelId (required); fullName/name/guestName/guest.fullName; email/guest.email; phoneNumber/phone/guest.phoneNumber; checkInDate/startDate/checkIn; checkOutDate/endDate/checkOut; amount/bookingAmount/totalPrice; numberOfGuests; bookingStatus/status; cancelReason/voidReason.
+
+PENDING or CONFIRMED updates the reservation. CANCELLED or CANCELED invokes cancellation. Room, room type, currency, source, amountPaid, and OTA code are not changed by this proxy.
+
+Cancel:
+POST https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/bookings/{bookingCode}/cancel
+JSON body: hotelId (required; 8 for Corniche), reason (optional).
+
+Invoice:
+POST https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/bookings/{bookingCode}/invoice
+JSON body: hotelId (required; 8 for Corniche). Success returns application/pdf.
+
+
+6. GO-LIVE
+
+Corniche:
+- Provide the HTTPS callback URL and webhook events required.
+- Map Corniche room codes to Anli propertyReference and roomTypeId values.
+- Implement x-api-key authentication for API calls, webhook signature verification, idempotent event processing, and prompt 2xx acknowledgements.
+- Select the direct Anli booking API or the Channel Manager write proxy.
+
+Anli will securely provide the Anli PMS Partner API URL/key and the Channel Manager key if the proxy is selected. Production property and room mappings will also be confirmed before testing.
+
+Test in an agreed non-production environment: webhook delivery, room-type and inventory reads, reservation create/read/update/cancel, invoice PDF, and failure handling.
+
+The Channel Manager URL above is provided for Corniche's integration. Corniche-side API details are not part of this handoff; if Anli is expected to push inventory or rates to a Corniche API, that separate API contract must be agreed between both teams.

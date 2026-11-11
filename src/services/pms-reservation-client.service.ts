@@ -102,4 +102,153 @@ export class PmsReservationClient {
       };
     }
   }
+
+  async updateGuestReservation(
+    reference: string,
+    payload: Record<string, unknown>,
+  ): Promise<{
+    success: boolean;
+    status?: number;
+    data?: any;
+    error?: string;
+  }> {
+    return this.forwardBookingChange(
+      this.bookingActionUrl(reference),
+      payload,
+      "patch",
+    );
+  }
+
+  async cancelGuestReservation(
+    reference: string,
+    payload: Record<string, unknown>,
+  ): Promise<{
+    success: boolean;
+    status?: number;
+    data?: any;
+    error?: string;
+  }> {
+    return this.forwardBookingChange(
+      this.bookingActionUrl(reference, "cancel"),
+      payload,
+      "post",
+    );
+  }
+
+  async generateGuestInvoice(
+    reference: string,
+    hotelId: number,
+  ): Promise<{
+    success: boolean;
+    status?: number;
+    data?: Buffer;
+    error?: string;
+  }> {
+    if (
+      (process.env.PMS_RESERVATION_FORWARD || "false").toLowerCase() !== "true"
+    ) {
+      return { success: false, error: "forwarding_disabled" };
+    }
+
+    const url = this.bookingActionUrl(reference, "invoice");
+    if (!url) {
+      return {
+        success: false,
+        error: "PMS_RESERVATION_CREATE_URL is not configured",
+      };
+    }
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.apiKey) {
+      headers["x-api-key"] = this.apiKey;
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.http.post(
+          url,
+          { hotelId },
+          { headers, responseType: "arraybuffer" },
+        ),
+      );
+      return {
+        success: response.status < 300,
+        status: response.status,
+        data: Buffer.from(response.data),
+      };
+    } catch (error: any) {
+      const status = error?.response?.status;
+      this.logger.error(
+        `[PMS Forward] Invoice generation failed: status=${status ?? "n/a"} message=${error?.message || error}`,
+      );
+      return {
+        success: false,
+        status,
+        error: error?.message || String(error),
+      };
+    }
+  }
+
+  private bookingActionUrl(
+    reference: string,
+    action?: "cancel" | "invoice",
+  ): string | undefined {
+    const base = this.baseUrl?.replace(/\/+$/, "");
+    if (!base) return undefined;
+    return `${base}/${encodeURIComponent(reference)}${action ? `/${action}` : ""}`;
+  }
+
+  private async forwardBookingChange(
+    url: string | undefined,
+    payload: Record<string, unknown>,
+    method: "patch" | "post",
+  ): Promise<{
+    success: boolean;
+    status?: number;
+    data?: any;
+    error?: string;
+  }> {
+    if (
+      (process.env.PMS_RESERVATION_FORWARD || "false").toLowerCase() !== "true"
+    ) {
+      return { success: false, error: "forwarding_disabled" };
+    }
+    if (!url) {
+      return {
+        success: false,
+        error: "PMS_RESERVATION_CREATE_URL is not configured",
+      };
+    }
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.apiKey) {
+      headers["x-api-key"] = this.apiKey;
+    }
+
+    try {
+      const response =
+        method === "patch"
+          ? await firstValueFrom(this.http.patch(url, payload, { headers }))
+          : await firstValueFrom(this.http.post(url, payload, { headers }));
+      return {
+        success: response.status < 300,
+        status: response.status,
+        data: response.data,
+      };
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+      this.logger.error(
+        `[PMS Forward] Booking ${method} failed: status=${status ?? "n/a"} message=${error?.message || error}`,
+      );
+      return {
+        success: false,
+        status,
+        data,
+        error: error?.message || String(error),
+      };
+    }
+  }
 }

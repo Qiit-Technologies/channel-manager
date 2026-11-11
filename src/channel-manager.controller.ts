@@ -10,7 +10,10 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  Res,
+  StreamableFile,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { ApiKeyGuard } from "./auth/api-key.guard";
 import { ChannelManagerService } from "./channel-manager.service";
 import {
@@ -23,6 +26,7 @@ import {
   ApiOperation,
   ApiQuery,
   ApiSecurity,
+  ApiProduces,
   getSchemaPath,
 } from "@nestjs/swagger";
 import { WebhookPayloadDto } from "./dto/webhook-payload.dto";
@@ -687,6 +691,7 @@ export class ChannelManagerController {
   }
 
   @Get("availability")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "Get availability by date range",
     description:
@@ -833,6 +838,7 @@ export class ChannelManagerController {
   }
 
   @Get("integrations/:integrationId/rate-plans")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "List channel rate plans",
     description: "Fetches all rate plans linked to the specified integration.",
@@ -931,6 +937,7 @@ export class ChannelManagerController {
 
   // Booking Management Endpoints
   @Get("bookings")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "List bookings",
     description:
@@ -976,6 +983,7 @@ export class ChannelManagerController {
   }
 
   @Get("bookings/:bookingCode")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "Get booking by code",
     description: "Retrieves a single booking using its unique booking code.",
@@ -1102,6 +1110,7 @@ export class ChannelManagerController {
   }
 
   @Put("bookings/:bookingCode")
+  @UseGuards(ApiKeyGuard)
   @ApiOperation({
     summary: "Update booking",
     description:
@@ -1116,25 +1125,23 @@ export class ChannelManagerController {
     description: "Fields to update",
     schema: {
       type: "object",
+      required: ["hotelId"],
       properties: {
+        hotelId: { type: "number", example: 8 },
+        fullName: { type: "string" },
+        email: { type: "string" },
+        phoneNumber: { type: "string" },
         status: {
           type: "string",
-          enum: [
-            "PENDING",
-            "CONFIRMED",
-            "CHECKED_IN",
-            "CHECKED_OUT",
-            "CANCELED",
-            "NO_SHOW",
-            "MODIFIED",
-          ],
+          enum: ["PENDING", "CONFIRMED"],
+          description: "Use the dedicated cancellation endpoint to cancel.",
         },
         amount: { type: "number" },
+        numberOfGuests: { type: "number" },
         currency: { type: "string" },
         startDate: { type: "string", format: "date" },
         endDate: { type: "string", format: "date" },
         cancelReason: { type: "string" },
-        canceledAt: { type: "string", format: "date-time" },
       },
     },
   })
@@ -1157,6 +1164,78 @@ export class ChannelManagerController {
     @Body() updates: any,
   ): Promise<any> {
     return await this.channelManagerService.updateBooking(bookingCode, updates);
+  }
+
+  @Post("bookings/:bookingCode/cancel")
+  @UseGuards(ApiKeyGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Cancel booking",
+    description:
+      "Cancels the booking in Oreon using its booking or OTA reference and the Oreon hotel ID.",
+  })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["hotelId"],
+      properties: {
+        hotelId: { type: "number", example: 8 },
+        reason: { type: "string", example: "Cancelled by provider" },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: "Booking cancelled in Oreon" })
+  async cancelBooking(
+    @Param("bookingCode") bookingCode: string,
+    @Body() cancellation: any,
+  ): Promise<any> {
+    return this.channelManagerService.cancelBooking(bookingCode, cancellation);
+  }
+
+  @Post("bookings/:bookingCode/invoice")
+  @UseGuards(ApiKeyGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Generate a reservation invoice PDF",
+    description:
+      "Generates a PDF invoice from the current Oreon stay folio and streams it to the caller.",
+  })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["hotelId"],
+      properties: {
+        hotelId: { type: "number", example: 8 },
+      },
+    },
+  })
+  @ApiProduces("application/pdf")
+  @ApiResponse({
+    status: 200,
+    description: "Invoice PDF",
+    content: {
+      "application/pdf": {
+        schema: { type: "string", format: "binary" },
+      },
+    },
+  })
+  async generateBookingInvoice(
+    @Param("bookingCode") bookingCode: string,
+    @Body() request: { hotelId: number },
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const pdf = await this.channelManagerService.generateBookingInvoice(
+      bookingCode,
+      request,
+    );
+    const safeReference = bookingCode.replace(/[^a-zA-Z0-9._-]/g, "_");
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader(
+      "Content-Disposition",
+      `attachment; filename="invoice-${safeReference}.pdf"`,
+    );
+    response.setHeader("Cache-Control", "no-store");
+    return new StreamableFile(pdf);
   }
 
   // Sync Management Endpoints

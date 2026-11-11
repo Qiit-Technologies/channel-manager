@@ -121,23 +121,27 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
    HOTELS_COM_API_KEY=your_hotels_com_api_key
    TRIPADVISOR_API_KEY=your_tripadvisor_api_key
    AGODA_API_KEY=your_agoda_api_key
+   ```
 
-  # Application
-  PORT=3001
-  NODE_ENV=development
-  
-  # Optional PMS Reservation Forwarding
-  PMS_RESERVATION_FORWARD=true
-  PMS_RESERVATION_CREATE_URL=https://oreon.example.com/api/v1/guests/{hotelId}
-  PMS_API_KEY=your_pms_api_key
-  ```
+# Application
+
+PORT=3001
+NODE_ENV=development
+
+# Optional PMS Reservation Forwarding
+
+PMS_RESERVATION_FORWARD=true
+PMS_RESERVATION_CREATE_URL=https://oreon.example.com/api/v1/partner/channel/bookings
+PMS_API_KEY=your_pms_api_key
+
+````
 
 4. **Database Setup**
 
-   ```bash
-   # Run migrations (if using TypeORM migrations)
-   npm run migration:run
-   ```
+ ```bash
+ # Apply migrations on startup
+ MIGRATIONS_RUN=true npm run start:dev
+````
 
 5. **Start the application**
 
@@ -148,6 +152,25 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
    # Production mode
    npm run start:prod
    ```
+
+## Corniche PMS Event Integration
+
+Corniche (Oreon hotel ID `8`) and 649suite (Oreon hotel ID `34`) use Oreon's
+per-hotel `hotel_webhook` configuration for direct notifications. Set each
+hotel's row `url` to its provider's notification endpoint, `secret` to the
+credential that provider requires, `verb` to its required HTTP method, enable
+it, and select the events to send:
+
+```text
+BOOKING_NEW, BOOKING_MODIFY, BOOKING_CANCEL, RATE_CHANGE,
+AVAILABILITY_CHANGE, CHECK_IN, CHECK_OUT
+```
+
+Oreon sends booking details, including `bookingCode` and `otaBookingCode`,
+directly to the configured URL and signs the payload when a secret is set. No
+Channel Manager forwarding endpoint, per-booking link table, or migration is
+needed for these notifications. Confirm each provider's authentication and
+payload requirements against its API documentation.
 
 ## API Endpoints
 
@@ -187,10 +210,27 @@ When no `CHANNEL_MANAGER_API_KEY` is set in the environment, the system runs in 
 
 ### PMS Reservation Forwarding (Optional)
 
-- When inbound webhooks include reservation details, the system can forward a standardized `CreateGuestDto` payload to your PMS.
-- Enable by setting `PMS_RESERVATION_FORWARD=true` and configuring `PMS_RESERVATION_CREATE_URL`.
-- The URL may include a `{hotelId}` placeholder which will be replaced; otherwise `hotelId` is appended as a query param.
+- When inbound webhooks include reservation details, the system forwards them to
+  Oreon's authenticated Partner Channel booking API.
+- Enable by setting `PMS_RESERVATION_FORWARD=true` and configuring
+  `PMS_RESERVATION_CREATE_URL` to Oreon's
+  `/api/v1/partner/channel/bookings` endpoint. The same endpoint base is used
+  for `PATCH /{booking-or-OTA-reference}` and
+  `POST /{booking-or-OTA-reference}/cancel`.
 - If `PMS_API_KEY` is set, it is sent in the `X-API-Key` header.
+- Configure Oreon's `CM_PARTNER_API_KEY` or `CM_FORWARD_API_KEY` to the same
+  value as `PMS_API_KEY`. Updates and cancellations include the Oreon `hotelId`
+  so booking references are resolved within the correct property.
+- Update and cancellation requests identify the existing Oreon reservation
+  using either its booking code or OTA booking code; they do not create a
+  duplicate reservation or require a local Channel Manager booking record.
+- The Channel Manager's `/availability` and `/integrations/:integrationId/rate-plans`
+  endpoints return its stored channel inventory and rates. Oreon's live partner
+  inventory is available separately through `/api/v1/partner/channel/inventory`.
+- Generate a reservation invoice PDF through
+  `POST /api/v1/channel-manager/bookings/{booking-or-OTA-reference}/invoice`
+  with `{ "hotelId": 8 }`. The Channel Manager forwards it to Oreon's
+  partner-channel invoice endpoint and streams the PDF response.
 
 ## Usage Examples
 
@@ -207,7 +247,7 @@ const integration = await channelManagerService.createChannelIntegration(
     isRealTimeSync: true,
     syncIntervalMinutes: 15,
   },
-  userId
+  userId,
 );
 
 // Hotelbeds integration example
@@ -223,7 +263,7 @@ const hotelbedsIntegration =
       isRealTimeSync: true,
       syncIntervalMinutes: 15,
     },
-    userId
+    userId,
   );
 ```
 

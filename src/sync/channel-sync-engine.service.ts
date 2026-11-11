@@ -128,8 +128,22 @@ export class ChannelSyncEngine {
       const channelApi = this.channelApiFactory.createChannelApi(
         integration.channelType,
       );
+      const mappings =
+        await this.channelManagerRepository.findMappingsByIntegration(
+          integration.id,
+        );
+      const mapping = mappings.find(
+        (candidate) =>
+          Number(candidate.roomtypeId) === Number(availability.roomtypeId),
+      );
 
-      await channelApi.updateAvailability(integration, availability);
+      await channelApi.updateAvailability(integration, {
+        ...availability,
+        channelData: {
+          ...availability.channelData,
+          ...(mapping ? { channelRoomTypeId: mapping.channelRoomTypeId } : {}),
+        },
+      });
 
       this.logger.log(
         `Real-time availability sync completed for: ${integration.channelName}`,
@@ -236,7 +250,13 @@ export class ChannelSyncEngine {
 
         for (const avail of availability) {
           try {
-            await channelApi.updateAvailability(integration, avail);
+            await channelApi.updateAvailability(integration, {
+              ...avail,
+              channelData: {
+                ...avail.channelData,
+                channelRoomTypeId: mapping.channelRoomTypeId,
+              },
+            });
             recordsSuccess++;
           } catch (error: any) {
             this.logger.error(
