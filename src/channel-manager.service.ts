@@ -36,6 +36,7 @@ import { PmsReservationClient } from "./services/pms-reservation-client.service"
 import { HotelRegistrationSource } from "./dto/create-hotel.dto";
 import { ChannelSyncEngine } from "./sync/channel-sync-engine.service";
 import { PmsSyncService } from "./services/pms-sync.service";
+import { HotelAvailabilityQueryDto } from "./dto/hotel-availability-query.dto";
 
 // Anli entity imports - these will be loaded from the Anli database
 // We'll use type annotations to ensure compatibility
@@ -96,6 +97,10 @@ export class ChannelManagerService {
 
   async getHotelRoomTypes(hotelId: number) {
     return this.oreonHotelClient.getHotelRoomTypes(hotelId);
+  }
+
+  async getHotelAvailability(query: HotelAvailabilityQueryDto) {
+    return this.oreonHotelClient.getHotelAvailability(query);
   }
 
   // Channel Integration Management

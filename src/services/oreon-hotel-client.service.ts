@@ -4,6 +4,7 @@ import { firstValueFrom } from "rxjs";
 import { CreateHotelDto } from "../dto/create-hotel.dto";
 import { CreateRoomTypeDto } from "../dto/create-roomtype.dto";
 import { CreateRoomDto } from "../dto/create-room.dto";
+import { HotelAvailabilityQueryDto } from "../dto/hotel-availability-query.dto";
 
 @Injectable()
 export class OreonHotelClient {
@@ -489,6 +490,73 @@ export class OreonHotelClient {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
+    }
+  }
+
+  async getHotelAvailability(
+    query: HotelAvailabilityQueryDto,
+  ): Promise<{
+    hotelId: number;
+    checkIn: string;
+    checkOut: string;
+    nights: number;
+    adults: number;
+    children: number;
+    roomTypes: Array<{
+      roomTypeId: number;
+      name: string;
+      roomsAvailable: number;
+      nightlyRate: number | null;
+      nights: number;
+      totalPrice: number | null;
+      maxGuests: number | null;
+      photos: string[];
+      amenities: string[];
+      available: boolean;
+    }>;
+  }> {
+    const url = `${this.baseUrl}/public/channel-manager/hotels/${query.hotelId}/availability`;
+    const apiKey = this.apiKey;
+    if (!apiKey) {
+      throw new HttpException(
+        "CM_FORWARD_API_KEY not configured in channel manager.",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.http.get(url, {
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+          },
+          params: {
+            checkIn: query.checkInDate,
+            checkOut: query.checkOutDate,
+          },
+        }),
+      );
+      return {
+        ...response.data,
+        roomTypes: response.data.roomTypes.filter(
+          (roomType: { roomTypeId: number }) =>
+            roomType.roomTypeId === query.roomtypeId,
+        ),
+      };
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const message =
+        error?.response?.data?.message || error?.message || "Unknown error";
+      this.logger.error(
+        `[Anli Availability] Failed for hotel ${query.hotelId}: status=${status ?? "n/a"} message=${message}`,
+      );
+      throw new HttpException(
+        `Failed to fetch availability from Anli: ${message}`,
+        status && status >= 400 && status < 600
+          ? status
+          : HttpStatus.BAD_GATEWAY,
+      );
     }
   }
 

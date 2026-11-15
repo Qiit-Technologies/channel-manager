@@ -12,6 +12,7 @@ import {
   HttpCode,
   Res,
   StreamableFile,
+  ParseIntPipe,
 } from "@nestjs/common";
 import type { Response } from "express";
 import { ApiKeyGuard } from "./auth/api-key.guard";
@@ -39,6 +40,7 @@ import { SyncAvailabilityDto } from "./dto/sync-availability.dto";
 import { CreateRoomTypeDto } from "./dto/create-roomtype.dto";
 import { CreateRoomDto } from "./dto/create-room.dto";
 import { GetBookingsDto } from "./dto/get-bookings.dto";
+import { HotelAvailabilityQueryDto } from "./dto/hotel-availability-query.dto";
 import {
   ChannelIntegration,
   ChannelType,
@@ -219,6 +221,51 @@ export class ChannelManagerController {
   })
   async getHotelRoomTypes(@Param("hotelId") hotelId: number) {
     return this.channelManagerService.getHotelRoomTypes(hotelId);
+  }
+
+  @Get("availability/live")
+  @UseGuards(ApiKeyGuard)
+  @ApiOperation({
+    summary: "Check live PMS availability for a hotel stay",
+    description:
+      "Fetches live availability for one room type from Anli PMS. This route does not require a channel integration or room mapping.",
+  })
+  @ApiQuery({ name: "hotelId", type: Number, example: 8 })
+  @ApiQuery({ name: "roomtypeId", type: Number, example: 15 })
+  @ApiQuery({ name: "checkInDate", type: String, example: "2025-06-01" })
+  @ApiQuery({ name: "checkOutDate", type: String, example: "2025-06-05" })
+  @ApiResponse({
+    status: 200,
+    description: "Live availability and rates for the requested stay.",
+    schema: {
+      example: {
+        hotelId: 8,
+        checkIn: "2025-06-01",
+        checkOut: "2025-06-05",
+        nights: 4,
+        adults: 1,
+        children: 0,
+        roomTypes: [
+          {
+            roomTypeId: 15,
+            name: "Deluxe Room",
+            roomsAvailable: 3,
+            nightlyRate: 150000,
+            nights: 4,
+            totalPrice: 600000,
+            maxGuests: 2,
+            photos: [],
+            amenities: [],
+            available: true,
+          },
+        ],
+      },
+    },
+  })
+  async getHotelAvailability(
+    @Query() query: HotelAvailabilityQueryDto,
+  ) {
+    return this.channelManagerService.getHotelAvailability(query);
   }
 
   // Channel Type Endpoints

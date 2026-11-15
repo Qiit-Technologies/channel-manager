@@ -1,12 +1,551 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/api/v1/channel-manager/integrations": {
+    "/api/v1/ical/{token}/calendar.ics": {
+      "get": {
+        "operationId": "IcalController_exportCalendar",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/feeds": {
       "post": {
-        "operationId": "ChannelManagerController_createChannelIntegration",
+        "operationId": "IcalController_createFeed",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "IcalController_listFeeds",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/feeds/{id}/rotate": {
+      "post": {
+        "operationId": "IcalController_rotateFeed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/feeds/{id}": {
+      "delete": {
+        "operationId": "IcalController_deleteFeed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/feeds/bulk": {
+      "post": {
+        "operationId": "IcalController_createBulkFeeds",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/feeds/property": {
+      "post": {
+        "operationId": "IcalController_createPropertyFeed",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/import-sources": {
+      "post": {
+        "operationId": "IcalController_createImportSource",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "IcalController_listImportSources",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/import-sources/{id}/sync": {
+      "post": {
+        "operationId": "IcalController_syncImportSource",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/import-sources/{id}": {
+      "delete": {
+        "operationId": "IcalController_deleteImportSource",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ical/external-blocks": {
+      "get": {
+        "operationId": "IcalController_listExternalBlocks",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/channel-manager/hotels": {
+      "get": {
+        "operationId": "ChannelManagerController_getHotelsByRegistrationSource",
+        "summary": "Get hotels by registration source",
+        "description": "Fetches hotels from Oreon PMS filtered by registration source, excluding DIRECT registrations. If no source is specified, returns all hotels except those registered DIRECT.",
+        "parameters": [
+          {
+            "name": "registrationSource",
+            "required": false,
+            "in": "query",
+            "description": "Filter by specific registration source (optional)",
+            "schema": {
+              "enum": [
+                "WAKANOW",
+                "CHANNEL_MANAGER",
+                "PARTNER",
+                "API",
+                "ADMIN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of hotels retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid API key"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/hotels/search": {
+      "get": {
+        "operationId": "ChannelManagerController_searchHotels",
+        "summary": "Search hotels by name or email",
+        "parameters": [
+          {
+            "name": "name",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found matching hotels"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/roomtypes": {
+      "post": {
+        "operationId": "ChannelManagerController_createRoomType",
+        "summary": "Create room type for a hotel",
+        "description": "Creates a new room type for a hotel in Oreon PMS. Used to set up hotel inventory.",
         "parameters": [],
         "requestBody": {
           "required": true,
+          "description": "Room type creation data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoomTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Room type created successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized - invalid API key"
+          },
+          "404": {
+            "description": "Hotel not found"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/rooms": {
+      "post": {
+        "operationId": "ChannelManagerController_createRoom",
+        "summary": "Create room for a hotel",
+        "description": "Creates a new room for a hotel in Oreon PMS. Requires an existing room type.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Room creation data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoomDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Room created successfully"
+          },
+          "400": {
+            "description": "Bad request - room type does not belong to hotel"
+          },
+          "401": {
+            "description": "Unauthorized - invalid API key"
+          },
+          "404": {
+            "description": "Hotel or room type not found"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/hotels/{hotelId}/roomtypes": {
+      "get": {
+        "operationId": "ChannelManagerController_getHotelRoomTypes",
+        "summary": "Get hotel room types with rooms",
+        "description": "Fetches all room types for a hotel along with their associated rooms from Oreon PMS.",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "path",
+            "description": "Hotel ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Room types with rooms retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid API key"
+          },
+          "404": {
+            "description": "Hotel not found"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/availability/live": {
+      "get": {
+        "operationId": "ChannelManagerController_getHotelAvailability",
+        "summary": "Check live PMS availability for a hotel stay",
+        "description": "Fetches live availability for one room type from Anli PMS. This route does not require a channel integration or room mapping.",
+        "parameters": [
+          {
+            "name": "checkOutDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2025-06-05",
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkInDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2025-06-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "roomtypeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": 15,
+              "type": "number"
+            }
+          },
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": 8,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Live availability and rates for the requested stay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "hotelId": 8,
+                    "checkIn": "2025-06-01",
+                    "checkOut": "2025-06-05",
+                    "nights": 4,
+                    "adults": 1,
+                    "children": 0,
+                    "roomTypes": [
+                      {
+                        "roomTypeId": 15,
+                        "name": "Deluxe Room",
+                        "roomsAvailable": 3,
+                        "nightlyRate": 150000,
+                        "nights": 4,
+                        "totalPrice": 600000,
+                        "maxGuests": 2,
+                        "photos": [],
+                        "amenities": [],
+                        "available": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/channel-types": {
+      "get": {
+        "operationId": "ChannelManagerController_getChannelTypes",
+        "summary": "Get all available channel types",
+        "description": "Returns a list of all supported channel/OTA types in the system.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of channel types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "BOOKING_COM",
+                      "EXPEDIA",
+                      "AIRBNB",
+                      "HOTELS_COM",
+                      "TRIPADVISOR",
+                      "AGODA",
+                      "HOTELBEDS",
+                      "CUSTOM",
+                      "SEVEN",
+                      "CORNICHE",
+                      "WAKANOW"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/integrations/test-connection": {
+      "post": {
+        "operationId": "ChannelManagerController_testChannelConnectivity",
+        "summary": "Test channel integration connectivity",
+        "description": "Tests the connection to a channel provider with the given credentials without creating a permanent record.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Credentials and parameters for testing",
           "content": {
             "application/json": {
               "schema": {
@@ -16,154 +555,446 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChannelIntegration"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "operationId": "ChannelManagerController_getChannelIntegrations",
-        "parameters": [
-          {
-            "name": "hotelId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
           "200": {
-            "description": "",
+            "description": "Connection test result",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ChannelIntegration"
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string",
+                      "nullable": true
+                    }
                   }
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
-    "/api/v1/channel-manager/integrations/{id}": {
-      "get": {
-        "operationId": "ChannelManagerController_getChannelIntegration",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChannelIntegration"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "operationId": "ChannelManagerController_updateChannelIntegration",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChannelIntegration"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "ChannelManagerController_deleteChannelIntegration",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/v1/channel-manager/integrations/available-types/{hotelId}": {
-      "get": {
-        "operationId": "ChannelManagerController_getAvailableIntegrationTypes",
-        "parameters": [
-          {
-            "name": "hotelId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/v1/channel-manager/mappings": {
+    "/api/v1/channel-manager/integrations": {
       "post": {
-        "operationId": "ChannelManagerController_createChannelMapping",
+        "operationId": "ChannelManagerController_createChannelIntegration",
+        "summary": "Create channel integration",
+        "description": "Registers a new channel integration for a hotel and returns the created integration record.",
         "parameters": [],
         "requestBody": {
           "required": true,
+          "description": "Payload for creating a channel integration. Can include hotelId for existing hotels, or hotel object for onboarding new hotels.",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateChannelMappingDto"
+                "$ref": "#/components/schemas/CreateChannelIntegrationDto"
+              },
+              "examples": {
+                "bookingCom": {
+                  "summary": "Booking.com integration (existing hotel)",
+                  "value": {
+                    "hotelId": 1,
+                    "channelType": "BOOKING_COM",
+                    "channelName": "Booking.com Integration",
+                    "channelUsername": "hotel-account",
+                    "channelPassword": "super-secret",
+                    "channelPropertyId": "BCOM-HOTEL-01",
+                    "isWebhookEnabled": true,
+                    "syncIntervalMinutes": 30,
+                    "channelSettings": {
+                      "defaultCurrency": "USD",
+                      "timeZone": "America/New_York"
+                    }
+                  }
+                },
+                "bookingComWithOnboarding": {
+                  "summary": "Booking.com integration with hotel onboarding",
+                  "value": {
+                    "channelType": "BOOKING_COM",
+                    "channelName": "Booking.com Integration",
+                    "channelUsername": "hotel-account",
+                    "channelPassword": "super-secret",
+                    "isWebhookEnabled": true,
+                    "syncIntervalMinutes": 30,
+                    "registrationSource": "CHANNEL_MANAGER",
+                    "hotel": {
+                      "name": "Grand Hotel",
+                      "email": "info@grandhotel.com",
+                      "address": "123 Main Street",
+                      "country": "United States",
+                      "state": "New York",
+                      "isActive": true,
+                      "registrationSource": "CHANNEL_MANAGER"
+                    },
+                    "channelSettings": {
+                      "defaultCurrency": "USD",
+                      "timeZone": "America/New_York"
+                    }
+                  }
+                },
+                "expedia": {
+                  "summary": "Expedia integration",
+                  "value": {
+                    "hotelId": 1,
+                    "channelType": "EXPEDIA",
+                    "channelName": "Expedia Partner Integration",
+                    "apiKey": "exp_api_key_67890",
+                    "apiSecret": "exp_secret_xyz",
+                    "channelPropertyId": "EXP-PROP-12345",
+                    "isWebhookEnabled": true,
+                    "syncIntervalMinutes": 30
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "Channel integration created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelIntegration"
+                },
+                "example": {
+                  "id": 1,
+                  "hotelId": 1,
+                  "channelType": "BOOKING_COM",
+                  "channelName": "Booking.com Main Integration",
+                  "status": "ACTIVE",
+                  "apiKey": "bk_api_key_12345",
+                  "apiSecret": null,
+                  "accessToken": "access_token_xyz789",
+                  "refreshToken": "refresh_token_abc123",
+                  "channelPropertyId": "BCOM-HOTEL-01",
+                  "channelUsername": "hotel-account",
+                  "channelPassword": null,
+                  "webhookUrl": "https://api.example.com/webhooks/booking-com",
+                  "webhookSecret": "webhook_secret_xyz",
+                  "isWebhookEnabled": true,
+                  "syncIntervalMinutes": 15,
+                  "isRealTimeSync": true,
+                  "lastSyncAt": "2025-01-15T10:30:00.000Z",
+                  "lastSuccessfulSync": "2025-01-15T10:30:00.000Z",
+                  "errorMessage": null,
+                  "testMode": false,
+                  "channelSettings": {
+                    "autoSync": true,
+                    "defaultCurrency": "USD",
+                    "timeZone": "America/New_York",
+                    "locale": "en-US"
+                  },
+                  "supportedFeatures": [
+                    "real-time_sync",
+                    "webhooks",
+                    "multi_currency",
+                    "rate_updates",
+                    "availability_updates"
+                  ],
+                  "createdAt": "2025-01-01T10:00:00.000Z",
+                  "updatedAt": "2025-01-15T10:30:00.000Z",
+                  "createdBy": 1,
+                  "updatedBy": 1
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ChannelManagerController_getIntegrations",
+        "summary": "Get channel integration(s)",
+        "description": "Retrieves channel integrations. Returns a single integration if integrationId or hotelId+channelType are provided; otherwise returns a list.",
+        "parameters": [
+          {
+            "name": "integrationId",
+            "required": false,
+            "in": "query",
+            "description": "Channel integration identifier",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "hotelId",
+            "required": false,
+            "in": "query",
+            "description": "Hotel identifier",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "channelType",
+            "required": false,
+            "in": "query",
+            "description": "Channel provider type",
+            "schema": {
+              "enum": [
+                "BOOKING_COM",
+                "EXPEDIA",
+                "AIRBNB",
+                "HOTELS_COM",
+                "TRIPADVISOR",
+                "AGODA",
+                "HOTELBEDS",
+                "CUSTOM",
+                "SEVEN",
+                "CORNICHE",
+                "WAKANOW"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ChannelIntegration"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ChannelIntegration"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}": {
+      "put": {
+        "operationId": "ChannelManagerController_updateChannelIntegration",
+        "summary": "Update channel integration",
+        "description": "Applies partial updates to an existing channel integration and returns the updated record.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Channel integration identifier",
+            "schema": {
+              "example": 42,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Fields of the channel integration to update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "example": "ACTIVE",
+                    "description": "Lifecycle status of the integration"
+                  },
+                  "credentials": {
+                    "type": "object",
+                    "example": {
+                      "apiKey": "updated-secret-key"
+                    },
+                    "description": "Provider credentials required for syncing"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "example": {
+                      "autoSync": false,
+                      "locale": "en-GB"
+                    },
+                    "description": "Optional settings for the integration"
+                  },
+                  "lastSyncAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-01-02T09:45:00.000Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Channel integration updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelIntegration"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ChannelManagerController_deleteChannelIntegration",
+        "summary": "Delete channel integration",
+        "description": "Removes a channel integration. Existing channel mappings using the integration must be handled separately.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Channel integration identifier",
+            "schema": {
+              "example": 42,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Channel integration deleted"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/integrations/available-types/{hotelId}": {
+      "get": {
+        "operationId": "ChannelManagerController_getAvailableIntegrationTypes",
+        "summary": "List available integration types",
+        "description": "Provides a list of channel types that are not yet connected for the specified hotel.",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": true,
+            "in": "path",
+            "description": "Hotel identifier to check availability for",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available channel types for the hotel",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "BOOKING_COM",
+                      "EXPEDIA",
+                      "AIRBNB",
+                      "HOTELS_COM",
+                      "TRIPADVISOR",
+                      "AGODA",
+                      "HOTELBEDS",
+                      "CUSTOM",
+                      "SEVEN",
+                      "CORNICHE",
+                      "WAKANOW"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/mappings": {
+      "post": {
+        "operationId": "ChannelManagerController_createChannelMapping",
+        "summary": "Create channel mapping",
+        "description": "Creates a mapping between hotel inventory and channel content so rates and availability can be synced.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Payload for creating channel mappings",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChannelMappingDto"
+              },
+              "examples": {
+                "standardRoom": {
+                  "summary": "Standard room mapping",
+                  "value": {
+                    "integrationId": 42,
+                    "roomTypeId": 14,
+                    "ratePlanId": 10,
+                    "channelRoomIdentifier": "STD-DOUBLE",
+                    "channelRatePlanIdentifier": "BAR",
+                    "restrictions": {
+                      "minStay": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Channel mapping created successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -172,25 +1003,37 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/integrations/{integrationId}/mappings": {
       "get": {
         "operationId": "ChannelManagerController_getChannelMappings",
+        "summary": "List channel mappings",
+        "description": "Retrieves all mappings associated with a specific channel integration.",
         "parameters": [
           {
             "name": "integrationId",
             "required": true,
             "in": "path",
+            "description": "Channel integration identifier",
             "schema": {
+              "example": 42,
               "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Channel mappings for the integration",
             "content": {
               "application/json": {
                 "schema": {
@@ -202,25 +1045,73 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/mappings/{id}": {
       "put": {
         "operationId": "ChannelManagerController_updateChannelMapping",
+        "summary": "Update channel mapping",
+        "description": "Updates a channel mapping to reflect changes in linked inventory or rate plan information.",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Channel mapping identifier",
             "schema": {
+              "example": 99,
               "type": "number"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "description": "Fields of the channel mapping to update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "channelRoomIdentifier": {
+                    "type": "string",
+                    "example": "DLX-SUITE",
+                    "description": "Identifier used by the channel for the mapped room"
+                  },
+                  "channelRatePlanIdentifier": {
+                    "type": "string",
+                    "example": "FLEX-NRB",
+                    "description": "Identifier used by the channel for the rate plan"
+                  },
+                  "restrictions": {
+                    "type": "object",
+                    "example": {
+                      "minStay": 2,
+                      "maxStay": 7
+                    },
+                    "description": "Optional stay restrictions applied to the mapping"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Whether the mapping is enabled for syncing"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "",
+            "description": "Channel mapping updated successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -229,26 +1120,71 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/availability/sync": {
       "post": {
         "operationId": "ChannelManagerController_syncAvailability",
+        "summary": "Sync availability",
+        "description": "Pushes availability updates from the PMS to the connected channel for the specified room types and dates.",
         "parameters": [],
         "requestBody": {
           "required": true,
+          "description": "Payload describing availability sync request",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SyncAvailabilityDto"
+              },
+              "examples": {
+                "nightlyAvailability": {
+                  "summary": "Nightly availability update",
+                  "value": {
+                    "integrationId": 42,
+                    "updates": [
+                      {
+                        "roomTypeId": 14,
+                        "date": "2025-02-10",
+                        "availableRooms": 5
+                      },
+                      {
+                        "roomTypeId": 14,
+                        "date": "2025-02-11",
+                        "availableRooms": 4
+                      }
+                    ]
+                  }
+                },
+                "singleDate": {
+                  "summary": "Single date availability update",
+                  "value": {
+                    "integrationId": 1,
+                    "roomtypeId": 14,
+                    "date": "2025-01-15",
+                    "status": "AVAILABLE",
+                    "availableRooms": 5,
+                    "totalRooms": 10,
+                    "rate": 150,
+                    "currency": "USD",
+                    "isClosed": false
+                  }
+                }
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "",
+          "200": {
+            "description": "Availability sync queued/executed",
             "content": {
               "application/json": {
                 "schema": {
@@ -257,18 +1193,30 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/availability": {
       "get": {
         "operationId": "ChannelManagerController_getAvailabilityByDateRange",
+        "summary": "Get availability by date range",
+        "description": "Returns channel availability records for a specific integration, room type, and date range.",
         "parameters": [
           {
             "name": "integrationId",
             "required": true,
             "in": "query",
+            "description": "Channel integration identifier",
             "schema": {
+              "example": 42,
               "type": "number"
             }
           },
@@ -276,7 +1224,9 @@
             "name": "roomtypeId",
             "required": true,
             "in": "query",
+            "description": "Mapped room type identifier",
             "schema": {
+              "example": 301,
               "type": "number"
             }
           },
@@ -284,7 +1234,9 @@
             "name": "startDate",
             "required": true,
             "in": "query",
+            "description": "Start date of the range (inclusive, YYYY-MM-DD)",
             "schema": {
+              "example": "2025-02-01",
               "type": "string"
             }
           },
@@ -292,14 +1244,16 @@
             "name": "endDate",
             "required": true,
             "in": "query",
+            "description": "End date of the range (inclusive, YYYY-MM-DD)",
             "schema": {
+              "example": "2025-02-07",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Channel availability records for the time range",
             "content": {
               "application/json": {
                 "schema": {
@@ -311,101 +1265,1012 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/rate-plans": {
       "post": {
         "operationId": "ChannelManagerController_createChannelRatePlan",
+        "summary": "Create channel rate plan",
+        "description": "Creates a new rate plan on the PMS side and associates it with a channel integration.",
         "parameters": [],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
+        "requestBody": {
+          "required": true,
+          "description": "Payload describing the rate plan to create",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "integrationId",
+                  "name",
+                  "baseRate",
+                  "currency"
+                ],
+                "properties": {
+                  "integrationId": {
+                    "type": "number",
+                    "example": 42,
+                    "description": "Channel integration identifier"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Standard Flexible",
+                    "description": "Display name of the rate plan"
+                  },
+                  "baseRate": {
+                    "type": "number",
+                    "example": 180,
+                    "description": "Base nightly rate"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD",
+                    "description": "Currency code for the rate"
+                  },
+                  "restrictions": {
+                    "type": "object",
+                    "example": {
+                      "minStay": 1,
+                      "maxStay": 21
+                    },
+                    "description": "Optional stay restrictions"
+                  },
+                  "cancellationPolicy": {
+                    "type": "string",
+                    "example": "Free cancellation up to 48 hours before arrival"
+                  },
+                  "channelRatePlanIdentifier": {
+                    "type": "string",
+                    "example": "FLEX-REFUNDABLE"
+                  }
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/channel-manager/integrations/{integrationId}/rate-plans": {
-      "get": {
-        "operationId": "ChannelManagerController_getChannelRatePlans",
-        "parameters": [
-          {
-            "name": "integrationId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
+              },
+              "examples": {
+                "standardFlexible": {
+                  "summary": "Standard Flexible Rate Plan",
+                  "value": {
+                    "integrationId": 42,
+                    "name": "Standard Flexible",
+                    "baseRate": 180,
+                    "currency": "USD",
+                    "restrictions": {
+                      "minStay": 1,
+                      "maxStay": 21
+                    },
+                    "cancellationPolicy": "Free cancellation up to 48 hours before arrival",
+                    "channelRatePlanIdentifier": "FLEX-REFUNDABLE"
+                  }
+                },
+                "nonRefundable": {
+                  "summary": "Non-Refundable Discount Rate",
+                  "value": {
+                    "integrationId": 1,
+                    "name": "Non-Refundable Discount",
+                    "baseRate": 120,
+                    "currency": "USD",
+                    "restrictions": {
+                      "minStay": 2,
+                      "maxStay": 14
+                    },
+                    "cancellationPolicy": "Non-refundable. No cancellation allowed.",
+                    "channelRatePlanIdentifier": "NON-REFUNDABLE"
                   }
                 }
               }
             }
           }
-        }
-      }
-    },
-    "/api/v1/channel-manager/integrations/{id}/sync": {
-      "post": {
-        "operationId": "ChannelManagerController_triggerManualSync",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Rate plan created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelRatePlan"
+                },
+                "example": {
+                  "id": 1,
+                  "integrationId": 1,
+                  "roomtypeId": 14,
+                  "channelRatePlanId": "BAR",
+                  "channelRatePlanName": "Best Available Rate",
+                  "ratePlanType": "STANDARD",
+                  "baseRate": 150,
+                  "currency": "USD",
+                  "minStay": 1,
+                  "maxStay": 30,
+                  "closedToArrival": false,
+                  "closedToDeparture": false,
+                  "advanceBookingDays": 365,
+                  "cancellationPolicy": "Free cancellation until 24 hours before check-in",
+                  "seasonalRates": {
+                    "2025-06-01": 200,
+                    "2025-07-01": 250,
+                    "2025-08-01": 250,
+                    "2025-12-20": 300
+                  },
+                  "dayOfWeekRates": {
+                    "friday": 180,
+                    "saturday": 180,
+                    "sunday": 160
+                  },
+                  "specialDates": {
+                    "2025-12-25": 350,
+                    "2026-01-01": 350
+                  },
+                  "rateModifier": 0,
+                  "rateModifierType": "PERCENTAGE",
+                  "isActive": true,
+                  "restrictions": {
+                    "minStay": 1,
+                    "maxStay": 30,
+                    "advanceBookingDays": 365
+                  },
+                  "inclusions": [
+                    "WiFi",
+                    "Breakfast",
+                    "Parking"
+                  ],
+                  "exclusions": [],
+                  "createdAt": "2025-01-02T10:00:00.000Z",
+                  "updatedAt": "2025-01-02T10:00:00.000Z",
+                  "createdBy": 1,
+                  "updatedBy": 1
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
-    "/api/v1/channel-manager/integrations/{id}/sync-logs": {
+    "/api/v1/channel-manager/integrations/{integrationId}/rate-plans": {
       "get": {
-        "operationId": "ChannelManagerController_getSyncLogs",
+        "operationId": "ChannelManagerController_getChannelRatePlans",
+        "summary": "List channel rate plans",
+        "description": "Fetches all rate plans linked to the specified integration.",
         "parameters": [
           {
-            "name": "id",
+            "name": "integrationId",
             "required": true,
             "in": "path",
+            "description": "Channel integration identifier",
             "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
+              "example": 42,
               "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Rate plans linked to the integration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelRatePlan"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/rate-plans/{id}": {
+      "put": {
+        "operationId": "ChannelManagerController_updateChannelRatePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Rate plan ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Rate plan fields to update (prices and minimum stay)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "baseRate": {
+                    "type": "number",
+                    "example": 175,
+                    "description": "Base price for the rate plan"
+                  },
+                  "minStay": {
+                    "type": "number",
+                    "example": 2,
+                    "description": "Minimum stay requirement (nights)"
+                  },
+                  "maxStay": {
+                    "type": "number",
+                    "example": 30,
+                    "description": "Maximum stay allowed (nights)"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  },
+                  "cancellationPolicy": {
+                    "type": "string",
+                    "example": "Free cancellation 48h before check-in"
+                  },
+                  "closedToArrival": {
+                    "type": "boolean"
+                  },
+                  "closedToDeparture": {
+                    "type": "boolean"
+                  },
+                  "advanceBookingDays": {
+                    "type": "number"
+                  },
+                  "rateModifier": {
+                    "type": "number"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rate plan updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelRatePlan"
+                },
+                "example": {
+                  "id": 1,
+                  "integrationId": 1,
+                  "roomtypeId": 14,
+                  "channelRatePlanId": "BAR",
+                  "channelRatePlanName": "Best Available Rate",
+                  "ratePlanType": "STANDARD",
+                  "baseRate": 150,
+                  "currency": "USD",
+                  "minStay": 1,
+                  "maxStay": 30,
+                  "closedToArrival": false,
+                  "closedToDeparture": false,
+                  "advanceBookingDays": 365,
+                  "cancellationPolicy": "Free cancellation until 24 hours before check-in",
+                  "seasonalRates": {
+                    "2025-06-01": 200,
+                    "2025-07-01": 250,
+                    "2025-08-01": 250,
+                    "2025-12-20": 300
+                  },
+                  "dayOfWeekRates": {
+                    "friday": 180,
+                    "saturday": 180,
+                    "sunday": 160
+                  },
+                  "specialDates": {
+                    "2025-12-25": 350,
+                    "2026-01-01": 350
+                  },
+                  "rateModifier": 0,
+                  "rateModifierType": "PERCENTAGE",
+                  "isActive": true,
+                  "restrictions": {
+                    "minStay": 1,
+                    "maxStay": 30,
+                    "advanceBookingDays": 365
+                  },
+                  "inclusions": [
+                    "WiFi",
+                    "Breakfast",
+                    "Parking"
+                  ],
+                  "exclusions": [],
+                  "createdAt": "2025-01-02T10:00:00.000Z",
+                  "updatedAt": "2025-01-02T10:00:00.000Z",
+                  "createdBy": 1,
+                  "updatedBy": 1
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Rate plan not found"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/bookings": {
+      "get": {
+        "operationId": "ChannelManagerController_getBookings",
+        "summary": "List bookings",
+        "description": "Retrieves bookings filtered by optional criteria such as date range, status, or channel.",
+        "parameters": [
+          {
+            "name": "hotelId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by property/hotel ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "integrationId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by channel integration ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "createdFrom",
+            "required": false,
+            "in": "query",
+            "description": "Filter bookings created from this date",
+            "schema": {
+              "example": "2024-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdTo",
+            "required": false,
+            "in": "query",
+            "description": "Filter bookings created until this date",
+            "schema": {
+              "example": "2024-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkInFrom",
+            "required": false,
+            "in": "query",
+            "description": "Filter bookings with check-in from this date",
+            "schema": {
+              "example": "2024-06-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "checkInTo",
+            "required": false,
+            "in": "query",
+            "description": "Filter bookings with check-in until this date",
+            "schema": {
+              "example": "2024-06-30",
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Filter by booking source (OTA name)",
+            "schema": {
+              "example": "BOOKING_COM",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by booking status",
+            "schema": {
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "CANCELLED",
+                "CHECKEDIN",
+                "CHECKED_OUT",
+                "NO_SHOW",
+                "MODIFIED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookingCode",
+            "required": false,
+            "in": "query",
+            "description": "Search by booking code",
+            "schema": {
+              "example": "BK-2024-001",
+              "type": "string"
+            }
+          },
+          {
+            "name": "otaBookingCode",
+            "required": false,
+            "in": "query",
+            "description": "Search by OTA booking code",
+            "schema": {
+              "example": "BCOM-12345678",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of results per page",
+            "schema": {
+              "default": 100,
+              "example": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": {
+              "default": 0,
+              "example": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns list of bookings with filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bookings": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Guest"
+                      }
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Total number of matching bookings"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "ChannelManagerController_createExternalBooking",
+        "summary": "Create external booking (OTA/Partner)",
+        "description": "Allows external partners (like Wakanow) to create a reservation directly in the PMS.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExternalBookingDto"
+              },
+              "examples": {
+                "standardRequest": {
+                  "summary": "Standard External Booking",
+                  "value": {
+                    "hotelId": 1,
+                    "roomTypeId": "14",
+                    "checkInDate": "2025-06-01",
+                    "checkOutDate": "2025-06-05",
+                    "roomNumber": "401",
+                    "guest": {
+                      "fullName": "John Doe",
+                      "email": "john.doe@example.com",
+                      "phoneNumber": "+1234567890"
+                    },
+                    "totalPrice": 500,
+                    "currency": "USD",
+                    "externalConfirmId": "OTA-123456",
+                    "source": "WAKANOW",
+                    "otaBookingCode": "OTA-123456",
+                    "status": "CONFIRMED",
+                    "numberOfGuests": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking created successfully"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/bookings/{bookingCode}": {
+      "get": {
+        "operationId": "ChannelManagerController_getBookingByCode",
+        "summary": "Get booking by code",
+        "description": "Retrieves a single booking using its unique booking code.",
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "required": true,
+            "in": "path",
+            "description": "Unique booking code",
+            "schema": {
+              "example": "BK-2024-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns single booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Guest"
+                },
+                "example": {
+                  "id": 1,
+                  "bookingCode": "BK-2024-001",
+                  "otaBookingCode": "BCOM-12345678",
+                  "fullName": "John Doe",
+                  "email": "john.doe@example.com",
+                  "phone": "+1234567890",
+                  "startDate": "2024-06-01T00:00:00.000Z",
+                  "endDate": "2024-06-05T00:00:00.000Z",
+                  "amount": 500,
+                  "currency": "USD",
+                  "source": "BOOKING_COM",
+                  "status": "CONFIRMED",
+                  "hotelId": 1,
+                  "roomTypeId": 14,
+                  "integrationId": 1,
+                  "guestDetails": {
+                    "nationality": "US",
+                    "specialRequests": "Late check-in requested",
+                    "numberOfGuests": 2,
+                    "numberOfChildren": 0
+                  },
+                  "channelData": {
+                    "confirmationNumber": "BCOM-12345678",
+                    "bookingDate": "2024-05-15T10:00:00Z",
+                    "paymentMethod": "Credit Card"
+                  },
+                  "cancelReason": null,
+                  "canceledAt": null,
+                  "createdAt": "2024-05-15T10:00:00.000Z",
+                  "updatedAt": "2024-05-15T10:00:00.000Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "ChannelManagerController_updateBooking",
+        "summary": "Update booking",
+        "description": "Updates booking information such as status, stay dates, amount, or cancellation details.",
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "required": true,
+            "in": "path",
+            "description": "Unique booking code",
+            "schema": {
+              "example": "BK-2024-001",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Fields to update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hotelId"
+                ],
+                "properties": {
+                  "hotelId": {
+                    "type": "number",
+                    "example": 8
+                  },
+                  "fullName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "CONFIRMED"
+                    ],
+                    "description": "Use the dedicated cancellation endpoint to cancel."
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "numberOfGuests": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "cancelReason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Guest"
+                },
+                "example": {
+                  "id": 1,
+                  "bookingCode": "BK-2024-001",
+                  "otaBookingCode": "BCOM-12345678",
+                  "fullName": "John Doe",
+                  "email": "john.doe@example.com",
+                  "phone": "+1234567890",
+                  "startDate": "2024-06-01T00:00:00.000Z",
+                  "endDate": "2024-06-05T00:00:00.000Z",
+                  "amount": 500,
+                  "currency": "USD",
+                  "source": "BOOKING_COM",
+                  "status": "CONFIRMED",
+                  "hotelId": 1,
+                  "roomTypeId": 14,
+                  "integrationId": 1,
+                  "guestDetails": {
+                    "nationality": "US",
+                    "specialRequests": "Late check-in requested",
+                    "numberOfGuests": 2,
+                    "numberOfChildren": 0
+                  },
+                  "channelData": {
+                    "confirmationNumber": "BCOM-12345678",
+                    "bookingDate": "2024-05-15T10:00:00Z",
+                    "paymentMethod": "Credit Card"
+                  },
+                  "cancelReason": null,
+                  "canceledAt": null,
+                  "createdAt": "2024-05-15T10:00:00.000Z",
+                  "updatedAt": "2024-05-15T10:00:00.000Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/bookings/{bookingCode}/cancel": {
+      "post": {
+        "operationId": "ChannelManagerController_cancelBooking",
+        "summary": "Cancel booking",
+        "description": "Cancels the booking in Oreon using its booking or OTA reference and the Oreon hotel ID.",
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hotelId"
+                ],
+                "properties": {
+                  "hotelId": {
+                    "type": "number",
+                    "example": 8
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "Cancelled by provider"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking cancelled in Oreon"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/bookings/{bookingCode}/invoice": {
+      "post": {
+        "operationId": "ChannelManagerController_generateBookingInvoice",
+        "summary": "Generate a reservation invoice PDF",
+        "description": "Generates a PDF invoice from the current Oreon stay folio and streams it to the caller.",
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hotelId"
+                ],
+                "properties": {
+                  "hotelId": {
+                    "type": "number",
+                    "example": 8
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}/sync": {
+      "post": {
+        "operationId": "ChannelManagerController_triggerManualSync",
+        "summary": "Trigger manual sync",
+        "description": "Manually triggers a specific sync operation (e.g., availability, rates, reservations) for an integration.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Channel integration identifier",
+            "schema": {
+              "example": 42,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Sync operation to trigger",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "operationType"
+                ],
+                "properties": {
+                  "operationType": {
+                    "type": "string",
+                    "enum": [
+                      "INVENTORY_UPDATE",
+                      "RATE_UPDATE",
+                      "AVAILABILITY_UPDATE",
+                      "BOOKING_CREATE",
+                      "BOOKING_UPDATE",
+                      "BOOKING_CANCEL",
+                      "MAPPING_UPDATE",
+                      "FULL_SYNC"
+                    ],
+                    "example": "AVAILABILITY"
+                  }
+                }
+              },
+              "examples": {
+                "fullSync": {
+                  "summary": "Full sync operation",
+                  "value": {
+                    "operationType": "FULL_SYNC"
+                  }
+                },
+                "availabilitySync": {
+                  "summary": "Availability sync only",
+                  "value": {
+                    "operationType": "AVAILABILITY_UPDATE"
+                  }
+                },
+                "rateSync": {
+                  "summary": "Rate sync only",
+                  "value": {
+                    "operationType": "RATE_UPDATE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sync job queued successfully"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/integrations/{id}/sync-logs": {
+      "get": {
+        "operationId": "ChannelManagerController_getSyncLogs",
+        "summary": "List sync logs",
+        "description": "Returns the most recent sync logs for an integration, ordered from newest to oldest.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Channel integration identifier",
+            "schema": {
+              "example": 42,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of records to return (defaults to 100)",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sync logs for the integration",
             "content": {
               "application/json": {
                 "schema": {
@@ -417,91 +2282,242 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/integrations/{id}/sync-statistics": {
       "get": {
         "operationId": "ChannelManagerController_getSyncStatistics",
+        "summary": "Get sync statistics",
+        "description": "Provides aggregated statistics (success rate, failure rate, totals) for sync jobs over a given number of days.",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Channel integration identifier",
             "schema": {
+              "example": 42,
               "type": "number"
             }
           },
           {
             "name": "days",
-            "required": true,
+            "required": false,
             "in": "query",
+            "description": "Lookback window in days (defaults to 7)",
             "schema": {
+              "example": 14,
               "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Aggregated sync statistics",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "totalSyncs": {
+                      "type": "number"
+                    },
+                    "successfulSyncs": {
+                      "type": "number"
+                    },
+                    "failedSyncs": {
+                      "type": "number"
+                    },
+                    "successRate": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "example": {
+                  "totalSyncs": 150,
+                  "successfulSyncs": 142,
+                  "failedSyncs": 5,
+                  "partialSuccessSyncs": 3,
+                  "successRate": 94.67,
+                  "averageProcessingTimeMs": 325,
+                  "totalRecordsProcessed": 1250,
+                  "totalRecordsSuccess": 1235,
+                  "totalRecordsFailed": 15,
+                  "lastSyncAt": "2025-01-15T10:30:00.000Z",
+                  "lastSuccessfulSync": "2025-01-15T10:30:00.000Z",
+                  "syncBreakdown": [
+                    {
+                      "operationType": "AVAILABILITY_UPDATE",
+                      "count": 120,
+                      "successCount": 115,
+                      "failureCount": 3,
+                      "partialCount": 2
+                    },
+                    {
+                      "operationType": "RATE_UPDATE",
+                      "count": 20,
+                      "successCount": 20,
+                      "failureCount": 0,
+                      "partialCount": 0
+                    },
+                    {
+                      "operationType": "FULL_SYNC",
+                      "count": 10,
+                      "successCount": 7,
+                      "failureCount": 2,
+                      "partialCount": 1
+                    }
+                  ]
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/integrations/{id}/test": {
       "post": {
         "operationId": "ChannelManagerController_testChannelIntegration",
+        "summary": "Test channel integration",
+        "description": "Performs a connectivity test using the stored credentials for the integration and returns the result.",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Channel integration identifier",
             "schema": {
+              "example": 42,
               "type": "number"
             }
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Result of the integration test",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid credentials",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/channels/supported": {
       "get": {
         "operationId": "ChannelManagerController_getSupportedChannels",
+        "summary": "List supported channels",
+        "description": "Returns all channel types supported by the channel manager integration layer.",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Supported channel types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "BOOKING_COM",
+                      "EXPEDIA",
+                      "AIRBNB",
+                      "HOTELS_COM",
+                      "TRIPADVISOR",
+                      "AGODA",
+                      "HOTELBEDS",
+                      "CUSTOM",
+                      "SEVEN",
+                      "CORNICHE",
+                      "WAKANOW"
+                    ]
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/channels/{type}/features": {
       "get": {
         "operationId": "ChannelManagerController_getChannelFeatures",
+        "summary": "Get channel features",
+        "description": "Provides a feature matrix describing the capabilities supported by the specified channel integration.",
         "parameters": [
           {
             "name": "type",
             "required": true,
             "in": "path",
+            "description": "Channel type identifier",
             "schema": {
+              "enum": [
+                "BOOKING_COM",
+                "EXPEDIA",
+                "AIRBNB",
+                "HOTELS_COM",
+                "TRIPADVISOR",
+                "AGODA",
+                "HOTELBEDS",
+                "CUSTOM",
+                "SEVEN",
+                "CORNICHE",
+                "WAKANOW"
+              ],
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "List of features supported by the channel",
             "content": {
               "application/json": {
                 "schema": {
@@ -513,118 +2529,563 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/guests/{guestId}/check-in": {
       "post": {
         "operationId": "ChannelManagerController_handleGuestCheckIn",
+        "summary": "Tag guest as checked-in",
+        "description": "Marks a guest as checked-in and triggers downstream actions such as sync updates or notifications.",
         "parameters": [
           {
             "name": "guestId",
             "required": true,
             "in": "path",
+            "description": "Guest identifier",
             "schema": {
+              "example": 555,
               "type": "number"
             }
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Guest check-in processed"
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/guests/{guestId}/check-out": {
       "post": {
         "operationId": "ChannelManagerController_handleGuestCheckOut",
+        "summary": "Tag guest as checked-out",
+        "description": "Marks a guest as checked-out for reporting purposes and potential channel updates.",
         "parameters": [
           {
             "name": "guestId",
             "required": true,
             "in": "path",
+            "description": "Guest identifier",
             "schema": {
+              "example": 555,
               "type": "number"
             }
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Guest check-out processed"
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/guests/{guestId}/no-show": {
+      "post": {
+        "operationId": "ChannelManagerController_handleGuestNoShow",
+        "summary": "Tag guest as no-show",
+        "description": "Marks a guest as no-show and triggers downstream actions such as sync updates or notifications.",
+        "parameters": [
+          {
+            "name": "guestId",
+            "required": true,
+            "in": "path",
+            "description": "Guest identifier",
+            "schema": {
+              "example": 555,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guest no-show processed"
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/channel-manager/webhooks/{type}": {
+      "post": {
+        "operationId": "ChannelManagerController_handleChannelWebhook",
+        "summary": "Handle inbound channel webhook",
+        "description": "Receives reservation, modification, or cancellation payloads from OTAs or channel providers and queues them for processing.",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "description": "Channel type (e.g., booking, expedia, seven)",
+            "schema": {
+              "enum": [
+                "BOOKING_COM",
+                "EXPEDIA",
+                "AIRBNB",
+                "HOTELS_COM",
+                "TRIPADVISOR",
+                "AGODA",
+                "HOTELBEDS",
+                "CUSTOM",
+                "SEVEN",
+                "CORNICHE",
+                "WAKANOW"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Inbound webhook payload. Must include hotelId to resolve integration. For 7even, use SevenWebhookPayloadDto structure.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SevenWebhookPayloadDto"
+                  },
+                  {
+                    "$ref": "#/components/schemas/WakanowWebhookPayloadDto"
+                  },
+                  {
+                    "$ref": "#/components/schemas/WebhookPayloadDto"
+                  }
+                ]
+              },
+              "examples": {
+                "seven_reservation": {
+                  "summary": "7even reservation webhook",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "reservation",
+                    "data": {
+                      "room_type_id": "voyager-deluxe-plus",
+                      "check_in": "2025-10-12",
+                      "check_out": "2025-10-15",
+                      "rooms": 1,
+                      "guest": {
+                        "name": "Frank George",
+                        "email": "admin@7evensuites.com"
+                      }
+                    }
+                  }
+                },
+                "wakanow_reservation": {
+                  "summary": "Wakanow booking confirmation",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "BOOKING_CONFIRMATION",
+                    "timestamp": "2024-05-20T10:30:00Z",
+                    "data": {
+                      "booking_reference": "WKN-987654321",
+                      "property_id": "H1W123",
+                      "room_type_id": "WKN_DLX",
+                      "check_in_date": "2024-06-01",
+                      "check_out_date": "2024-06-05",
+                      "quantity": 1,
+                      "total_amount": 150000,
+                      "currency": "NGN",
+                      "guest": {
+                        "first_name": "Chinedu",
+                        "last_name": "Okafor",
+                        "email": "chinedu@example.com",
+                        "phone": "+2348012345678"
+                      },
+                      "status": "CONFIRMED"
+                    }
+                  }
+                },
+                "seven_cancellation": {
+                  "summary": "7even cancellation webhook",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "cancellation",
+                    "data": {
+                      "room_type_id": "voyager-deluxe-plus",
+                      "check_in": "2025-10-12",
+                      "check_out": "2025-10-15",
+                      "rooms": 1,
+                      "guest": {
+                        "name": "Frank George",
+                        "email": "admin@7evensuites.com"
+                      }
+                    }
+                  }
+                },
+                "seven_modification": {
+                  "summary": "7even modification webhook",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "modification",
+                    "data": {
+                      "room_type_id": "voyager-deluxe-plus",
+                      "check_in": "2025-10-12",
+                      "check_out": "2025-10-16",
+                      "rooms": 2,
+                      "guest": {
+                        "name": "Frank George",
+                        "email": "admin@7evensuites.com"
+                      }
+                    }
+                  }
+                },
+                "corniche_reservation": {
+                  "summary": "Corniche reservation webhook",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "reservation",
+                    "data": {
+                      "room_type_id": "14",
+                      "check_in": "2025-10-12",
+                      "check_out": "2025-10-15",
+                      "rooms": 1,
+                      "guest": {
+                        "name": "John Doe",
+                        "email": "john.doe@example.com"
+                      }
+                    }
+                  }
+                },
+                "corniche_cancellation": {
+                  "summary": "Corniche cancellation webhook",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "cancellation",
+                    "data": {
+                      "room_type_id": "14",
+                      "check_in": "2025-10-12",
+                      "check_out": "2025-10-15",
+                      "rooms": 1,
+                      "guest": {
+                        "name": "John Doe",
+                        "email": "john.doe@example.com"
+                      }
+                    }
+                  }
+                },
+                "corniche_modification": {
+                  "summary": "Corniche modification webhook",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "modification",
+                    "data": {
+                      "room_type_id": "14",
+                      "check_in": "2025-10-12",
+                      "check_out": "2025-10-16",
+                      "rooms": 2,
+                      "guest": {
+                        "name": "John Doe",
+                        "email": "john.doe@example.com"
+                      }
+                    }
+                  }
+                },
+                "booking_com": {
+                  "summary": "Booking.com webhook",
+                  "value": {
+                    "hotelId": 1,
+                    "event_type": "booking_created",
+                    "data": {
+                      "booking_id": "BCOM-12345678",
+                      "guest_name": "John Doe",
+                      "guest_email": "john.doe@example.com",
+                      "check_in": "2024-06-01",
+                      "check_out": "2024-06-05",
+                      "room_type": "STD-DOUBLE",
+                      "amount": 500,
+                      "currency": "USD"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Webhook accepted for processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "accepted"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Webhook processed successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/dashboard/summary": {
       "get": {
         "operationId": "ChannelManagerController_getDashboardSummary",
+        "summary": "Get dashboard summary",
+        "description": "Returns aggregated information about a hotel's integrations, including counts by status and recent sync details.",
         "parameters": [
           {
             "name": "hotelId",
             "required": true,
             "in": "query",
+            "description": "Hotel identifier",
             "schema": {
+              "example": 1,
               "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Dashboard summary metrics",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "totalIntegrations": {
+                      "type": "number"
+                    },
+                    "activeIntegrations": {
+                      "type": "number"
+                    },
+                    "pendingIntegrations": {
+                      "type": "number"
+                    },
+                    "errorIntegrations": {
+                      "type": "number"
+                    },
+                    "channels": {
+                      "type": "array"
+                    }
+                  }
+                },
+                "example": {
+                  "totalIntegrations": 3,
+                  "activeIntegrations": 2,
+                  "pendingIntegrations": 1,
+                  "errorIntegrations": 0,
+                  "channels": [
+                    {
+                      "id": 1,
+                      "name": "Booking.com Main Integration",
+                      "type": "BOOKING_COM",
+                      "status": "ACTIVE",
+                      "lastSync": "2025-01-15T10:30:00.000Z"
+                    },
+                    {
+                      "id": 2,
+                      "name": "Expedia Partner Integration",
+                      "type": "EXPEDIA",
+                      "status": "ACTIVE",
+                      "lastSync": "2025-01-15T09:45:00.000Z"
+                    },
+                    {
+                      "id": 3,
+                      "name": "Airbnb Calendar Sync",
+                      "type": "AIRBNB",
+                      "status": "PENDING",
+                      "lastSync": null
+                    }
+                  ]
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/channel-manager/dashboard/performance": {
       "get": {
         "operationId": "ChannelManagerController_getPerformanceMetrics",
+        "summary": "Get performance metrics",
+        "description": "Returns KPI metrics for each integration over a specified lookback window, including sync performance and booking stats.",
         "parameters": [
           {
             "name": "hotelId",
             "required": true,
             "in": "query",
+            "description": "Hotel identifier",
             "schema": {
+              "example": 1,
               "type": "number"
             }
           },
           {
             "name": "days",
-            "required": true,
+            "required": false,
             "in": "query",
+            "description": "Lookback window in days (defaults to 30)",
             "schema": {
+              "example": 60,
               "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Performance metrics per integration",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
-                }
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "integrationId": {
+                        "type": "number"
+                      },
+                      "channelName": {
+                        "type": "string"
+                      },
+                      "channelType": {
+                        "type": "string"
+                      },
+                      "totalSyncs": {
+                        "type": "number"
+                      },
+                      "successRate": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "integrationId": 1,
+                    "channelName": "Booking.com Main Integration",
+                    "channelType": "BOOKING_COM",
+                    "totalSyncs": 150,
+                    "successfulSyncs": 142,
+                    "failedSyncs": 5,
+                    "partialSuccessSyncs": 3,
+                    "successRate": 94.67,
+                    "averageProcessingTimeMs": 325,
+                    "totalRecordsProcessed": 1250,
+                    "totalRecordsSuccess": 1235,
+                    "totalRecordsFailed": 15,
+                    "bookingsReceived": 25,
+                    "bookingsConfirmed": 23,
+                    "bookingsCanceled": 2,
+                    "revenue": 12500,
+                    "currency": "USD"
+                  },
+                  {
+                    "integrationId": 2,
+                    "channelName": "Expedia Partner Integration",
+                    "channelType": "EXPEDIA",
+                    "totalSyncs": 85,
+                    "successfulSyncs": 82,
+                    "failedSyncs": 2,
+                    "partialSuccessSyncs": 1,
+                    "successRate": 96.47,
+                    "averageProcessingTimeMs": 450,
+                    "totalRecordsProcessed": 680,
+                    "totalRecordsSuccess": 675,
+                    "totalRecordsFailed": 5,
+                    "bookingsReceived": 15,
+                    "bookingsConfirmed": 15,
+                    "bookingsCanceled": 0,
+                    "revenue": 7800,
+                    "currency": "USD"
+                  },
+                  {
+                    "integrationId": 3,
+                    "channelName": "Airbnb Calendar Sync",
+                    "channelType": "AIRBNB",
+                    "totalSyncs": 0,
+                    "successfulSyncs": 0,
+                    "failedSyncs": 0,
+                    "partialSuccessSyncs": 0,
+                    "successRate": 0,
+                    "averageProcessingTimeMs": 0,
+                    "totalRecordsProcessed": 0,
+                    "totalRecordsSuccess": 0,
+                    "totalRecordsFailed": 0,
+                    "bookingsReceived": 0,
+                    "bookingsConfirmed": 0,
+                    "bookingsCanceled": 0,
+                    "revenue": 0,
+                    "currency": "USD"
+                  }
+                ]
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Channel Manager"
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/v1/ota-configurations": {
       "get": {
         "operationId": "OtaConfigurationController_getAllConfigurations",
+        "summary": "Get all OTA configurations",
+        "description": "Returns all OTA configurations in the system",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "List of OTA configurations",
             "content": {
               "application/json": {
                 "schema": {
@@ -632,79 +3093,453 @@
                   "items": {
                     "$ref": "#/components/schemas/OtaConfiguration"
                   }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "channelType": "BOOKING_COM",
+                    "apiKey": "bk_api_key_12345",
+                    "apiSecret": "bk_secret_67890",
+                    "accessToken": null,
+                    "refreshToken": null,
+                    "baseUrl": "https://api.booking.com",
+                    "isActive": true,
+                    "webhookUrl": "https://api.booking.com/webhooks",
+                    "webhookVerb": "POST",
+                    "webhookSecret": "whsec_bk_12345",
+                    "isWebhookEnabled": true,
+                    "webhookEvents": [
+                      "BOOKING_NEW",
+                      "BOOKING_CANCEL"
+                    ],
+                    "createdAt": "2025-01-01T08:00:00.000Z",
+                    "updatedAt": "2025-01-15T10:00:00.000Z"
+                  },
+                  {
+                    "id": 2,
+                    "channelType": "EXPEDIA",
+                    "apiKey": "exp_api_key_abc",
+                    "apiSecret": "exp_secret_def",
+                    "accessToken": null,
+                    "refreshToken": null,
+                    "baseUrl": "https://api.expedia.com",
+                    "isActive": true,
+                    "additionalConfig": {
+                      "rateLimit": 500,
+                      "timeout": 30000
+                    },
+                    "lastTested": "2025-01-14T09:00:00.000Z",
+                    "testStatus": "SUCCESS",
+                    "errorMessage": null,
+                    "webhookUrl": "https://api.expedia.com/webhooks",
+                    "webhookVerb": "POST",
+                    "webhookSecret": "whsec_exp_67890",
+                    "isWebhookEnabled": true,
+                    "webhookEvents": [
+                      "BOOKING_NEW",
+                      "BOOKING_MODIFY"
+                    ],
+                    "createdAt": "2025-01-02T08:00:00.000Z",
+                    "updatedAt": "2025-01-14T09:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "tags": [
+          "OTA Configuration"
+        ]
+      },
+      "post": {
+        "operationId": "OtaConfigurationController_createConfiguration",
+        "summary": "Create OTA configuration",
+        "description": "Creates a new OTA configuration for a channel type",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "OTA configuration data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "channelType": {
+                    "type": "string",
+                    "enum": [
+                      "BOOKING_COM",
+                      "EXPEDIA",
+                      "AIRBNB",
+                      "HOTELS_COM",
+                      "TRIPADVISOR",
+                      "AGODA",
+                      "HOTELBEDS",
+                      "CUSTOM",
+                      "SEVEN",
+                      "CORNICHE",
+                      "WAKANOW"
+                    ],
+                    "example": "BOOKING_COM"
+                  },
+                  "apiKey": {
+                    "type": "string",
+                    "example": "your-api-key"
+                  },
+                  "apiSecret": {
+                    "type": "string",
+                    "example": "your-api-secret"
+                  },
+                  "baseUrl": {
+                    "type": "string",
+                    "example": "https://api.booking.com"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "webhookUrl": {
+                    "type": "string",
+                    "example": "https://api.ota.com/webhook"
+                  },
+                  "webhookVerb": {
+                    "type": "string",
+                    "example": "POST",
+                    "default": "POST"
+                  },
+                  "webhookSecret": {
+                    "type": "string",
+                    "example": "whsec_12345"
+                  },
+                  "isWebhookEnabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "webhookEvents": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "BOOKING_NEW",
+                      "BOOKING_MODIFY",
+                      "BOOKING_CANCEL",
+                      "AVAILABILITY_CHANGE",
+                      "RATE_CHANGE",
+                      "CHECK_IN",
+                      "CHECK_OUT"
+                    ]
+                  },
+                  "additionalConfig": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "channelType"
+                ]
+              },
+              "examples": {
+                "bookingComConfig": {
+                  "summary": "Booking.com configuration",
+                  "value": {
+                    "channelType": "BOOKING_COM",
+                    "apiKey": "your-api-key",
+                    "apiSecret": "your-api-secret",
+                    "baseUrl": "https://api.booking.com",
+                    "isActive": true,
+                    "webhookUrl": "https://api.booking.com/webhooks",
+                    "webhookVerb": "POST",
+                    "webhookSecret": "whsec_bk_12345",
+                    "isWebhookEnabled": true,
+                    "webhookEvents": [
+                      "BOOKING_NEW",
+                      "BOOKING_MODIFY",
+                      "BOOKING_CANCEL",
+                      "AVAILABILITY_CHANGE",
+                      "RATE_CHANGE",
+                      "CHECK_IN",
+                      "CHECK_OUT"
+                    ],
+                    "additionalConfig": {
+                      "rateLimit": 1000,
+                      "timeout": 30000
+                    }
+                  }
                 }
               }
             }
           }
-        }
-      },
-      "post": {
-        "operationId": "OtaConfigurationController_createConfiguration",
-        "parameters": [],
+        },
         "responses": {
           "201": {
-            "description": "",
+            "description": "OTA configuration created successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OtaConfiguration"
+                },
+                "example": {
+                  "id": 1,
+                  "channelType": "BOOKING_COM",
+                  "apiKey": "your-api-key",
+                  "apiSecret": "your-api-secret",
+                  "accessToken": null,
+                  "refreshToken": null,
+                  "baseUrl": "https://api.booking.com",
+                  "isActive": true,
+                  "webhookUrl": "https://api.booking.com/webhooks",
+                  "webhookVerb": "POST",
+                  "webhookSecret": "whsec_bk_12345",
+                  "isWebhookEnabled": true,
+                  "webhookEvents": [
+                    "BOOKING_NEW",
+                    "BOOKING_MODIFY",
+                    "BOOKING_CANCEL",
+                    "AVAILABILITY_CHANGE",
+                    "RATE_CHANGE",
+                    "CHECK_IN",
+                    "CHECK_OUT"
+                  ],
+                  "additionalConfig": {
+                    "rateLimit": 1000,
+                    "timeout": 30000
+                  },
+                  "lastTested": null,
+                  "testStatus": null,
+                  "errorMessage": null,
+                  "createdAt": "2025-01-15T10:00:00.000Z",
+                  "updatedAt": "2025-01-15T10:00:00.000Z"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "OTA Configuration"
+        ]
       }
     },
     "/api/v1/ota-configurations/{channelType}": {
       "get": {
         "operationId": "OtaConfigurationController_getConfiguration",
+        "summary": "Get OTA configuration by channel type",
+        "description": "Returns the configuration for a specific channel type",
         "parameters": [
           {
             "name": "channelType",
             "required": true,
             "in": "path",
+            "description": "Channel type identifier",
             "schema": {
+              "enum": [
+                "BOOKING_COM",
+                "EXPEDIA",
+                "AIRBNB",
+                "HOTELS_COM",
+                "TRIPADVISOR",
+                "AGODA",
+                "HOTELBEDS",
+                "CUSTOM",
+                "SEVEN",
+                "CORNICHE",
+                "WAKANOW"
+              ],
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "OTA configuration for the channel",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OtaConfiguration"
+                },
+                "example": {
+                  "id": 1,
+                  "channelType": "BOOKING_COM",
+                  "apiKey": "bk_api_key_12345",
+                  "apiSecret": "bk_secret_67890",
+                  "accessToken": null,
+                  "refreshToken": null,
+                  "baseUrl": "https://api.booking.com",
+                  "isActive": true,
+                  "additionalConfig": {
+                    "rateLimit": 1000,
+                    "timeout": 30000
+                  },
+                  "lastTested": "2025-01-15T10:00:00.000Z",
+                  "testStatus": "SUCCESS",
+                  "errorMessage": null,
+                  "createdAt": "2025-01-01T08:00:00.000Z",
+                  "updatedAt": "2025-01-15T10:00:00.000Z"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "OTA Configuration"
+        ]
       },
       "put": {
         "operationId": "OtaConfigurationController_updateConfiguration",
+        "summary": "Update OTA configuration",
+        "description": "Updates an existing OTA configuration",
         "parameters": [
           {
             "name": "channelType",
             "required": true,
             "in": "path",
+            "description": "Channel type identifier",
             "schema": {
+              "enum": [
+                "BOOKING_COM",
+                "EXPEDIA",
+                "AIRBNB",
+                "HOTELS_COM",
+                "TRIPADVISOR",
+                "AGODA",
+                "HOTELBEDS",
+                "CUSTOM",
+                "SEVEN",
+                "CORNICHE",
+                "WAKANOW"
+              ],
               "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OtaConfiguration"
+        "requestBody": {
+          "required": true,
+          "description": "Fields to update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiKey": {
+                    "type": "string"
+                  },
+                  "apiSecret": {
+                    "type": "string"
+                  },
+                  "baseUrl": {
+                    "type": "string"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "webhookUrl": {
+                    "type": "string"
+                  },
+                  "webhookVerb": {
+                    "type": "string",
+                    "default": "POST"
+                  },
+                  "webhookSecret": {
+                    "type": "string"
+                  },
+                  "isWebhookEnabled": {
+                    "type": "boolean"
+                  },
+                  "webhookEvents": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "BOOKING_NEW",
+                      "BOOKING_MODIFY",
+                      "BOOKING_CANCEL",
+                      "AVAILABILITY_CHANGE",
+                      "RATE_CHANGE",
+                      "CHECK_IN",
+                      "CHECK_OUT"
+                    ]
+                  },
+                  "additionalConfig": {
+                    "type": "object"
+                  }
+                }
+              },
+              "examples": {
+                "updateConfig": {
+                  "summary": "Update configuration",
+                  "value": {
+                    "apiKey": "new-api-key",
+                    "apiSecret": "new-api-secret",
+                    "baseUrl": "https://api.booking.com",
+                    "isActive": true,
+                    "webhookUrl": "https://api.booking.com/webhooks",
+                    "webhookVerb": "PATCH",
+                    "webhookSecret": "whsec_new_67890",
+                    "isWebhookEnabled": true,
+                    "webhookEvents": [
+                      "BOOKING_NEW",
+                      "BOOKING_MODIFY",
+                      "BOOKING_CANCEL",
+                      "AVAILABILITY_CHANGE",
+                      "RATE_CHANGE",
+                      "CHECK_IN",
+                      "CHECK_OUT"
+                    ],
+                    "additionalConfig": {
+                      "rateLimit": 2000
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "responses": {
+          "200": {
+            "description": "OTA configuration updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtaConfiguration"
+                },
+                "example": {
+                  "id": 1,
+                  "channelType": "BOOKING_COM",
+                  "apiKey": "bk_api_key_12345",
+                  "apiSecret": "bk_secret_67890",
+                  "accessToken": null,
+                  "refreshToken": null,
+                  "baseUrl": "https://api.booking.com",
+                  "isActive": false,
+                  "webhookUrl": "https://api.booking.com/webhooks",
+                  "webhookVerb": "PATCH",
+                  "webhookSecret": "whsec_new_67890",
+                  "isWebhookEnabled": true,
+                  "webhookEvents": [
+                    "BOOKING_NEW",
+                    "BOOKING_MODIFY",
+                    "BOOKING_CANCEL",
+                    "AVAILABILITY_CHANGE",
+                    "RATE_CHANGE",
+                    "CHECK_IN",
+                    "CHECK_OUT"
+                  ],
+                  "additionalConfig": {
+                    "rateLimit": 1000,
+                    "timeout": 30000
+                  },
+                  "lastTested": "2025-01-15T10:00:00.000Z",
+                  "testStatus": "SUCCESS",
+                  "errorMessage": null,
+                  "createdAt": "2025-01-01T08:00:00.000Z",
+                  "updatedAt": "2025-01-15T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OTA Configuration"
+        ]
       },
       "delete": {
         "operationId": "OtaConfigurationController_deleteConfiguration",
@@ -722,27 +3557,122 @@
           "204": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "OTA Configuration"
+        ]
       }
     },
     "/api/v1/ota-configurations/{channelType}/test": {
       "post": {
         "operationId": "OtaConfigurationController_testConfiguration",
+        "summary": "Test OTA configuration",
+        "description": "Tests the connectivity and credentials for an OTA configuration",
         "parameters": [
           {
             "name": "channelType",
             "required": true,
             "in": "path",
+            "description": "Channel type identifier",
             "schema": {
+              "enum": [
+                "BOOKING_COM",
+                "EXPEDIA",
+                "AIRBNB",
+                "HOTELS_COM",
+                "TRIPADVISOR",
+                "AGODA",
+                "HOTELBEDS",
+                "CUSTOM",
+                "SEVEN",
+                "CORNICHE",
+                "WAKANOW"
+              ],
               "type": "string"
             }
           }
         ],
         "responses": {
           "201": {
+            "description": "Test result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OTA Configuration"
+        ]
+      }
+    },
+    "/api/v1/ota-configurations/{channelType}/webhook-test": {
+      "post": {
+        "operationId": "OtaConfigurationController_triggerWebhookTest",
+        "summary": "Trigger global test webhook for channel",
+        "description": "Sends a test notification to the global webhook URL of the specified channel.",
+        "parameters": [
+          {
+            "name": "channelType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "BOOKING_COM",
+                "EXPEDIA",
+                "AIRBNB",
+                "HOTELS_COM",
+                "TRIPADVISOR",
+                "AGODA",
+                "HOTELBEDS",
+                "CUSTOM",
+                "SEVEN",
+                "CORNICHE",
+                "WAKANOW"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "eventType": {
+                    "type": "string",
+                    "default": "TEST"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "OTA Configuration"
+        ]
       }
     }
   },
@@ -764,27 +3694,272 @@
       }
     },
     "schemas": {
+      "Guest": {
+        "type": "object",
+        "properties": {}
+      },
+      "GetBookingsDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Filter by property/hotel ID",
+            "example": 1
+          },
+          "integrationId": {
+            "type": "number",
+            "description": "Filter by channel integration ID",
+            "example": 1
+          },
+          "createdFrom": {
+            "type": "string",
+            "description": "Filter bookings created from this date",
+            "example": "2024-01-01"
+          },
+          "createdTo": {
+            "type": "string",
+            "description": "Filter bookings created until this date",
+            "example": "2024-12-31"
+          },
+          "checkInFrom": {
+            "type": "string",
+            "description": "Filter bookings with check-in from this date",
+            "example": "2024-06-01"
+          },
+          "checkInTo": {
+            "type": "string",
+            "description": "Filter bookings with check-in until this date",
+            "example": "2024-06-30"
+          },
+          "source": {
+            "type": "string",
+            "description": "Filter by booking source (OTA name)",
+            "example": "BOOKING_COM"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED",
+              "CHECKEDIN",
+              "CHECKED_OUT",
+              "NO_SHOW",
+              "MODIFIED"
+            ],
+            "description": "Filter by booking status"
+          },
+          "bookingCode": {
+            "type": "string",
+            "description": "Search by booking code",
+            "example": "BK-2024-001"
+          },
+          "otaBookingCode": {
+            "type": "string",
+            "description": "Search by OTA booking code",
+            "example": "BCOM-12345678"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Number of results per page",
+            "example": 100,
+            "default": 100
+          },
+          "offset": {
+            "type": "number",
+            "description": "Pagination offset",
+            "example": 0,
+            "default": 0
+          }
+        }
+      },
+      "ChannelIntegration": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChannelMapping": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChannelAvailability": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChannelRatePlan": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChannelSyncLog": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateRoomTypeDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Hotel ID",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Room type name",
+            "example": "Standard Room"
+          },
+          "description": {
+            "type": "string",
+            "description": "Room type description",
+            "example": "Comfortable standard room with basic amenities"
+          }
+        },
+        "required": [
+          "hotelId",
+          "name",
+          "description"
+        ]
+      },
+      "CreateRoomDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Hotel ID",
+            "example": 1
+          },
+          "roomtype": {
+            "type": "number",
+            "description": "Room type ID",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "description": "Room status",
+            "enum": [
+              "BOOKED",
+              "AVAIL",
+              "DIRTY",
+              "MAINTENANCE",
+              "IN_REVIEW"
+            ],
+            "example": "AVAIL"
+          },
+          "price": {
+            "type": "number",
+            "description": "Room price per night",
+            "example": 100
+          },
+          "floor": {
+            "type": "number",
+            "description": "Floor number",
+            "example": 1
+          },
+          "roomNumber": {
+            "type": "string",
+            "description": "Room number",
+            "example": "101"
+          },
+          "roomCapacity": {
+            "type": "number",
+            "description": "Room capacity (number of guests)",
+            "example": 2
+          }
+        },
+        "required": [
+          "hotelId",
+          "roomtype",
+          "status",
+          "price",
+          "roomNumber",
+          "roomCapacity"
+        ]
+      },
+      "CreateHotelDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Hotel name",
+            "example": "Grand Hotel"
+          },
+          "email": {
+            "type": "string",
+            "description": "Hotel email address",
+            "example": "info@grandhotel.com"
+          },
+          "address": {
+            "type": "string",
+            "description": "Hotel address",
+            "example": "123 Main Street"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country",
+            "example": "United States"
+          },
+          "state": {
+            "type": "string",
+            "description": "State/Province",
+            "example": "New York"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the hotel is active",
+            "default": true
+          },
+          "registrationSource": {
+            "type": "string",
+            "description": "Registration source for the hotel",
+            "enum": [
+              "DIRECT",
+              "WAKANOW",
+              "CHANNEL_MANAGER",
+              "PARTNER",
+              "API",
+              "ADMIN"
+            ],
+            "default": "CHANNEL_MANAGER",
+            "example": "WAKANOW"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "address",
+          "country",
+          "state"
+        ]
+      },
       "CreateChannelIntegrationDto": {
         "type": "object",
         "properties": {
           "hotelId": {
             "type": "number",
-            "description": "Hotel identifier",
+            "description": "Hotel identifier. Required if hotel is already registered. Omit if onboarding new hotel.",
             "example": 123
           },
+          "hotel": {
+            "description": "Hotel information for onboarding new hotels. Required if hotelId is not provided.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreateHotelDto"
+              }
+            ]
+          },
           "channelType": {
-            "enum": [
-                  "BOOKING_COM",
-                  "EXPEDIA",
-                  "AIRBNB",
-                  "HOTELS_COM",
-                  "TRIPADVISOR",
-                  "AGODA",
-                  "HOTELBEDS",
-                  "CUSTOM",
-                  "SEVEN"
-                ],
             "type": "string",
+            "enum": [
+              "BOOKING_COM",
+              "EXPEDIA",
+              "AIRBNB",
+              "HOTELS_COM",
+              "TRIPADVISOR",
+              "AGODA",
+              "HOTELBEDS",
+              "CUSTOM",
+              "SEVEN",
+              "CORNICHE",
+              "WAKANOW"
+            ],
             "description": "Channel type (OTA)"
           },
           "channelName": {
@@ -793,14 +3968,14 @@
             "example": "Booking.com"
           },
           "status": {
+            "type": "string",
             "enum": [
               "ACTIVE",
               "INACTIVE",
               "ERROR",
               "PENDING",
               "TESTING"
-            ],
-            "type": "string"
+            ]
           },
           "apiKey": {
             "type": "string",
@@ -861,149 +4036,8 @@
           }
         },
         "required": [
-          "hotelId",
           "channelType",
           "channelName"
-        ]
-      },
-      "ChannelIntegration": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "number"
-          },
-          "hotelId": {
-            "type": "number"
-          },
-          "channelType": {
-            "enum": [
-              "BOOKING_COM",
-              "EXPEDIA",
-              "AIRBNB",
-              "HOTELS_COM",
-              "TRIPADVISOR",
-              "AGODA",
-              "HOTELBEDS",
-              "CUSTOM",
-              "SEVEN"
-            ],
-            "type": "string"
-          },
-          "channelName": {
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "ACTIVE",
-              "INACTIVE",
-              "ERROR",
-              "PENDING",
-              "TESTING"
-            ],
-            "type": "string"
-          },
-          "apiKey": {
-            "type": "string"
-          },
-          "apiSecret": {
-            "type": "string"
-          },
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
-          },
-          "channelPropertyId": {
-            "type": "string"
-          },
-          "channelUsername": {
-            "type": "string"
-          },
-          "channelPassword": {
-            "type": "string"
-          },
-          "webhookUrl": {
-            "type": "string"
-          },
-          "webhookSecret": {
-            "type": "string"
-          },
-          "isWebhookEnabled": {
-            "type": "boolean"
-          },
-          "syncIntervalMinutes": {
-            "type": "number"
-          },
-          "isRealTimeSync": {
-            "type": "boolean"
-          },
-          "lastSyncAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "lastSuccessfulSync": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "errorMessage": {
-            "type": "string"
-          },
-          "testMode": {
-            "type": "boolean"
-          },
-          "channelSettings": {
-            "type": "object"
-          },
-          "supportedFeatures": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "number"
-          },
-          "updatedBy": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "hotelId",
-          "channelType",
-          "channelName",
-          "status",
-          "apiKey",
-          "apiSecret",
-          "accessToken",
-          "refreshToken",
-          "channelPropertyId",
-          "channelUsername",
-          "channelPassword",
-          "webhookUrl",
-          "webhookSecret",
-          "isWebhookEnabled",
-          "syncIntervalMinutes",
-          "isRealTimeSync",
-          "lastSyncAt",
-          "lastSuccessfulSync",
-          "errorMessage",
-          "testMode",
-          "channelSettings",
-          "supportedFeatures",
-          "createdAt",
-          "updatedAt",
-          "createdBy",
-          "updatedBy"
         ]
       },
       "CreateChannelMappingDto": {
@@ -1071,100 +4105,17 @@
           "channelRoomTypeName"
         ]
       },
-      "ChannelMapping": {
+      "SingleAvailabilityUpdateDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "number"
-          },
-          "integrationId": {
-            "type": "number"
-          },
-          "roomtypeId": {
-            "type": "number"
-          },
-          "channelRoomTypeId": {
-            "type": "string"
-          },
-          "channelRoomTypeName": {
-            "type": "string"
-          },
-          "channelRatePlanId": {
-            "type": "string"
-          },
-          "channelRatePlanName": {
-            "type": "string"
-          },
-          "channelAmenities": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "channelDescription": {
-            "type": "string"
-          },
-          "channelImages": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "mappingRules": {
-            "type": "object"
-          },
-          "customFields": {
-            "type": "object"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "number"
-          },
-          "updatedBy": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "integrationId",
-          "roomtypeId",
-          "channelRoomTypeId",
-          "channelRoomTypeName",
-          "channelRatePlanId",
-          "channelRatePlanName",
-          "channelAmenities",
-          "channelDescription",
-          "channelImages",
-          "isActive",
-          "mappingRules",
-          "customFields",
-          "createdAt",
-          "updatedAt",
-          "createdBy",
-          "updatedBy"
-        ]
-      },
-      "SyncAvailabilityDto": {
-        "type": "object",
-        "properties": {
-          "integrationId": {
-            "type": "number",
-            "description": "Integration ID",
-            "example": 42
-          },
           "roomtypeId": {
             "type": "number",
             "description": "Room type ID",
+            "example": 101
+          },
+          "roomTypeId": {
+            "type": "number",
+            "description": "Alias for roomtypeId",
             "example": 101
           },
           "roomId": {
@@ -1177,14 +4128,14 @@
             "example": "2025-09-20"
           },
           "status": {
+            "type": "string",
             "enum": [
               "AVAILABLE",
               "UNAVAILABLE",
               "OCCUPIED",
               "MAINTENANCE",
               "BLOCKED"
-            ],
-            "type": "string"
+            ]
           },
           "availableRooms": {
             "type": "number"
@@ -1221,38 +4172,51 @@
             "type": "object",
             "additionalProperties": true
           }
-        },
-        "required": [
-          "integrationId",
-          "roomtypeId",
-          "date"
-        ]
+        }
       },
-      "ChannelAvailability": {
+      "SyncAvailabilityDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "number"
-          },
           "integrationId": {
-            "type": "number"
+            "type": "number",
+            "description": "Integration ID",
+            "example": 42
+          },
+          "updates": {
+            "description": "Bulk updates",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SingleAvailabilityUpdateDto"
+            }
           },
           "roomtypeId": {
-            "type": "number"
+            "type": "number",
+            "description": "Room type ID",
+            "example": 101
+          },
+          "roomTypeId": {
+            "type": "number",
+            "description": "Alias for roomtypeId",
+            "example": 101
+          },
+          "roomId": {
+            "type": "number",
+            "description": "Specific room ID (optional)"
           },
           "date": {
-            "format": "date-time",
-            "type": "string"
+            "type": "string",
+            "description": "Date to apply availability to",
+            "example": "2025-09-20"
           },
           "status": {
+            "type": "string",
             "enum": [
               "AVAILABLE",
               "UNAVAILABLE",
               "OCCUPIED",
               "MAINTENANCE",
               "BLOCKED"
-            ],
-            "type": "string"
+            ]
           },
           "availableRooms": {
             "type": "number"
@@ -1282,254 +4246,380 @@
             "type": "string"
           },
           "restrictions": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": true
           },
           "channelData": {
-            "type": "object"
-          },
-          "isSynced": {
-            "type": "boolean"
-          },
-          "lastSyncedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "syncStatus": {
-            "type": "string"
-          },
-          "errorMessage": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "number"
-          },
-          "updatedBy": {
-            "type": "number"
+            "type": "object",
+            "additionalProperties": true
           }
         },
         "required": [
-          "id",
-          "integrationId",
-          "roomtypeId",
-          "date",
-          "status",
-          "availableRooms",
-          "totalRooms",
-          "occupiedRooms",
-          "blockedRooms",
-          "maintenanceRooms",
-          "rate",
-          "currency",
-          "isClosed",
-          "closeReason",
-          "restrictions",
-          "channelData",
-          "isSynced",
-          "lastSyncedAt",
-          "syncStatus",
-          "errorMessage",
-          "createdAt",
-          "updatedAt",
-          "createdBy",
-          "updatedBy"
+          "integrationId"
         ]
       },
-      "ChannelSyncLog": {
+      "ExternalGuestDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "number"
-          },
-          "integrationId": {
-            "type": "number"
-          },
-          "operationType": {
+          "fullName": {
             "type": "string",
+            "description": "Guest Full Name",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Guest Email"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Guest Phone"
+          }
+        },
+        "required": [
+          "fullName",
+          "email"
+        ]
+      },
+      "CreateExternalBookingDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Hotel ID for the booking"
+          },
+          "roomTypeId": {
+            "type": "string",
+            "description": "Room Type ID (Channel mapping code or Internal ID)"
+          },
+          "checkInDate": {
+            "type": "string",
+            "description": "Check-in Date (YYYY-MM-DD)"
+          },
+          "checkOutDate": {
+            "type": "string",
+            "description": "Check-out Date (YYYY-MM-DD)"
+          },
+          "roomNumber": {
+            "type": "string",
+            "description": "Specific Room Number to book"
+          },
+          "guest": {
+            "description": "Guest details",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExternalGuestDto"
+              }
+            ]
+          },
+          "totalPrice": {
+            "type": "number",
+            "description": "Total Price"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency",
+            "default": "NGN"
+          },
+          "externalConfirmId": {
+            "type": "string",
+            "description": "External Booking Reference (OTA Booking ID)"
+          },
+          "bookingCode": {
+            "type": "string",
+            "description": "Internal Booking Code"
+          },
+          "otaBookingCode": {
+            "type": "string",
+            "description": "OTA Booking Code (alias for externalConfirmId)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Booking Status",
             "enum": [
-              "INVENTORY_UPDATE",
-              "RATE_UPDATE",
-              "AVAILABILITY_UPDATE",
-              "BOOKING_CREATE",
-              "BOOKING_UPDATE",
-              "BOOKING_CANCEL",
-              "MAPPING_UPDATE",
-              "FULL_SYNC"
+              "PENDING",
+              "CONFIRMED",
+              "CHECKED_IN",
+              "CHECKED_OUT",
+              "CANCELED",
+              "NO_SHOW",
+              "MODIFIED"
+            ]
+          },
+          "numberOfGuests": {
+            "type": "number",
+            "description": "Number of guests",
+            "default": 1
+          },
+          "source": {
+            "type": "string",
+            "description": "Source Channel Name (e.g. WAKANOW)",
+            "example": "WAKANOW"
+          }
+        },
+        "required": [
+          "hotelId",
+          "roomTypeId",
+          "checkInDate",
+          "checkOutDate",
+          "guest",
+          "totalPrice",
+          "currency",
+          "externalConfirmId",
+          "source"
+        ]
+      },
+      "WebhookPayloadDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Hotel ID for which the webhook applies",
+            "example": 1
+          },
+          "event_type": {
+            "type": "string",
+            "description": "Webhook event type",
+            "example": "reservation"
+          },
+          "data": {
+            "type": "object",
+            "description": "Channel-specific payload (reservation details, etc.)"
+          }
+        },
+        "required": [
+          "hotelId"
+        ]
+      },
+      "SevenReservationDataDto": {
+        "type": "object",
+        "properties": {
+          "channel_room_type_id": {
+            "type": "string",
+            "description": "Channel room type identifier",
+            "example": "DELUXE-KING"
+          },
+          "room_type_id": {
+            "type": "string",
+            "description": "Alternate room type identifier",
+            "example": "DLX-K"
+          },
+          "roomTypeId": {
+            "type": "string",
+            "description": "Alternate camelCase room type identifier",
+            "example": "DELUXE_KING"
+          },
+          "room_type_code": {
+            "type": "string",
+            "description": "Alternate code style for room type",
+            "example": "DK"
+          },
+          "check_in": {
+            "type": "string",
+            "description": "Check-in date (YYYY-MM-DD)",
+            "example": "2025-10-12"
+          },
+          "checkIn": {
+            "type": "string",
+            "description": "Check-in date (camelCase)",
+            "example": "2025-10-12"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date",
+            "example": "2025-10-12"
+          },
+          "arrival_date": {
+            "type": "string",
+            "description": "Alternate arrival date",
+            "example": "2025-10-12"
+          },
+          "check_out": {
+            "type": "string",
+            "description": "Check-out date (YYYY-MM-DD)",
+            "example": "2025-10-15"
+          },
+          "checkOut": {
+            "type": "string",
+            "description": "Check-out date (camelCase)",
+            "example": "2025-10-15"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date",
+            "example": "2025-10-15"
+          },
+          "departure_date": {
+            "type": "string",
+            "description": "Alternate departure date",
+            "example": "2025-10-15"
+          },
+          "rooms": {
+            "type": "number",
+            "description": "Number of rooms",
+            "example": 2
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Alternate number of rooms",
+            "example": 2
+          },
+          "number_of_rooms": {
+            "type": "number",
+            "description": "Alternate number of rooms",
+            "example": 2
+          },
+          "num_rooms": {
+            "type": "number",
+            "description": "Alternate number of rooms",
+            "example": 2
+          },
+          "guest": {
+            "type": "object",
+            "description": "Guest info object",
+            "example": {
+              "name": "Jane Doe",
+              "email": "jane@example.com"
+            }
+          }
+        }
+      },
+      "SevenWebhookPayloadDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Hotel ID for which the webhook applies",
+            "example": 42
+          },
+          "event_type": {
+            "type": "string",
+            "description": "Webhook event type",
+            "example": "reservation"
+          },
+          "property_id": {
+            "type": "string",
+            "description": "Channel-specific property identifier",
+            "example": "SEVEN-12345"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Event timestamp",
+            "example": "2025-10-07T12:34:56Z"
+          },
+          "data": {
+            "description": "Channel-specific payload",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SevenReservationDataDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "hotelId"
+        ]
+      },
+      "WakanowGuestDto": {
+        "type": "object",
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "description": "Guest full name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "Guest last name"
+          },
+          "email": {
+            "type": "string",
+            "description": "Guest email"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Guest phone"
+          }
+        }
+      },
+      "WakanowBookingDataDto": {
+        "type": "object",
+        "properties": {
+          "booking_reference": {
+            "type": "string",
+            "description": "Wakanow booking reference"
+          },
+          "property_id": {
+            "type": "string",
+            "description": "Hotel ID on Wakanow"
+          },
+          "room_type_id": {
+            "type": "string",
+            "description": "Room type ID on Wakanow"
+          },
+          "check_in_date": {
+            "type": "string",
+            "description": "Check-in date (YYYY-MM-DD)"
+          },
+          "check_out_date": {
+            "type": "string",
+            "description": "Check-out date (YYYY-MM-DD)"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Number of rooms"
+          },
+          "total_amount": {
+            "type": "number",
+            "description": "Total amount"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency code"
+          },
+          "guest": {
+            "description": "Guest details",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WakanowGuestDto"
+              }
             ]
           },
           "status": {
             "type": "string",
-            "enum": [
-              "SUCCESS",
-              "FAILED",
-              "PENDING",
-              "IN_PROGRESS",
-              "PARTIAL_SUCCESS"
-            ]
+            "description": "Booking status"
+          }
+        }
+      },
+      "WakanowWebhookPayloadDto": {
+        "type": "object",
+        "properties": {
+          "hotelId": {
+            "type": "number",
+            "description": "Hotel ID for which the webhook applies"
           },
-          "direction": {
+          "event_type": {
             "type": "string",
-            "enum": [
-              "OUTBOUND",
-              "INBOUND",
-              "BIDIRECTIONAL"
+            "description": "Webhook event type"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Event timestamp"
+          },
+          "data": {
+            "description": "Booking data",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WakanowBookingDataDto"
+              }
             ]
-          },
-          "requestData": {
-            "type": "string"
-          },
-          "responseData": {
-            "type": "string"
-          },
-          "errorMessage": {
-            "type": "string"
-          },
-          "errorCode": {
-            "type": "string"
-          },
-          "retryCount": {
-            "type": "number"
-          },
-          "maxRetries": {
-            "type": "number"
-          },
-          "processingTimeMs": {
-            "type": "number"
-          },
-          "recordsProcessed": {
-            "type": "number"
-          },
-          "recordsSuccess": {
-            "type": "number"
-          },
-          "recordsFailed": {
-            "type": "number"
-          },
-          "metadata": {
-            "type": "object"
-          },
-          "nextRetryAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "completedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "number"
           }
         },
         "required": [
-          "id",
-          "integrationId",
-          "operationType",
-          "status",
-          "direction",
-          "requestData",
-          "responseData",
-          "errorMessage",
-          "errorCode",
-          "retryCount",
-          "maxRetries",
-          "processingTimeMs",
-          "recordsProcessed",
-          "recordsSuccess",
-          "recordsFailed",
-          "metadata",
-          "nextRetryAt",
-          "completedAt",
-          "createdAt",
-          "createdBy"
+          "hotelId"
         ]
       },
       "OtaConfiguration": {
         "type": "object",
-        "properties": {
-          "id": {
-            "type": "number"
-          },
-          "channelType": {
-            "enum": [
-              "BOOKING_COM",
-              "EXPEDIA",
-              "AIRBNB",
-              "HOTELS_COM",
-              "TRIPADVISOR",
-              "AGODA",
-              "HOTELBEDS",
-              "CUSTOM",
-              "SEVEN"
-            ],
-            "type": "string"
-          },
-          "apiKey": {
-            "type": "string"
-          },
-          "apiSecret": {
-            "type": "string"
-          },
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
-          },
-          "baseUrl": {
-            "type": "string"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "additionalConfig": {
-            "type": "object"
-          },
-          "lastTested": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "testStatus": {
-            "type": "object"
-          },
-          "errorMessage": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "channelType",
-          "apiKey",
-          "apiSecret",
-          "accessToken",
-          "refreshToken",
-          "baseUrl",
-          "isActive",
-          "additionalConfig",
-          "lastTested",
-          "testStatus",
-          "errorMessage",
-          "createdAt",
-          "updatedAt"
-        ]
+        "properties": {}
       }
     }
   }
