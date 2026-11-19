@@ -1,0 +1,392 @@
+WESTBURY INN × ANLI CHANNEL MANAGER
+TECHNICAL INTEGRATION HANDOFF
+
+Prepared for: Westbury Inn technical team
+Property: Westbury Inn — Anli hotel ID 10
+Purpose: Connect Westbury Inn to Anli through the Anli Channel Manager.
+
+
+1. INTEGRATION ROUTING
+
+Westbury Inn connects to the Channel Manager. Do not call Anli PMS endpoints directly.
+
+Westbury Inn → Anli Channel Manager → Anli PMS
+Anli PMS → Westbury Inn hotel webhook (direct)
+
+The Channel Manager is the gateway for Westbury Inn's availability and reservation API calls. Separately, Anli PMS sends event notifications directly to the hotel's configured webhook URL; these notifications do not pass through the Channel Manager.
+
+BASE URL
+https://channel-manager-8rq4.onrender.com/api/v1
+
+AUTHENTICATION
+Protected routes use the x-api-key header. Obtain the Channel Manager API key through the agreed secure credential-sharing process. Use HTTPS and do not put credentials in URLs or logs.
+
+PROPERTY
+hotelId: 10
+Use this hotel ID for live availability requests. Availability is checked directly against the hotel's PMS inventory using the Anli room-type ID.
+
+1.1 WESTBURY INN ENDPOINT INDEX
+
+The following are Channel Manager routes under {BASE_URL}. Include x-api-key on the protected routes.
+
+READ PROPERTY INVENTORY
+GET /channel-manager/hotels/10/roomtypes
+Returns Anli room types and rooms. Use the Anli room-type ID (roomtypeId) with the live availability request.
+
+READ LIVE AVAILABILITY AND STAY PRICE
+GET /channel-manager/availability/live?hotelId=10&roomtypeId={roomtypeId}&checkInDate={YYYY-MM-DD}&checkOutDate={YYYY-MM-DD}
+Reads date-specific availability and calculated pricing directly from the PMS.
+
+READ RESERVATIONS
+GET /channel-manager/bookings?hotelId=10&limit=100&offset=0
+GET /channel-manager/bookings/{bookingCode}
+
+WRITE RESERVATIONS — USE THESE API ROUTES
+POST /channel-manager/bookings — Swagger documents the external-booking request below; confirm the duplicate-handler issue is resolved before production use.
+PUT /channel-manager/bookings/{bookingCode} — update; hotelId is required.
+POST /channel-manager/bookings/{bookingCode}/cancel — cancel; hotelId is required.
+POST /channel-manager/bookings/{bookingCode}/invoice — return invoice PDF; hotelId is required.
+
+Use the Channel Manager booking API for Westbury Inn-initiated writes. Section 2 describes outbound Anli notifications only; it is not a booking-write endpoint.
+
+There is no separate booking-confirmation endpoint. Set status to CONFIRMED when creating a booking or update its status to CONFIRMED through the update route. Before using create in production, verify that the documented external-booking contract is enabled for this integration.
+
+CHECK-IN STATUS
+Booking list and detail responses may contain a stored bookingStatus, but there is no dedicated live PMS check-in-status endpoint. The guest check-in action is not API-key protected and must not be used by Westbury Inn. Check-in remains an Anli PMS staff operation. If Westbury Inn needs a live check-in status, include a secured status-read endpoint in the integration requirements before relying on it.
+
+
+2. ANLI PMS → WESTBURY INN HOTEL WEBHOOK (EVENT NOTIFICATIONS)
+
+Anli sends hotel-level event notifications directly to the URL configured for hotelId 10. This is separate from the Channel Manager APIs in Sections 3 and 4. Use the booking API for Westbury Inn-initiated booking reads and writes; the webhook is not a second booking-creation path.
+
+Do not create or update a booking again when receiving a webhook for that same booking. Treat these messages as notifications that Anli state changed, not as commands to Anli.
+
+2.1 CONFIGURATION
+
+Webhook notifications require an enabled hotel-level configuration for hotelId 10 with the Westbury Inn receiver URL, HTTP verb, shared secret, and event allowlist. Provide the receiver URL and use the agreed verb and securely shared secret. Webhook-management API routes are not part of Westbury Inn's integration; do not call them from Westbury Inn.
+
+- Provide the Westbury Inn endpoint URL that will receive Anli event notifications.
+- Supported verbs are GET, POST, PUT, and PATCH. POST is the default and is recommended unless Westbury Inn requires another verb.
+- Use a strong shared secret and store it securely.
+- Configure only the event types Westbury Inn needs. A null/unset event list allows all event types; an empty list allows none.
+- Keep this hotel-level webhook separate from channel/integration webhook settings.
+
+2.2 PAYLOAD AND AUTHENTICATION
+
+For POST, PUT, and PATCH, Anli sends this JSON envelope (data fields vary by event):
+
+{
+  "hotelId": 10,
+  "eventType": "BOOKING_NEW",
+  "event": "BOOKING_NEW",
+  "timestamp": "2026-11-16T09:00:00.000Z",
+  "data": {
+    "id": 123,
+    "bookingCode": "ANLI-BOOKING-123"
+  }
+}
+
+Headers include Content-Type: application/json, X-Webhook-Event, and X-Webhook-Timestamp. When a secret is configured, Anli also sends X-Webhook-Signature, an HMAC-SHA256 hex digest of the exact JSON payload using the shared secret, and X-Secret-Key. Verify the signature against the exact received payload and do not log or expose the shared secret or signature. For GET, Anli sends the payload as query parameters rather than a JSON request body; use POST so the payload and signature can be verified consistently.
+
+2.3 EVENTS CURRENTLY EMITTED BY ANLI
+
+| Event | Emitted after |
+| --- | --- |
+| BOOKING_NEW | A reservation is created |
+| BOOKING_MODIFY | A reservation is updated |
+| BOOKING_CANCEL | A reservation is cancelled |
+| CHECK_IN | A guest is checked in |
+| CHECK_OUT | A guest is checked out |
+| RATE_CHANGE | A room price is changed through the room-price update path |
+| AVAILABILITY_CHANGE | A room status is changed or a room is marked out of order |
+| TEST | An authorized operator sends a webhook test |
+
+BOOKING_NO_SHOW is listed as a supported event type, but no no-show event is currently emitted. Do not subscribe to or depend on it. AVAILABILITY_CHANGE is not currently emitted just because a reservation is created or cancelled. The event-list endpoint lists names; it does not prove that an event is emitted.
+
+The data object is event-specific. Booking events include booking identifiers and reservation fields; room events contain room and change details. Westbury Inn must handle absent or additional data fields without failing the receiver.
+
+2.4 DELIVERY BEHAVIOR AND DEVELOPER CHECKLIST
+
+- Outbound HTTP delivery runs in the background: the PMS operation does not wait for Westbury Inn's HTTP response. Do not design Westbury Inn's receiver or integration flow to make PMS operations depend on webhook delivery.
+- A webhook failure is logged by Anli but is not returned as a PMS operation failure. The current dispatcher has no durable event queue or automatic retry, and payloads have no stable event ID. This is best-effort notification, not guaranteed delivery or an exactly-once feed.
+- Validate the HMAC signature, verify hotelId and eventType, return a prompt 2xx response, and process any slower follow-up work asynchronously on Westbury Inn's side.
+- Make the receiver safe to process a repeated notification. There is no stable webhook event ID, so use the booking/room identifiers and event data for any applicable duplicate protection.
+- Keep the Channel Manager booking API as the authoritative Westbury Inn booking read/write path. Do not rely on the webhook as the only record of a booking or as a substitute for reading booking state.
+- In the agreed test environment, configure hotelId 10, send a TEST event, verify method, headers, signature, and envelope at Westbury Inn, then exercise representative booking, check-in/out, rate, and room-status actions. Confirm the configured event allowlist includes the events being tested.
+
+
+3. CHANNEL MANAGER API: ROOMS, AVAILABILITY, RATES
+
+All routes in this section are Channel Manager routes. They do not expose Anli PMS endpoints.
+
+3.1 ROOM TYPES AND ROOMS
+
+GET {BASE_URL}/channel-manager/hotels/10/roomtypes
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+
+The Channel Manager fetches the hotel's room types and rooms from Anli PMS and returns them through this route. Use the Anli room-type ID for availability and booking requests.
+
+ILLUSTRATIVE RESPONSE — HTTP 200
+Swagger documents the HTTP status but does not define a response schema for this route.
+{
+  "hotelId": 10,
+  "count": 1,
+  "roomTypes": [
+    {
+      "id": 12,
+      "name": "Deluxe Room",
+      "description": "King bed, city view",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "rooms": [
+        {
+          "id": 401,
+          "roomNumber": "401",
+          "status": "AVAILABLE",
+          "price": 150000,
+          "floor": 4,
+          "roomCapacity": 2
+        }
+      ]
+    }
+  ]
+}
+
+3.2 LIVE AVAILABILITY AND RATES
+
+GET {BASE_URL}/channel-manager/availability/live?hotelId=10&roomtypeId=15&checkInDate=2025-06-01&checkOutDate=2025-06-05
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+
+Required query fields: hotelId, roomtypeId, checkInDate, and checkOutDate. Dates use YYYY-MM-DD; check-in is inclusive and check-out is exclusive. This endpoint checks live PMS availability and rates for the requested room type and stay.
+
+roomtypeId is the room type ID in Anli PMS.
+
+SUCCESS RESPONSE — HTTP 200
+{
+  "hotelId": 10,
+  "checkIn": "2025-06-01",
+  "checkOut": "2025-06-05",
+  "nights": 4,
+  "adults": 1,
+  "children": 0,
+  "roomTypes": [
+    {
+      "roomTypeId": 15,
+      "name": "Deluxe Room",
+      "roomsAvailable": 3,
+      "nightlyRate": 150000,
+      "nights": 4,
+      "totalPrice": 600000,
+      "maxGuests": 2,
+      "photos": [],
+      "amenities": [],
+      "available": true
+    }
+  ]
+}
+
+4. CHANNEL MANAGER API: RESERVATIONS — WESTBURY INN BOOKING FLOW
+
+4.1 LIST BOOKINGS
+
+GET {BASE_URL}/channel-manager/bookings?hotelId=10&limit=100&offset=0
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+
+Swagger query fields (all optional): hotelId, integrationId, createdFrom, createdTo, checkInFrom, checkInTo, source, status, bookingCode, otaBookingCode, limit, offset. For Westbury Inn, filter by hotelId=10; integrationId is only an optional channel filter. status must be one of PENDING, CONFIRMED, CANCELLED, CHECKEDIN, CHECKED_OUT, NO_SHOW, or MODIFIED. The response shape is { "bookings": [Guest], "total": number }.
+
+RESPONSE SHAPE — HTTP 200
+{
+  "bookings": [  {
+      "id": 4724,
+      "fullName": " Alex Example",
+      "email": "guest@example.com",
+      "address": null,
+      "phoneNumber": "+2348000000000",
+      "startDate": "2026-11-15T00:00:00.000Z",
+      "endDate": "2026-11-16T00:00:00.000Z",
+      "bookingCode": "WESTBURY-INN-BOOKING-20261115-001",
+      "otaBookingCode": "OTA-WESTBURY-INN-BOOKING-20261115-001",
+      "bookingStatus": null,
+      "bookingSource": null,
+      "property": null,
+      "propertyReference": null,
+      "bookingAmount": null,
+      "amountPaid": "0.00",
+      "outstanding": "170000.00",
+      "hotelId": 10,
+      "roomtypeId": 87,
+      "roomNumber": "121",
+      "roomId": 259,
+      "isVoid": false,
+      "isCheckedOut": false,
+      "numberOfGuests": 1,
+      "createdAt": "2026-11-15T22:46:06.805Z"
+    },],
+  "total": 0
+}
+
+Swagger defines each list item as a Guest but does not publish the Guest fields or a sample list response. This route reads bookings stored in the Channel Manager; confirm PMS sync before treating it as a complete PMS reservation list.
+
+4.2 GET BOOKING
+
+GET {BASE_URL}/channel-manager/bookings/{bookingCode}
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+
+Returns a booking record or HTTP 404. URL-encode the booking reference. Swagger's response example is:
+
+SUCCESS RESPONSE — HTTP 200
+{
+  "id": 1,
+  "bookingCode": "BK-2024-001",
+  "otaBookingCode": "BCOM-12345678",
+  "fullName": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1234567890",
+  "startDate": "2024-06-01T00:00:00.000Z",
+  "endDate": "2024-06-05T00:00:00.000Z",
+  "amount": 500,
+  "currency": "USD",
+  "source": "BOOKING_COM",
+  "status": "CONFIRMED",
+  "hotelId": 1,
+  "roomTypeId": 14,
+  "integrationId": 1,
+  "guestDetails": {
+    "nationality": "US",
+    "specialRequests": "Late check-in requested",
+    "numberOfGuests": 2,
+    "numberOfChildren": 0
+  },
+  "channelData": {
+    "confirmationNumber": "BCOM-12345678",
+    "bookingDate": "2024-05-15T10:00:00Z",
+    "paymentMethod": "Credit Card"
+  },
+  "cancelReason": null,
+  "canceledAt": null,
+  "createdAt": "2024-05-15T10:00:00.000Z",
+  "updatedAt": "2024-05-15T10:00:00.000Z"
+}
+
+4.3 CREATE BOOKING IN PMS THROUGH CHANNEL MANAGER
+
+POST {BASE_URL}/channel-manager/bookings
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+Content-Type: application/json
+
+EXAMPLE REQUEST
+{
+  "hotelId": 10,
+  "roomTypeId": "14",
+  "checkInDate": "2025-06-01",
+  "checkOutDate": "2025-06-05",
+  "roomNumber": "401",
+  "guest": {
+    "fullName": "John Doe",
+    "email": "john.doe@example.com",
+    "phoneNumber": "+1234567890"
+  },
+  "totalPrice": 500,
+  "currency": "USD",
+  "externalConfirmId": "CORN-987654",
+  "source": "WESTBURY_INN",
+  "otaBookingCode": "CORN-987654",
+  "status": "CONFIRMED",
+  "numberOfGuests": 2
+}
+
+Required fields per Swagger: hotelId, roomTypeId, checkInDate, checkOutDate, guest (fullName and email), totalPrice, currency, externalConfirmId, and source. roomNumber, bookingCode, otaBookingCode, status, and numberOfGuests are optional.
+
+HTTP 201
+Swagger documents the status code but does not define a response-body schema or example.
+
+4.4 UPDATE BOOKING
+
+PUT {BASE_URL}/channel-manager/bookings/{bookingCode}
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+Content-Type: application/json
+
+Swagger requires hotelId. Its other documented request fields are fullName, email, phoneNumber, status (PENDING or CONFIRMED), amount, numberOfGuests, currency, startDate, endDate, and cancelReason.
+
+The Channel Manager forwards supported updates to Anli PMS. To cancel, use the dedicated cancel route. Although Swagger lists currency as an accepted update field, the current forwarding code does not send it to the PMS. Room type, room number, source, amountPaid, and OTA reference are not part of the documented update request.
+
+EXAMPLE REQUEST
+{
+  "hotelId": 10,
+  "fullName": "Jane Doe",
+  "email": "jane@example.com",
+  "phoneNumber": "+2348012345678",
+  "startDate": "2026-12-11",
+  "endDate": "2026-12-13",
+  "amount": 320000,
+  "numberOfGuests": 2,
+  "status": "CONFIRMED"
+}
+
+Swagger's HTTP 200 response example:
+{
+  "id": 1,
+  "bookingCode": "BK-2024-001",
+  "otaBookingCode": "BCOM-12345678",
+  "fullName": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1234567890",
+  "startDate": "2024-06-01T00:00:00.000Z",
+  "endDate": "2024-06-05T00:00:00.000Z",
+  "amount": 500,
+  "currency": "USD",
+  "source": "BOOKING_COM",
+  "status": "CONFIRMED",
+  "hotelId": 1,
+  "roomTypeId": 14,
+  "integrationId": 1,
+  "guestDetails": {
+    "nationality": "US",
+    "specialRequests": "Late check-in requested",
+    "numberOfGuests": 2,
+    "numberOfChildren": 0
+  },
+  "channelData": {
+    "confirmationNumber": "BCOM-12345678",
+    "bookingDate": "2024-05-15T10:00:00Z",
+    "paymentMethod": "Credit Card"
+  },
+  "cancelReason": null,
+  "canceledAt": null,
+  "createdAt": "2024-05-15T10:00:00.000Z",
+  "updatedAt": "2024-05-15T10:00:00.000Z"
+}
+
+4.5 CANCEL BOOKING
+
+POST {BASE_URL}/channel-manager/bookings/{bookingCode}/cancel
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+Content-Type: application/json
+
+{
+  "hotelId": 10,
+  "reason": "Cancelled by Westbury Inn"
+}
+
+hotelId is required; reason is optional. The Channel Manager forwards the cancellation to Anli PMS.
+
+Swagger documents HTTP 200 but does not define a response body.
+
+4.6 GENERATE INVOICE PDF
+
+POST {BASE_URL}/channel-manager/bookings/{bookingCode}/invoice
+x-api-key: {CHANNEL_MANAGER_API_KEY}
+Content-Type: application/json
+Accept: application/pdf
+
+{
+  "hotelId": 10
+}
+
+Success returns an invoice PDF generated from the current PMS folio. The Channel Manager must have PMS forwarding enabled for this route.
+
+Swagger documents HTTP 200 with Content-Type: application/pdf and a binary response body.
+
+
+5. CHECK-IN AND CHECK-OUT
+
+Check-in and check-out are performed by Anli PMS staff. Westbury Inn must not change guest check-in status through the Channel Manager.

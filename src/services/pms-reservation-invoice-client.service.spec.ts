@@ -50,4 +50,32 @@ describe("PmsReservationClient invoice generation", () => {
       },
     );
   });
+
+  it("forwards cancellation to Oreon's existing partner-channel endpoint", async () => {
+    process.env.PMS_RESERVATION_CREATE_URL =
+      "https://oreon.example.com/api/v1/public/channel-manager/bookings";
+    http.post.mockReturnValue(of({ status: 200, data: { isVoid: true } }));
+
+    await expect(
+      client.cancelGuestReservation("WEB-3227-10-1", {
+        hotelId: 10,
+        reason: "Cancelled by Westbury Inn",
+      }),
+    ).resolves.toEqual({
+      success: true,
+      status: 200,
+      data: { isVoid: true },
+    });
+
+    expect(http.post).toHaveBeenCalledWith(
+      "https://oreon.example.com/api/v1/partner/channel/bookings/WEB-3227-10-1/cancel",
+      { hotelId: 10, reason: "Cancelled by Westbury Inn" },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": "test-key",
+        },
+      },
+    );
+  });
 });

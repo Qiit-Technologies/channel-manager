@@ -11,64 +11,108 @@ Purpose: Connect Corniche to Anli through the Anli Channel Manager.
 Corniche connects to the Channel Manager. Corniche must not call Anli PMS endpoints directly.
 
 Corniche → Anli Channel Manager → Anli PMS
-Anli PMS → Anli Channel Manager → Corniche
+Anli PMS → Corniche hotel webhook (direct)
 
-The Channel Manager is the integration gateway. It receives channel booking notifications, forwards supported booking operations to the PMS, and provides channel availability and rate data. Corniche will receive only Channel Manager API connection details.
+The Channel Manager is the gateway for Corniche's availability and reservation API calls. Separately, Anli PMS sends event notifications directly to the hotel's configured webhook URL; these notifications do not pass through the Channel Manager.
 
 BASE URL
 https://channel-manager-8rq4.onrender.com/api/v1
 
 AUTHENTICATION
-Protected routes use the x-api-key header. Anli will provide the Channel Manager API key securely. Use HTTPS and do not put credentials in URLs or logs.
+Protected routes use the x-api-key header. Obtain the Channel Manager API key through the agreed secure credential-sharing process. Use HTTPS and do not put credentials in URLs or logs.
 
 PROPERTY
 hotelId: 8
-Use this hotel ID for live availability requests. The live availability endpoint does not require a channel integrationId or room-type mapping.
+Use this hotel ID for live availability requests. Availability is checked directly against the hotel's PMS inventory using the Anli room-type ID.
+
+1.1 CORNICHE ENDPOINT INDEX
+
+The following are Channel Manager routes under {BASE_URL}. Include x-api-key on the protected routes.
+
+READ PROPERTY INVENTORY
+GET /channel-manager/hotels/8/roomtypes
+Returns Anli room types and rooms. Use the Anli room-type ID (roomtypeId) with the live availability request.
+
+READ LIVE AVAILABILITY AND STAY PRICE
+GET /channel-manager/availability/live?hotelId=8&roomtypeId={roomtypeId}&checkInDate={YYYY-MM-DD}&checkOutDate={YYYY-MM-DD}
+Reads date-specific availability and calculated pricing directly from the PMS.
+
+READ RESERVATIONS
+GET /channel-manager/bookings?hotelId=8&limit=100&offset=0
+GET /channel-manager/bookings/{bookingCode}
+
+WRITE RESERVATIONS — USE THESE API ROUTES
+POST /channel-manager/bookings — Swagger documents the external-booking request below; confirm the duplicate-handler issue is resolved before production use.
+PUT /channel-manager/bookings/{bookingCode} — update; hotelId is required.
+POST /channel-manager/bookings/{bookingCode}/cancel — cancel; hotelId is required.
+POST /channel-manager/bookings/{bookingCode}/invoice — return invoice PDF; hotelId is required.
+
+Use the Channel Manager booking API for Corniche-initiated writes. Section 2 describes outbound Anli notifications only; it is not a booking-write endpoint.
+
+There is no separate booking-confirmation endpoint. Set status to CONFIRMED when creating a booking or update its status to CONFIRMED through the update route. Before using create in production, verify that the documented external-booking contract is enabled for this integration.
+
+CHECK-IN STATUS
+Booking list and detail responses may contain a stored bookingStatus, but there is no dedicated live PMS check-in-status endpoint. The guest check-in action is not API-key protected and must not be used by Corniche. Check-in remains an Anli PMS staff operation. If Corniche needs a live check-in status, include a secured status-read endpoint in the integration requirements before relying on it.
 
 
-2. CORNICHE → CHANNEL MANAGER: BOOKING WEBHOOK
+2. ANLI PMS → CORNICHE HOTEL WEBHOOK (EVENT NOTIFICATIONS)
 
-Corniche sends booking events to the Channel Manager webhook route:
+Anli sends hotel-level event notifications directly to the URL configured for hotelId 8. This is separate from the Channel Manager APIs in Sections 3 and 4. Use the booking API for Corniche-initiated booking reads and writes; the webhook is not a second booking-creation path.
 
-POST https://channel-manager-8rq4.onrender.com/api/v1/channel-manager/webhooks/CORNICHE
-Content-Type: application/json
+Do not create or update a booking again when receiving a webhook for that same booking. Treat these messages as notifications that Anli state changed, not as commands to Anli.
 
-Current handler requires hotelId and accepts a channel webhook body. The Corniche adapter expects event_type, timestamp, and data. For a reservation, use this structure:
+2.1 CONFIGURATION
+
+Webhook notifications require an enabled hotel-level configuration for hotelId 8 with the Corniche receiver URL, HTTP verb, shared secret, and event allowlist. Provide the receiver URL and use the agreed verb and securely shared secret. Webhook-management API routes are not part of Corniche's integration; do not call them from Corniche.
+
+- Provide the Corniche endpoint URL that will receive Anli event notifications.
+- Supported verbs are GET, POST, PUT, and PATCH. POST is the default and is recommended unless Corniche requires another verb.
+- Use a strong shared secret and store it securely.
+- Configure only the event types Corniche needs. A null/unset event list allows all event types; an empty list allows none.
+- Keep this hotel-level webhook separate from channel/integration webhook settings.
+
+2.2 PAYLOAD AND AUTHENTICATION
+
+For POST, PUT, and PATCH, Anli sends this JSON envelope (data fields vary by event):
 
 {
   "hotelId": 8,
-  "event_type": "reservation",
+  "eventType": "BOOKING_NEW",
+  "event": "BOOKING_NEW",
+  "timestamp": "2026-11-16T09:00:00.000Z",
   "data": {
-    "reservation_id": "CORN-987654",
-    "property_id": "CORNICHE-PROP-008",
-    "room_type_id": 12,
-    "check_in": "2026-12-10",
-    "check_out": "2026-12-12",
-    "rooms": 1,
-    "number_of_guests": 2,
-    "amount_paid": 0,
-    "guest": {
-      "name": "Jane Doe",
-      "email": "jane@example.com",
-      "phone": "+2348012345678"
-    }
+    "id": 123,
+    "bookingCode": "ANLI-BOOKING-123"
   }
 }
 
-SUCCESS RESPONSE — HTTP 202
-{
-  "status": "accepted",
-  "message": "Webhook processed successfully"
-}
+Headers include Content-Type: application/json, X-Webhook-Event, and X-Webhook-Timestamp. When a secret is configured, Anli also sends X-Webhook-Signature, an HMAC-SHA256 hex digest of the exact JSON payload using the shared secret, and X-Secret-Key. Verify the signature against the exact received payload and do not log or expose the shared secret or signature. For GET, Anli sends the payload as query parameters rather than a JSON request body; use POST so the payload and signature can be verified consistently.
 
-The adapter reads:
-- event_type: reservation, cancellation, or modification.
-- data.reservation_id, booking_id, or id as the channel reservation reference.
-- data.room_type_id, check_in, check_out, rooms, number_of_guests.
-- data.guest.name, data.guest.email, data.guest.phone or phoneNumber.
-- data.amount_paid and data.outstanding when available.
+2.3 EVENTS CURRENTLY EMITTED BY ANLI
 
-The handler responds HTTP 202 when it accepts the webhook. The current webhook route does not declare API-key authentication; Anli must agree and configure the production webhook security method before go-live.
+| Event | Emitted after |
+| --- | --- |
+| BOOKING_NEW | A reservation is created |
+| BOOKING_MODIFY | A reservation is updated |
+| BOOKING_CANCEL | A reservation is cancelled |
+| CHECK_IN | A guest is checked in |
+| CHECK_OUT | A guest is checked out |
+| RATE_CHANGE | A room price is changed through the room-price update path |
+| AVAILABILITY_CHANGE | A room status is changed or a room is marked out of order |
+| TEST | An authorized operator sends a webhook test |
+
+BOOKING_NO_SHOW is listed as a supported event type, but no no-show event is currently emitted. Do not subscribe to or depend on it. AVAILABILITY_CHANGE is not currently emitted just because a reservation is created or cancelled. The event-list endpoint lists names; it does not prove that an event is emitted.
+
+The data object is event-specific. Booking events include booking identifiers and reservation fields; room events contain room and change details. Corniche must handle absent or additional data fields without failing the receiver.
+
+2.4 DELIVERY BEHAVIOR AND DEVELOPER CHECKLIST
+
+- Outbound HTTP delivery runs in the background: the PMS operation does not wait for Corniche's HTTP response. Do not design Corniche's receiver or integration flow to make PMS operations depend on webhook delivery.
+- A webhook failure is logged by Anli but is not returned as a PMS operation failure. The current dispatcher has no durable event queue or automatic retry, and payloads have no stable event ID. This is best-effort notification, not guaranteed delivery or an exactly-once feed.
+- Validate the HMAC signature, verify hotelId and eventType, return a prompt 2xx response, and process any slower follow-up work asynchronously on Corniche's side.
+- Make the receiver safe to process a repeated notification. There is no stable webhook event ID, so use the booking/room identifiers and event data for any applicable duplicate protection.
+- Keep the Channel Manager booking API as the authoritative Corniche booking read/write path. Do not rely on the webhook as the only record of a booking or as a substitute for reading booking state.
+- In the agreed test environment, configure hotelId 8, send a TEST event, verify method, headers, signature, and envelope at Corniche, then exercise representative booking, check-in/out, rate, and room-status actions. Confirm the configured event allowlist includes the events being tested.
 
 
 3. CHANNEL MANAGER API: ROOMS, AVAILABILITY, RATES
@@ -80,9 +124,10 @@ All routes in this section are Channel Manager routes. They do not expose Anli P
 GET {BASE_URL}/channel-manager/hotels/8/roomtypes
 x-api-key: {CHANNEL_MANAGER_API_KEY}
 
-The Channel Manager fetches the hotel's room types and rooms from Anli PMS and returns them through this route. Anli will provide the room-type mapping to use for booking writes.
+The Channel Manager fetches the hotel's room types and rooms from Anli PMS and returns them through this route. Use the Anli room-type ID for availability and booking requests.
 
-SUCCESS RESPONSE — HTTP 200
+ILLUSTRATIVE RESPONSE — HTTP 200
+Swagger documents the HTTP status but does not define a response schema for this route.
 {
   "hotelId": 8,
   "count": 1,
@@ -111,9 +156,9 @@ SUCCESS RESPONSE — HTTP 200
 GET {BASE_URL}/channel-manager/availability/live?hotelId=8&roomtypeId=15&checkInDate=2025-06-01&checkOutDate=2025-06-05
 x-api-key: {CHANNEL_MANAGER_API_KEY}
 
-Required query fields: hotelId, roomtypeId, checkInDate, and checkOutDate. Dates use YYYY-MM-DD; check-in is inclusive and check-out is exclusive. This endpoint checks live PMS availability and rates for the requested room type and stay. It does not require an integrationId or a channel room-type mapping.
+Required query fields: hotelId, roomtypeId, checkInDate, and checkOutDate. Dates use YYYY-MM-DD; check-in is inclusive and check-out is exclusive. This endpoint checks live PMS availability and rates for the requested room type and stay.
 
-roomtypeId is the room type ID in Anli PMS, not a channel-specific mapping. The existing /channel-manager/availability endpoint returns stored channel records; use /channel-manager/availability/live for this direct date-range check.
+roomtypeId is the room type ID in Anli PMS.
 
 SUCCESS RESPONSE — HTTP 200
 {
@@ -139,116 +184,87 @@ SUCCESS RESPONSE — HTTP 200
   ]
 }
 
-3.3 RATE PLANS
-
-GET {BASE_URL}/channel-manager/integrations/{integrationId}/rate-plans
-x-api-key: {CHANNEL_MANAGER_API_KEY}
-
-This returns stored rate-plan definitions for the integration, not necessarily final daily sell rates. Records may include roomtypeId, channelRatePlanId, channelRatePlanName, ratePlanType, baseRate, currency, minStay, maxStay, arrival/departure restrictions, cancellationPolicy, seasonalRates, dayOfWeekRates, specialDates, rateModifier, restrictions, inclusions, and exclusions.
-
-SUCCESS RESPONSE — HTTP 200
-[
-  {
-    "id": 9,
-    "integrationId": 42,
-    "roomtypeId": 12,
-    "channelRatePlanId": "BAR",
-    "channelRatePlanName": "Best Available Rate",
-    "ratePlanType": "STANDARD",
-    "baseRate": "150000.00",
-    "currency": "NGN",
-    "minStay": 1,
-    "maxStay": 21,
-    "closedToArrival": false,
-    "closedToDeparture": false,
-    "advanceBookingDays": 180,
-    "cancellationPolicy": "Free cancellation up to 48 hours before arrival",
-    "seasonalRates": {},
-    "dayOfWeekRates": {},
-    "specialDates": {},
-    "rateModifier": 0,
-    "rateModifierType": "PERCENTAGE",
-    "isActive": true,
-    "restrictions": {"minStay": 1, "maxStay": 21},
-    "inclusions": ["WiFi", "Breakfast"],
-    "exclusions": [],
-    "createdAt": "2026-01-15T10:05:00.000Z",
-    "updatedAt": "2026-01-15T10:05:00.000Z"
-  }
-]
-
-The live availability endpoint above calculates availability and rates from the PMS for the requested stay. The separate rate-plan endpoint returns stored Channel Manager rate-plan definitions and should not be treated as a final stay price.
-
-
-4. CHANNEL MANAGER API: RESERVATIONS
+4. CHANNEL MANAGER API: RESERVATIONS — CORNICHE'S BOOKING FLOW
 
 4.1 LIST BOOKINGS
 
 GET {BASE_URL}/channel-manager/bookings?hotelId=8&limit=100&offset=0
 x-api-key: {CHANNEL_MANAGER_API_KEY}
 
-Optional query fields: hotelId, integrationId, createdFrom, createdTo, checkInFrom, checkInTo, source, status, bookingCode, otaBookingCode, limit, offset. Response contains bookings and total.
+Swagger query fields (all optional): hotelId, integrationId, createdFrom, createdTo, checkInFrom, checkInTo, source, status, bookingCode, otaBookingCode, limit, offset. For Corniche, filter by hotelId=8; integrationId is only an optional channel filter. status must be one of PENDING, CONFIRMED, CANCELLED, CHECKEDIN, CHECKED_OUT, NO_SHOW, or MODIFIED. The response shape is { "bookings": [Guest], "total": number }.
 
-SUCCESS RESPONSE — HTTP 200
+RESPONSE SHAPE — HTTP 200
 {
-  "bookings": [
-    {
-      "id": 501,
-      "fullName": "Jane Doe",
-      "email": "jane@example.com",
-      "phoneNumber": "+2348012345678",
-      "startDate": "2026-12-10T00:00:00.000Z",
-      "endDate": "2026-12-12T00:00:00.000Z",
-      "bookingCode": "ANL-123456",
-      "otaBookingCode": "CORN-987654",
-      "bookingStatus": "CONFIRMED",
-      "bookingSource": "CORNICHE",
-      "property": "Corniche",
-      "propertyReference": "REF-8",
-      "bookingAmount": "300000.00",
+  "bookings": [  {
+      "id": 4724,
+      "fullName": " FRANK ANIEDU NSE",
+      "email": "thecornichhehotelng@gmail.com",
+      "address": null,
+      "phoneNumber": "07034600000",
+      "startDate": "2026-11-15T00:00:00.000Z",
+      "endDate": "2026-11-16T00:00:00.000Z",
+      "bookingCode": "CORNICHE-HOTEL-FRANK-121-20261115-224606",
+      "otaBookingCode": "OTA-CORNICHE-HOTEL-FRANK-121-20261115-224606",
+      "bookingStatus": null,
+      "bookingSource": null,
+      "property": null,
+      "propertyReference": null,
+      "bookingAmount": null,
       "amountPaid": "0.00",
-      "outstanding": "300000.00",
+      "outstanding": "170000.00",
       "hotelId": 8,
-      "roomtypeId": 12,
-      "roomNumber": "401",
-      "roomId": 401,
+      "roomtypeId": 87,
+      "roomNumber": "121",
+      "roomId": 259,
       "isVoid": false,
       "isCheckedOut": false,
-      "numberOfGuests": 2,
-      "createdAt": "2026-11-15T12:00:00.000Z"
-    }
-  ],
-  "total": 1
+      "numberOfGuests": 1,
+      "createdAt": "2026-11-15T22:46:06.805Z"
+    },],
+  "total": 0
 }
 
-The endpoint lists bookings stored in the Channel Manager. Anli must confirm that the relevant PMS reservations are synchronized into this store before Corniche treats it as a complete PMS reservation list.
+Swagger defines each list item as a Guest but does not publish the Guest fields or a sample list response. This route reads bookings stored in the Channel Manager; confirm PMS sync before treating it as a complete PMS reservation list.
 
 4.2 GET BOOKING
 
 GET {BASE_URL}/channel-manager/bookings/{bookingCode}
 x-api-key: {CHANNEL_MANAGER_API_KEY}
 
-Returns the stored Channel Manager booking or HTTP 404. URL-encode the booking reference.
+Returns a booking record or HTTP 404. URL-encode the booking reference. Swagger's response example is:
 
 SUCCESS RESPONSE — HTTP 200
 {
-  "id": 501,
-  "fullName": "Jane Doe",
-  "email": "jane@example.com",
-  "phoneNumber": "+2348012345678",
-  "bookingCode": "ANL-123456",
-  "otaBookingCode": "CORN-987654",
-  "bookingStatus": "CONFIRMED",
-  "bookingSource": "CORNICHE",
-  "startDate": "2026-12-10T00:00:00.000Z",
-  "endDate": "2026-12-12T00:00:00.000Z",
-  "bookingAmount": "300000.00",
-  "amountPaid": "0.00",
-  "outstanding": "300000.00",
-  "hotelId": 8,
-  "roomtypeId": 12,
-  "roomNumber": "401",
-  "numberOfGuests": 2
+  "id": 1,
+  "bookingCode": "BK-2024-001",
+  "otaBookingCode": "BCOM-12345678",
+  "fullName": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1234567890",
+  "startDate": "2024-06-01T00:00:00.000Z",
+  "endDate": "2024-06-05T00:00:00.000Z",
+  "amount": 500,
+  "currency": "USD",
+  "source": "BOOKING_COM",
+  "status": "CONFIRMED",
+  "hotelId": 1,
+  "roomTypeId": 14,
+  "integrationId": 1,
+  "guestDetails": {
+    "nationality": "US",
+    "specialRequests": "Late check-in requested",
+    "numberOfGuests": 2,
+    "numberOfChildren": 0
+  },
+  "channelData": {
+    "confirmationNumber": "BCOM-12345678",
+    "bookingDate": "2024-05-15T10:00:00Z",
+    "paymentMethod": "Credit Card"
+  },
+  "cancelReason": null,
+  "canceledAt": null,
+  "createdAt": "2024-05-15T10:00:00.000Z",
+  "updatedAt": "2024-05-15T10:00:00.000Z"
 }
 
 4.3 CREATE BOOKING IN PMS THROUGH CHANNEL MANAGER
@@ -257,75 +273,31 @@ POST {BASE_URL}/channel-manager/bookings
 x-api-key: {CHANNEL_MANAGER_API_KEY}
 Content-Type: application/json
 
-**Contract to confirm with Anli before Corniche implements this request:** the Channel Manager controller currently declares two `POST /channel-manager/bookings` handlers with different request contracts. One expects flat fields such as bookingCode, fullName, email, startDate, endDate, hotelId, and roomTypeId. The other uses the external-booking DTO, requiring hotelId, roomTypeId, checkInDate, checkOutDate, guest, totalPrice, externalConfirmId, and source. These contracts are incompatible, and the checked-in OpenAPI file does not describe this route. Anli must select and publish one contract before Corniche sends create requests.
-
-The flat-field handler maps aliases including name/guestName, phone, checkInDate/checkIn, checkOutDate/checkOut, roomTypeId/roomType, totalPrice/bookingAmount, source/status, propertyRef, and externalConfirmId. It defaults amountPaid to the reservation amount when omitted, and does not forward currency. Do not rely on these details until Anli confirms which handler is active and aligns its Swagger schema and implementation.
-
-EXAMPLE REQUEST — CANDIDATE FLAT-FIELD CONTRACT ONLY
+EXAMPLE REQUEST
 {
   "hotelId": 8,
-  "bookingCode": "ANL-123456",
-  "otaBookingCode": "CORN-987654",
-  "fullName": "Jane Doe",
-  "email": "jane@example.com",
-  "phoneNumber": "+2348012345678",
-  "startDate": "2026-12-10",
-  "endDate": "2026-12-12",
-  "roomTypeId": 12,
-  "roomNumber": "401",
-  "amount": 300000,
-  "amountPaid": 0,
-  "numberOfGuests": 2,
-  "source": "CORNICHE",
-  "status": "CONFIRMED"
-}
-
-POSSIBLE SUCCESS RESPONSE FROM THE FLAT-FIELD HANDLER — HTTP 201
-The handler returns a merged PMS result and Channel Manager fields; the exact PMS fields depend on the Anli response.
-{
-  "hotelId": 8,
-  "bookingCode": "ANL-123456",
-  "otaBookingCode": "CORN-987654",
-  "fullName": "Jane Doe",
-  "email": "jane@example.com",
-  "bookingStatus": "CONFIRMED",
-  "oreonBookingCode": "ANL-123456",
-  "oreonForwarded": true
-}
-
-DO NOT USE THIS EXAMPLE UNTIL ANLI REMOVES THE DUPLICATE ROUTE AND CONFIRMS THE ACTIVE CONTRACT.
-
-ALTERNATIVE EXAMPLE REQUEST — EXTERNAL-BOOKING DTO CONTRACT
-{
-  "hotelId": 8,
-  "roomTypeId": "12",
-  "checkInDate": "2026-12-10",
-  "checkOutDate": "2026-12-12",
+  "roomTypeId": "14",
+  "checkInDate": "2025-06-01",
+  "checkOutDate": "2025-06-05",
   "roomNumber": "401",
   "guest": {
-    "fullName": "Jane Doe",
-    "email": "jane@example.com",
-    "phoneNumber": "+2348012345678"
+    "fullName": "John Doe",
+    "email": "john.doe@example.com",
+    "phoneNumber": "+1234567890"
   },
-  "totalPrice": 300000,
-  "currency": "NGN",
+  "totalPrice": 500,
+  "currency": "USD",
   "externalConfirmId": "CORN-987654",
-  "otaBookingCode": "CORN-987654",
   "source": "CORNICHE",
+  "otaBookingCode": "CORN-987654",
   "status": "CONFIRMED",
   "numberOfGuests": 2
 }
 
-ALTERNATIVE SUCCESS RESPONSE FROM THE EXTERNAL-BOOKING HANDLER — HTTP 201
-{
-  "success": true,
-  "bookingReference": "ANL-123456",
-  "sourceReference": "CORN-987654",
-  "status": "CONFIRMED",
-  "oreonForwarded": true
-}
+Required fields per Swagger: hotelId, roomTypeId, checkInDate, checkOutDate, guest (fullName and email), totalPrice, currency, externalConfirmId, and source. roomNumber, bookingCode, otaBookingCode, status, and numberOfGuests are optional.
 
-This second contract is also registered on the same POST route, so it is not safe to assume Corniche can select between these two payloads. Anli must keep one handler and publish its request and response contract.
+HTTP 201
+Swagger documents the status code but does not define a response-body schema or example.
 
 4.4 UPDATE BOOKING
 
@@ -333,9 +305,9 @@ PUT {BASE_URL}/channel-manager/bookings/{bookingCode}
 x-api-key: {CHANNEL_MANAGER_API_KEY}
 Content-Type: application/json
 
-hotelId is required. The documented request fields are fullName, email, phoneNumber, startDate, endDate, amount, numberOfGuests, status (PENDING or CONFIRMED), and cancelReason. The request mapper also accepts checkInDate/checkOutDate, bookingStatus, and voidReason as aliases.
+Swagger requires hotelId. Its other documented request fields are fullName, email, phoneNumber, status (PENDING or CONFIRMED), amount, numberOfGuests, currency, startDate, endDate, and cancelReason.
 
-The Channel Manager forwards supported updates to Anli PMS. To cancel, use the dedicated cancel route. Room type, room number, currency, source, amountPaid, and OTA reference are not changed by this update mapping.
+The Channel Manager forwards supported updates to Anli PMS. To cancel, use the dedicated cancel route. Although Swagger lists currency as an accepted update field, the current forwarding code does not send it to the PMS. Room type, room number, source, amountPaid, and OTA reference are not part of the documented update request.
 
 EXAMPLE REQUEST
 {
@@ -350,10 +322,38 @@ EXAMPLE REQUEST
   "status": "CONFIRMED"
 }
 
-SUCCESS RESPONSE — HTTP 200
+Swagger's HTTP 200 response example:
 {
-  "bookingCode": "ANL-123456",
-  "oreonForwarded": true
+  "id": 1,
+  "bookingCode": "BK-2024-001",
+  "otaBookingCode": "BCOM-12345678",
+  "fullName": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1234567890",
+  "startDate": "2024-06-01T00:00:00.000Z",
+  "endDate": "2024-06-05T00:00:00.000Z",
+  "amount": 500,
+  "currency": "USD",
+  "source": "BOOKING_COM",
+  "status": "CONFIRMED",
+  "hotelId": 1,
+  "roomTypeId": 14,
+  "integrationId": 1,
+  "guestDetails": {
+    "nationality": "US",
+    "specialRequests": "Late check-in requested",
+    "numberOfGuests": 2,
+    "numberOfChildren": 0
+  },
+  "channelData": {
+    "confirmationNumber": "BCOM-12345678",
+    "bookingDate": "2024-05-15T10:00:00Z",
+    "paymentMethod": "Credit Card"
+  },
+  "cancelReason": null,
+  "canceledAt": null,
+  "createdAt": "2024-05-15T10:00:00.000Z",
+  "updatedAt": "2024-05-15T10:00:00.000Z"
 }
 
 4.5 CANCEL BOOKING
@@ -369,11 +369,7 @@ Content-Type: application/json
 
 hotelId is required; reason is optional. The Channel Manager forwards the cancellation to Anli PMS.
 
-SUCCESS RESPONSE — HTTP 200
-{
-  "bookingCode": "ANL-123456",
-  "oreonForwarded": true
-}
+Swagger documents HTTP 200 but does not define a response body.
 
 4.6 GENERATE INVOICE PDF
 
@@ -388,25 +384,9 @@ Accept: application/pdf
 
 Success returns an invoice PDF generated from the current PMS folio. The Channel Manager must have PMS forwarding enabled for this route.
 
-SUCCESS RESPONSE — HTTP 200
-Content-Type: application/pdf
-Content-Disposition: attachment; filename="invoice-ANL-123456.pdf"
-Body: PDF binary data (not JSON).
+Swagger documents HTTP 200 with Content-Type: application/pdf and a binary response body.
 
 
 5. CHECK-IN AND CHECK-OUT
 
 Check-in and check-out are performed by Anli PMS staff. Corniche must not change guest check-in status through the Channel Manager.
-
-
-6. IMPORTANT IMPLEMENTATION STATUS
-
-- Corniche should use the Channel Manager base URL and routes above; do not call Anli PMS endpoints directly.
-- Reservation create, update, cancellation, and invoice requests pass through the Channel Manager. Anli must enable and test its internal PMS forwarding configuration.
-- Live availability and rates for a requested hotel stay are fetched from the PMS through the Channel Manager. This call does not use a channel integrationId or room-type mapping. The rate-plan endpoint remains a separate read of stored Channel Manager data.
-- The current Corniche adapter has a hard-coded outbound API base URL that Corniche has not confirmed. Anli must correct that endpoint and validate the Corniche API contract before enabling Channel Manager pushes of availability, rates, or other updates to Corniche.
-- The current Corniche webhook adapter forwards reservation creation to PMS, but its cancellation and modification event handlers do not currently forward those changes to PMS. Anli must complete and test those event flows before Corniche uses them for live booking updates.
-- The Channel Manager webhook route currently has no API-key guard. Anli and Corniche must agree on an authentication/signature or network allowlist mechanism before exposing it for production traffic.
-- Anli will provide the final production credentials and confirm the applicable API routes before Corniche begins testing.
-
-Corniche and Anli should test room mapping, webhook delivery, create/read/update/cancel, invoice PDF delivery, duplicate handling, and failure responses in an agreed test environment before production cutover.

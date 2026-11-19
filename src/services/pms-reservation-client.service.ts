@@ -194,7 +194,12 @@ export class PmsReservationClient {
     reference: string,
     action?: "cancel" | "invoice",
   ): string | undefined {
-    const base = this.baseUrl?.replace(/\/+$/, "");
+    const base = this.baseUrl
+      ?.replace(/\/+$/, "")
+      .replace(
+        /\/public\/channel-manager\/bookings$/,
+        "/partner/channel/bookings",
+      );
     if (!base) return undefined;
     return `${base}/${encodeURIComponent(reference)}${action ? `/${action}` : ""}`;
   }
